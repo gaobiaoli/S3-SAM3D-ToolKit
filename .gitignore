@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Dataset/model artifacts must not be committed.
+data/
+datasets/
+outputs/
+cache/
+*.glb
+*.gltf
+*.ply
+*.exr
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+
+# The repository's minimal real-data samples are intentional tracked fixtures.
+!dataset/
+!dataset/**
+
+# Keep intentionally small fixtures if added later.
+!tests/fixtures/**/*.npy
+!tests/fixtures/**/*.npz
+
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

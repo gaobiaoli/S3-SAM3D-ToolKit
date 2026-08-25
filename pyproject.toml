@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "s3dis-sam3d-toolkit"
+version = "0.1.0"
+description = "Reusable S3DIS/2D-3D-S processing and SAM3D GLB pose-loading tools"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Project contributors" }]
+dependencies = [
+  "numpy>=1.24",
+  "open3d>=0.18",
+  "Pillow>=10.0",
+  "requests>=2.31",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+exr = ["opencv-python>=4.8"]
+ifc = ["ifcopenshell>=0.8"]
+dev = ["pytest>=8.0", "ruff>=0.6", "trimesh>=4.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/s3dis_sam3d"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
