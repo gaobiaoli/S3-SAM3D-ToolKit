@@ -9,9 +9,9 @@ import numpy as np
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
-from .pointcloud import random_downsample, transform_points
+from .pointcloud import random_downsample
 from .s3dis import S3DISDataset
-from .s23dis import FrameInfo, S23Dataset
+from .s23dis import Frame, S23Dataset
 
 
 class RoomImageAnnotationsParser:
@@ -297,10 +297,7 @@ class RoomImageAnnotationsParser:
 
 @dataclass(frozen=True)
 class FrameProjection:
-    frame: FrameInfo
-    image_shape: tuple[int, int]
-    intrinsics: np.ndarray | None
-    world_to_camera: np.ndarray
+    frame: Frame
     observed_depth: np.ndarray | None
 
 
@@ -317,26 +314,15 @@ def bbox_iou(box_a, box_b):
     return 0.0 if union == 0 else float(intersection / union)
 
 
-def prepare_frame_projection(dataset, frame, occlusion_check=True):
+def prepare_frame_projection(frame, occlusion_check=True):
     """Load frame geometry once for all instances projected into that frame."""
-    pose = dataset.load_pose(frame)
-    with Image.open(frame.rgb_path) as image:
-        image_shape = (image.height, image.width)
-    observed_depth = None
-    if occlusion_check and frame.depth_path is not None:
-        observed_depth = dataset.load_depth(frame.depth_path)
-    intrinsics = None if dataset.image_type == "pano" else dataset.intrinsics(pose)
     return FrameProjection(
         frame,
-        image_shape,
-        intrinsics,
-        np.linalg.inv(dataset.camera_to_world_from_pose(pose)),
-        observed_depth,
+        frame.depth if occlusion_check and frame.has_depth else None,
     )
 
 
 def project_instance(
-    dataset,
     context,
     points_world,
     *,
@@ -344,12 +330,8 @@ def project_instance(
     depth_tolerance=0.05,
 ):
     """Project one S3DIS instance and return its bbox/visibility annotation."""
-    points_camera = transform_points(points_world, context.world_to_camera)
-    pixels, point_depth = dataset.project_camera_points(
-        points_camera,
-        context.image_shape,
-        context.intrinsics,
-    )
+    frame = context.frame
+    pixels, point_depth = frame.project_world_points(points_world)
     if not len(pixels):
         return None
 
@@ -359,7 +341,7 @@ def project_instance(
         float(pixels[:, 0].max()),
         float(pixels[:, 1].max()),
     )
-    height, width = context.image_shape
+    height, width = frame.image_shape
     inside = (
         (pixels[:, 0] >= 0)
         & (pixels[:, 0] < width)
@@ -417,7 +399,7 @@ def project_instance(
             occlusion_ratio = occluded_count / compared
             visible_ratio = visible_count / compared
 
-    wraps = dataset.image_type == "pano" and float(np.ptp(pixels[:, 0])) > width / 2
+    wraps = frame.projection_type == "pano" and float(np.ptp(pixels[:, 0])) > width / 2
     return {
         "bbox_xyxy": list(bbox),
         "bbox_uncropped_xyxy": list(uncropped),
@@ -433,13 +415,22 @@ def project_instance(
 class RoomImageBatchAnnotator:
     """Project S3DIS room instances into all matching 2D-3D-S frames."""
 
-    def __init__(self, s3dis_root, s23_area_path, image_type="regular", seed=42):
+    def __init__(self, s3dis_root, s23_area_path, projection_type="regular", seed=42):
         self.s3dis = S3DISDataset(s3dis_root)
-        self.s23 = S23Dataset(s23_area_path, image_type=image_type)
+        self.s23 = S23Dataset(s23_area_path, projection_type=projection_type)
         self.seed = seed
 
     def _instances(self, room, selected_classes, max_instance_points):
-        clouds = self.s3dis.object_clouds(room, selected_classes or None)
+        selected = None if not selected_classes else {
+            str(value).strip().casefold() for value in selected_classes
+        }
+        clouds = [
+            instance.point_cloud
+            for instance in room.instances
+            if selected is None
+            or instance.class_name in selected
+            or str(instance.class_id) in selected
+        ]
         if max_instance_points is not None:
             clouds = [
                 random_downsample(cloud, max_instance_points, seed=self.seed)
@@ -460,22 +451,21 @@ class RoomImageBatchAnnotator:
         max_frames=None,
         progress=True,
     ):
-        room = self.s3dis.resolve_room(room_name)
+        room = self.s3dis.room(room_name)
         frames = self.s23.room_frames(room.name)
         if max_frames is not None:
             frames = frames[:max_frames]
-        instances = self._instances(room.key, selected_classes, max_instance_points)
+        instances = self._instances(room, selected_classes, max_instance_points)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         files = []
         annotation_count = 0
         for frame in tqdm(frames, desc=f"Annotating {room.name}", disable=not progress):
-            context = prepare_frame_projection(self.s23, frame, occlusion_check)
+            context = prepare_frame_projection(frame, occlusion_check)
             annotations = []
             for instance in instances:
                 annotation = project_instance(
-                    self.s23,
                     context,
                     instance.xyz,
                     min_pixels=min_pixels,

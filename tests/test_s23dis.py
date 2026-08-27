@@ -5,10 +5,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
-import open3d as o3d
 from PIL import Image
 
-from s3dis_sam3d import S23Dataset, parse_stem
+from s3dis_sam3d import Frame, S23Dataset, parse_stem
 from s3dis_sam3d import s23dis as s23dis_module
 
 
@@ -44,10 +43,34 @@ class S23DatasetTest(unittest.TestCase):
         self.assertEqual(self.dataset.list_rooms(), [("office_1", 1)])
         frame = self.dataset.get_frame("office_1", 7)
         self.assertEqual(frame.uuid, "0123456789abcdef")
-        point_map = self.dataset.point_map("office_1", 7)
+        point_map = frame.point_map()
         np.testing.assert_allclose(point_map[1, 1], [0.5, 0.5, 1])
         cloud = self.dataset.reconstruct("office_1", frame_id=7, stride=1, voxel_size=None)
         np.testing.assert_allclose(cloud.xyz[-1], [1.5, 2.5, 4])
+
+    def test_frame_owns_its_data_and_camera_properties(self):
+        frame = self.dataset.get_frame("office_1", 7)
+
+        self.assertIsInstance(frame, Frame)
+        self.assertEqual(frame.projection_type, "regular")
+        self.assertTrue(frame.has_depth)
+        self.assertFalse(frame.has_xyz)
+        self.assertIs(frame.pose, frame.pose)
+        self.assertEqual(frame.image_shape, (2, 2))
+        np.testing.assert_allclose(frame.rgb, 128 / 255)
+        np.testing.assert_allclose(frame.depth, 1)
+        np.testing.assert_allclose(
+            frame.intrinsics,
+            [[2, 0, 0], [0, 2, 0], [0, 0, 1]],
+        )
+        np.testing.assert_allclose(frame.camera_to_world[:3, 3], [1, 2, 3])
+        np.testing.assert_allclose(
+            frame.world_to_camera @ frame.camera_to_world,
+            np.eye(4),
+            atol=1e-7,
+        )
+        with self.assertRaises(FileNotFoundError):
+            _ = frame.xyz
 
     def test_default_area_path_comes_from_config(self):
         with patch.object(
@@ -81,35 +104,40 @@ class S23DatasetTest(unittest.TestCase):
         preferred = S23Dataset(self.area, default_uuid=expected[1])
         self.assertEqual(preferred.get_frame("office_1", 7).uuid, expected[1])
 
-    def test_euler_rotation(self):
-        rotation = self.dataset.euler_xyz_to_matrix(np.array([0, 0, np.pi / 2]))
-        np.testing.assert_allclose(rotation @ [1, 0, 0], [0, 1, 0], atol=1e-7)
-
     def test_world_point_projection(self):
-        pixels, depth = self.dataset.project_world_points(
-            [[1, 2, 4], [1, 2, 2]], "office_1", 7
-        )
+        frame = self.dataset.get_frame("office_1", 7)
+        pixels, depth = frame.project_world_points([[1, 2, 4], [1, 2, 2]])
         np.testing.assert_allclose(pixels, [[0, 0]])
         np.testing.assert_allclose(depth, [1])
 
-    def test_frame_getters_share_the_core_loading_logic(self):
+    def test_frame_is_the_single_entry_for_frame_data(self):
         frame = self.dataset.get_frame("office_1", 7)
+        np.testing.assert_allclose(frame.depth, 1)
         np.testing.assert_allclose(
-            self.dataset.get_depth("office_1", 7),
-            self.dataset.load_depth(frame.depth_path),
+            frame.intrinsics,
+            [[2, 0, 0], [0, 2, 0], [0, 0, 1]],
         )
-        np.testing.assert_allclose(
-            self.dataset.get_depth("office_1", 7, backproject=True),
-            self.dataset.point_map("office_1", 7),
-        )
-        np.testing.assert_allclose(self.dataset.get_k("office_1", 7), [[2, 0, 0], [0, 2, 0], [0, 0, 1]])
-        np.testing.assert_allclose(self.dataset.get_image("office_1", 7), 128 / 255)
-        np.testing.assert_allclose(
-            self.dataset.get_camera2world_transform("office_1", 7),
-            self.dataset.camera_to_world("office_1", 7),
-        )
-        self.assertEqual(self.dataset.get_depth_path("office_1", 7), frame.depth_path)
-        self.assertEqual(self.dataset.get_room_frames("office_1"), [frame])
+        np.testing.assert_allclose(frame.rgb, 128 / 255)
+        self.assertEqual(self.dataset.room_frames("office_1"), [frame])
+        for name in ("load_pose", "load_rgb", "load_depth", "load_xyz"):
+            self.assertFalse(hasattr(frame, name))
+        self.assertFalse(hasattr(frame, "K"))
+        self.assertFalse(hasattr(frame, "frame_cloud"))
+        self.assertFalse(hasattr(frame, "_backproject_frame"))
+        for name in (
+            "load_pose",
+            "get_depth",
+            "get_k",
+            "get_xyz",
+            "get_image",
+            "camera_to_world",
+            "world_to_camera",
+            "get_room_frames",
+            "project_world_points",
+            "point_cloud",
+            "point_map",
+        ):
+            self.assertFalse(hasattr(self.dataset, name))
 
     def test_mask_path_rgb_mapping_and_room_helpers(self):
         frame = self.dataset.get_frame("office_1", 7)
@@ -118,8 +146,7 @@ class S23DatasetTest(unittest.TestCase):
         mask[1, 1] = 255
         Image.fromarray(mask).save(mask_path)
 
-        cloud = self.dataset.frame_cloud(
-            frame,
+        cloud = frame.point_cloud(
             stride=1,
             mask={frame.stem: mask_path},
             world_coordinates=False,
@@ -163,24 +190,6 @@ class S23DatasetTest(unittest.TestCase):
         self.assertEqual(len(result.xyz), 4)
         visualize.assert_called_once()
 
-    def test_transform_mesh_returns_a_transformed_copy(self):
-        pose = self.dataset.load_pose(self.dataset.get_frame("office_1", 7))
-        pose["camera_original_rotation"] = [np.pi / 2, 0, 0]
-        mesh = o3d.geometry.TriangleMesh.create_box()
-        transformed = self.dataset.transform_mesh(mesh, pose)
-
-        np.testing.assert_allclose(mesh.get_center(), [0.5, 0.5, 0.5])
-        np.testing.assert_allclose(transformed.get_center(), [1.5, 2.5, 3.5])
-        np.testing.assert_allclose(
-            self.dataset.get_camera_rotation_from_pose(pose), np.eye(3)
-        )
-        self.assertEqual(
-            self.dataset.parse_stem(
-                "camera_0123456789abcdef_office_1_frame_7_domain"
-            )["room"],
-            "office_1",
-        )
-
     def test_parse_asset_stem(self):
         info = parse_stem(
             "camera_0123456789abcdef_office_1_frame_7_domain_rgb_"
@@ -213,12 +222,12 @@ class S23DatasetTest(unittest.TestCase):
             area / "pano" / "depth" / f"{stem}_depth.png"
         )
 
-        dataset = S23Dataset(area, image_type="pano")
-        point_map = dataset.point_map("office_1", 0, uuid="abcdef0123456789")
+        dataset = S23Dataset(area, projection_type="pano")
+        frame = dataset.get_frame("office_1", 0, uuid="abcdef0123456789")
+        self.assertEqual(frame.projection_type, "pano")
+        point_map = frame.point_map()
         np.testing.assert_allclose(point_map[1, 1], [-1, 0, 0], atol=1e-7)
-        pixels, depth = dataset.project_camera_points(
-            [[-1, 0, 0], [0, 0, 1]], (2, 4)
-        )
+        pixels, depth = frame.project_camera_points([[-1, 0, 0], [0, 0, 1]])
         np.testing.assert_allclose(pixels, [[1, 1], [2, 1]], atol=1e-7)
         np.testing.assert_allclose(depth, [1, 1])
 
@@ -241,21 +250,22 @@ class S23DatasetTest(unittest.TestCase):
         )
         (area / "pano" / "global_xyz" / f"{stem}_global_xyz.exr").touch()
 
-        dataset = S23Dataset(area, image_type="pano")
+        dataset = S23Dataset(area, projection_type="pano")
         frame = dataset.get_frame("office_2", 0, uuid="abcdef0123456789")
         xyz = np.array(
             [[[0, 0, 0], [1, 2, 4]], [[1, 3, 3], [2, 3, 4]]],
             dtype=np.float32,
         )
-        with patch.object(dataset, "load_global_xyz", return_value=xyz):
-            world = dataset.frame_cloud(frame, stride=1, from_global_xyz=True)
-            camera = dataset.frame_cloud(
-                frame,
+        with patch.object(s23dis_module, "_read_global_xyz", return_value=xyz):
+            world = frame.point_cloud(stride=1, from_global_xyz=True)
+            camera = frame.point_cloud(
                 stride=1,
                 from_global_xyz=True,
                 world_coordinates=False,
             )
         self.assertEqual(len(world.xyz), 3)
+        self.assertTrue(frame.has_xyz)
+        self.assertFalse(frame.has_depth)
         np.testing.assert_allclose(camera.xyz[0], [0, 0, 1])
         self.assertEqual(camera.metadata["coordinate_frame"], "camera")
 

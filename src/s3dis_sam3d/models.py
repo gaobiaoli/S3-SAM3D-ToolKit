@@ -61,7 +61,16 @@ class PointCloud:
             None if self.instance_labels is None else self.instance_labels[indices],
             dict(self.metadata),
         )
+    def visualize(self,together_with=[],window_name="Point Cloud", show_axis=False, axis_size=0.5, **kwargs):
+        from .pointcloud import visualize_point_clouds
 
+        visualize_point_clouds(
+            [self] + together_with,
+            window_name=window_name,
+            show_coordinate_frame=show_axis,
+            coordinate_frame_size=axis_size,
+            **kwargs
+        )
 
 class GLBMesh:
     """SAM3D GLB mesh backed by Open3D."""

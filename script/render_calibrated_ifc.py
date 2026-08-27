@@ -18,14 +18,12 @@ OUTPUT_PATH = (
 
 
 def main():
-    s23dis = S23Dataset(area=AREA, image_type="regular")
-    bimsync = BIMSyncDataset(area=AREA)
-    result = bimsync.render_regular_frame(
-        REGION,
-        s23dis,
-        FRAME_ID,
+    s23dis = S23Dataset(area=AREA, projection_type="regular")
+    bimsync = BIMSyncDataset()
+    frame = s23dis.get_frame(ROOM, FRAME_ID)
+    result = bimsync.region(REGION).render_frame(
+        frame,
         OUTPUT_PATH,
-        room=ROOM,
         show=SHOW,
     )
     print(f"Selected UUID: {result.uuid}")

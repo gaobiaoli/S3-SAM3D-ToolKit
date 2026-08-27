@@ -13,14 +13,13 @@ ROOM, FRAME_ID = "office_1", 10
 
 dataset = S23Dataset(AREA)
 frame = dataset.get_frame(ROOM, FRAME_ID)
-pose_data = dataset.load_pose(frame)
 result = SAM3DClient("https://your-sam3d-server/infer").infer(
     frame.rgb_path,
     request_id=f"{ROOM}_{FRAME_ID}",
     output_dir=OUTPUT,
     mask_path=MASK,
     depth_path=frame.depth_path,
-    intrinsics=dataset.intrinsics(pose_data),
+    intrinsics=frame.intrinsics,
     return_mask=True,
 )
 

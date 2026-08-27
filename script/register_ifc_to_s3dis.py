@@ -4,11 +4,11 @@ from s3dis_sam3d import BIMSyncDataset, S3DISDataset
 from s3dis_sam3d.config import bimsync_calibration_dir
 
 AREA = "Area_1"
-REGIONS = ["office_11"]  # Set to None to process every matching Area region.
+REGIONS = None # Set to None to process every matching Area region.
 OUTPUT_DIR = bimsync_calibration_dir(AREA)
 WITH_SCALING = False
-SAVE_VISUALIZATION = True
-SHOW_VISUALIZATION = True
+SAVE_VISUALIZATION = False
+SHOW_VISUALIZATION = False
 IFC_VISUALIZATION_SAMPLES = 1_000_000
 
 

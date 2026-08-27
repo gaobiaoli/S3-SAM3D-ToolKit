@@ -12,8 +12,8 @@ if __name__ == "__main__":
     dataset = S23Dataset(DATASET_ROOT)
     frame = dataset.get_frame(ROOM, FRAME_ID)
     print(f"frame: {frame.stem}")
-    print(f"K:\n{dataset.get_k(ROOM, FRAME_ID)}")
-    print(f"camera_to_world:\n{dataset.camera_to_world(ROOM, FRAME_ID)}")
+    print(f"intrinsics:\n{frame.intrinsics}")
+    print(f"camera_to_world:\n{frame.camera_to_world}")
     dataset.visualize_room(
         ROOM,
         frame_id=FRAME_ID,

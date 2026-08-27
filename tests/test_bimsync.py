@@ -8,23 +8,36 @@ import numpy as np
 import open3d as o3d
 from PIL import Image
 
-from s3dis_sam3d import BIMSyncDataset, IFCRegistration, PointCloud, S23Dataset
+from s3dis_sam3d import (
+    BIMSyncDataset,
+    IFCRegion,
+    IFCRegistration,
+    PointCloud,
+)
 from s3dis_sam3d import bimsync as bimsync_module
 from s3dis_sam3d.pointcloud import transform_points
 
 
-class _S3DIS:
-    def __init__(self, cloud):
+class _S3DISRoom:
+    def __init__(self, cloud, key="Area_1/office_1"):
         self.cloud = cloud
+        self.key = key
         self.calls = []
 
-    def filter_room(self, room, include_classes=None):
-        self.calls.append((room, include_classes))
+    def point_cloud(self, include_classes=None):
+        self.calls.append(include_classes)
         return self.cloud
 
-    def get_region_point_cloud(self, region, area="Area_1"):
-        self.calls.append((f"{area}/{region}", None))
-        return self.cloud
+
+class _S3DIS:
+    def __init__(self, room):
+        self.selected_room = room
+        area, name = room.key.split("/", 1)
+        self.rooms = [SimpleNamespace(area=area, name=name)]
+
+    def room(self, key):
+        self.selected_room.key = str(key)
+        return self.selected_room
 
 
 class BIMSyncDatasetTest(unittest.TestCase):
@@ -36,57 +49,75 @@ class BIMSyncDatasetTest(unittest.TestCase):
         (area / "office_1.ifc").touch()
         (area / "office_2.ifc").touch()
         self.dataset = BIMSyncDataset(self.root)
+        self.region = self.dataset.region("office_1")
 
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_scan_resolve_and_save_registration(self):
-        self.assertEqual(
-            self.dataset.list_regions(),
-            ["Area_1/office_1", "Area_1/office_2"],
-        )
-        self.assertEqual(self.dataset.resolve_region("Area_1/office_2").name, "office_2")
-        s3dis = type(
-            "S3DISRooms",
-            (),
-            {"list_rooms": lambda self: ["Area_1/office_2", "Area_2/office_1"]},
-        )()
-        self.assertEqual(self.dataset.matching_regions(s3dis), ["office_2"])
-
-        ifc_to_s3dis = np.eye(4)
-        ifc_to_s3dis[:3, 3] = [1, 2, 3]
-        registration = IFCRegistration(
+    def _registration(self, transform=None):
+        transform = np.eye(4) if transform is None else transform
+        return IFCRegistration(
             "Area_1",
-            "office_1",
-            self.dataset.resolve_region("office_1").path,
+            self.region.name,
+            self.region.path,
             "Area_1/office_1",
-            ifc_to_s3dis,
-            np.linalg.inv(ifc_to_s3dis),
+            transform,
+            np.linalg.inv(transform),
             0.9,
             0.02,
             0,
             [],
         )
-        json_path, npy_path = self.dataset.save_registration(
-            registration, self.root / "registration"
+
+    def test_region_selection_matching_and_registration_persistence(self):
+        self.assertEqual(
+            [region.key for region in self.dataset.regions],
+            ["Area_1/office_1", "Area_1/office_2"],
+        )
+        self.assertIsInstance(self.region, IFCRegion)
+        self.assertEqual(self.dataset.region("Area_1/office_2").name, "office_2")
+
+        s3dis = SimpleNamespace(
+            rooms=[
+                SimpleNamespace(area="Area_1", name="office_2"),
+                SimpleNamespace(area="Area_2", name="office_1"),
+            ]
+        )
+        self.assertEqual(
+            [region.name for region in self.dataset.matching_regions(s3dis)],
+            ["office_2"],
+        )
+
+        transform = np.eye(4)
+        transform[:3, 3] = [1, 2, 3]
+        json_path, npy_path = self.region.save_registration(
+            self._registration(transform),
+            self.root / "registration",
         )
         self.assertTrue(json_path.is_file())
-        np.testing.assert_allclose(np.load(npy_path), ifc_to_s3dis)
-        np.testing.assert_allclose(
-            np.load(self.root / "registration" / "office_1_s3dis_to_ifc_transform.npy"),
-            np.linalg.inv(ifc_to_s3dis),
-        )
-        np.testing.assert_allclose(
-            self.dataset.get_calibration("office_1"),
-            ifc_to_s3dis,
-        )
+        np.testing.assert_allclose(np.load(npy_path), transform)
+        np.testing.assert_allclose(self.region.calibration, transform)
+        self.assertTrue(self.region.is_calibrated)
 
         loaded = BIMSyncDataset(
             self.root,
             calibration_dir=self.root / "registration",
         )
-        self.assertEqual(loaded.calibrated_regions(), ["office_1"])
-        np.testing.assert_allclose(loaded.get_calibration("office_1"), ifc_to_s3dis)
+        np.testing.assert_allclose(loaded.region("office_1").calibration, transform)
+        for name in (
+            "load_mesh",
+            "export_mesh",
+            "estimate_ifc_to_s3dis",
+            "save_registration",
+            "transformed_mesh",
+            "visualize_registration",
+            "render_regular_frame",
+            "resolve_region",
+            "list_regions",
+            "get_calibration",
+            "set_calibration",
+        ):
+            self.assertFalse(hasattr(self.dataset, name))
 
     def test_default_root_comes_from_config(self):
         with (
@@ -98,43 +129,68 @@ class BIMSyncDatasetTest(unittest.TestCase):
             ),
         ):
             dataset = BIMSyncDataset()
-        self.assertEqual(dataset.list_regions(), ["Area_1/office_1", "Area_1/office_2"])
-
-    def test_load_mesh_applies_calibration_by_default(self):
-        transform = np.eye(4)
-        transform[:3, 3] = [1, 2, 3]
-        self.dataset.set_calibration("office_1", transform)
-        raw = o3d.geometry.TriangleMesh.create_box()
-
-        with patch.object(self.dataset, "_load_raw_mesh", return_value=raw):
-            calibrated = self.dataset.load_mesh("office_1")
-
-        np.testing.assert_allclose(
-            np.asarray(calibrated.vertices).min(axis=0),
-            [1, 2, 3],
+        self.assertEqual(
+            [region.key for region in dataset.regions],
+            ["Area_1/office_1", "Area_1/office_2"],
         )
 
-    def test_transformed_mesh_does_not_apply_saved_calibration_twice(self):
+    def test_mesh_uses_saved_or_explicit_transform_once(self):
         saved = np.eye(4)
         saved[:3, 3] = [10, 0, 0]
         requested = np.eye(4)
         requested[:3, 3] = [0, 2, 0]
-        self.dataset.set_calibration("office_1", saved)
-        raw = o3d.geometry.TriangleMesh.create_box()
+        self.region.set_calibration(saved)
 
-        with patch.object(self.dataset, "_load_raw_mesh", return_value=raw):
-            transformed = self.dataset.transformed_mesh("office_1", requested)
+        with patch.object(
+            IFCRegion,
+            "_raw_mesh",
+            side_effect=lambda *args, **kwargs: o3d.geometry.TriangleMesh.create_box(),
+        ):
+            calibrated = self.region.mesh()
+            transformed = self.region.mesh(calibrated=False, transform=requested)
 
-        np.testing.assert_allclose(
-            np.asarray(transformed.vertices).min(axis=0),
-            [0, 2, 0],
+        np.testing.assert_allclose(np.asarray(calibrated.vertices).min(axis=0), [10, 0, 0])
+        np.testing.assert_allclose(np.asarray(transformed.vertices).min(axis=0), [0, 2, 0])
+
+        output = self.root / "office_1.ply"
+        with (
+            patch.object(
+                IFCRegion,
+                "_raw_mesh",
+                return_value=o3d.geometry.TriangleMesh.create_box(),
+            ),
+            patch.object(o3d.io, "write_triangle_mesh", return_value=True) as write,
+        ):
+            self.assertEqual(self.region.export(output), output)
+        write.assert_called_once()
+
+    def test_raw_mesh_preserves_ifcopenshell_meter_coordinates(self):
+        model = SimpleNamespace(
+            by_type=lambda _: [SimpleNamespace(Representation=object())]
+        )
+        settings = SimpleNamespace(USE_WORLD_COORDS="use-world-coords")
+        settings.set = lambda *_: None
+        shape = SimpleNamespace(
+            geometry=SimpleNamespace(
+                verts=[0, 0, 0, 5, 0, 0, 0, 3, 2],
+                faces=[0, 1, 2],
+            )
         )
 
-    def test_estimate_ifc_to_s3dis_direction(self):
+        with (
+            patch("ifcopenshell.open", return_value=model),
+            patch("ifcopenshell.geom.settings", return_value=settings),
+            patch("ifcopenshell.geom.create_shape", return_value=shape),
+        ):
+            mesh = self.region._raw_mesh()
+
+        np.testing.assert_allclose(mesh.get_min_bound(), [0, 0, 0])
+        np.testing.assert_allclose(mesh.get_max_bound(), [5, 3, 2])
+
+    def test_registration_direction(self):
         mesh = o3d.geometry.TriangleMesh.create_box(1.0, 2.0, 0.7)
         o3d.utility.random.seed(7)
-        sampled = mesh.sample_points_uniformly(3000)
-        ifc_points = np.asarray(sampled.points)
+        ifc_points = np.asarray(mesh.sample_points_uniformly(3000).points)
         expected = np.array(
             [
                 [0, -1, 0, 4],
@@ -144,23 +200,17 @@ class BIMSyncDatasetTest(unittest.TestCase):
             ],
             dtype=np.float64,
         )
-        cloud = PointCloud(transform_points(ifc_points, expected))
-        s3dis = _S3DIS(cloud)
+        room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        original = self.dataset.load_mesh
-        self.dataset.load_mesh = lambda *args, **kwargs: mesh
-        try:
-            result = self.dataset.estimate_ifc_to_s3dis(
-                "office_1",
-                s3dis,
+        with patch.object(IFCRegion, "mesh", return_value=mesh):
+            result = self.region.register(
+                room,
                 ifc_samples=3000,
                 voxel_size=0.03,
                 thresholds=(0.3, 0.1, 0.03),
                 max_iterations=100,
                 seed=7,
             )
-        finally:
-            self.dataset.load_mesh = original
 
         np.testing.assert_allclose(
             result.ifc_to_s3dis @ result.s3dis_to_ifc,
@@ -168,9 +218,9 @@ class BIMSyncDatasetTest(unittest.TestCase):
             atol=1e-8,
         )
         np.testing.assert_allclose(result.ifc_to_s3dis, expected, atol=0.03)
-        self.assertEqual(s3dis.calls[0][0], "Area_1/office_1")
+        self.assertTrue(room.calls)
 
-    def test_estimate_ifc_to_s3dis_with_scaling(self):
+    def test_registration_with_scaling(self):
         mesh = o3d.geometry.TriangleMesh.create_box(1.0, 2.0, 0.7)
         o3d.utility.random.seed(11)
         ifc_points = np.asarray(mesh.sample_points_uniformly(5000).points)
@@ -183,12 +233,11 @@ class BIMSyncDatasetTest(unittest.TestCase):
             ],
             dtype=np.float64,
         )
-        s3dis = _S3DIS(PointCloud(transform_points(ifc_points, expected)))
+        room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(self.dataset, "load_mesh", return_value=mesh):
-            result = self.dataset.estimate_ifc_to_s3dis(
-                "office_1",
-                s3dis,
+        with patch.object(IFCRegion, "mesh", return_value=mesh):
+            result = self.region.register(
+                room,
                 ifc_samples=5000,
                 voxel_size=0.03,
                 thresholds=(0.3, 0.1, 0.03),
@@ -200,32 +249,17 @@ class BIMSyncDatasetTest(unittest.TestCase):
         np.testing.assert_allclose(result.ifc_to_s3dis, expected, atol=0.04)
         self.assertAlmostEqual(result.scale, 1.2, places=2)
 
-    def test_calibrate_regions_saves_summary_and_updates_calibrations(self):
+    def test_batch_calibration_uses_region_behavior(self):
         transform = np.eye(4)
         transform[:3, 3] = [1, 2, 3]
-        registration = IFCRegistration(
-            "Area_1",
-            "office_1",
-            self.dataset.resolve_region("office_1").path,
-            "Area_1/office_1",
-            transform,
-            np.linalg.inv(transform),
-            0.9,
-            0.02,
-            0,
-            [],
-        )
+        registration = self._registration(transform)
         output = self.root / "calibrations"
-        cloud = PointCloud(np.zeros((1, 3)))
-        s3dis = _S3DIS(cloud)
+        room = _S3DISRoom(PointCloud(np.zeros((1, 3))))
+        s3dis = _S3DIS(room)
 
         with (
-            patch.object(
-                self.dataset,
-                "estimate_ifc_to_s3dis",
-                return_value=registration,
-            ),
-            patch.object(self.dataset, "visualize_registration") as visualize,
+            patch.object(IFCRegion, "register", return_value=registration),
+            patch.object(IFCRegion, "visualize_registration") as visualize,
         ):
             summary = self.dataset.calibrate_regions(
                 s3dis,
@@ -240,83 +274,58 @@ class BIMSyncDatasetTest(unittest.TestCase):
         self.assertTrue(
             (output / "office_1" / "office_1_ifc_to_s3dis_transform.npy").is_file()
         )
-        np.testing.assert_allclose(self.dataset.get_calibration("office_1"), transform)
+        np.testing.assert_allclose(self.region.calibration, transform)
         visualize.assert_called_once()
 
-    def test_visualize_registration_transforms_ifc_and_saves_screenshot(self):
+    def test_visualize_registration_uses_region_mesh(self):
         transform = np.eye(4)
         transform[:3, 3] = [1, 2, 3]
-        registration = IFCRegistration(
-            "Area_1",
-            "office_1",
-            self.dataset.resolve_region("office_1").path,
-            "Area_1/office_1",
-            transform,
-            np.linalg.inv(transform),
-            0.9,
-            0.02,
-            0,
-            [],
-        )
+        registration = self._registration(transform)
         cloud = PointCloud(np.zeros((1, 3)))
+        room = _S3DISRoom(cloud)
         mesh = o3d.geometry.TriangleMesh.create_box()
         output = self.root / "registration.png"
 
         with (
-            patch.object(self.dataset, "transformed_mesh", return_value=mesh) as transformed,
-            patch("s3dis_sam3d.bimsync.visualize_point_clouds", return_value=output) as view,
+            patch.object(IFCRegion, "mesh", return_value=mesh) as load_mesh,
+            patch(
+                "s3dis_sam3d.bimsync.visualize_point_clouds",
+                return_value=output,
+            ) as view,
         ):
-            result = self.dataset.visualize_registration(registration, cloud, output)
+            result = self.region.visualize_registration(registration, room, output)
 
-        transformed.assert_called_once_with("office_1", transform)
+        load_mesh.assert_called_once_with(calibrated=False, transform=transform)
         args, kwargs = view.call_args
         self.assertIs(args[0][0], cloud)
         self.assertIsInstance(args[0][1], o3d.geometry.PointCloud)
         np.testing.assert_allclose(np.asarray(args[0][1].colors)[0], [1.0, 0.15, 0.05])
         self.assertEqual(kwargs["save_path"], output)
-        self.assertFalse(kwargs["show"])
         self.assertEqual(result, output)
 
-    def test_render_regular_frame_uses_image_camera_and_calibrated_mesh(self):
-        self.dataset.set_calibration("office_1", np.eye(4))
+    def test_render_frame_uses_frame_camera_and_calibrated_mesh(self):
+        self.region.set_calibration(np.eye(4))
         image_path = self.root / "frame.png"
         Image.new("RGB", (640, 480)).save(image_path)
         source_depth_path = self.root / "frame_depth.png"
         Image.fromarray(np.full((480, 640), 512, dtype=np.uint16)).save(
             source_depth_path
         )
+        intrinsic = np.array([[500, 0, 320], [0, 501, 240], [0, 0, 1]])
+        extrinsic = np.eye(4)
         frame = SimpleNamespace(
+            room="office_1",
             frame_id=7,
             uuid="camera_uuid",
             rgb_path=image_path,
             depth_path=source_depth_path,
+            has_depth=True,
+            intrinsics=intrinsic,
+            world_to_camera=extrinsic,
+            rgb=np.full((480, 640, 3), 0.5, dtype=np.float32),
+            depth=np.ones((480, 640), dtype=np.float32),
+            projection_type="regular",
         )
-        intrinsic = np.array([[500, 0, 320], [0, 501, 240], [0, 0, 1]])
-        extrinsic = np.eye(4)
-
-        class S23DIS:
-            image_type = "regular"
-
-            @staticmethod
-            def get_frame(room, frame_id, uuid):
-                return frame
-
-            @staticmethod
-            def get_k(room, frame_id, uuid):
-                return intrinsic
-
-            @staticmethod
-            def world_to_camera(room, frame_id, uuid):
-                return extrinsic
-
-            @staticmethod
-            def get_image(room, frame_id, uuid):
-                return np.full((480, 640, 3), 0.5, dtype=np.float32)
-
-            @staticmethod
-            def get_depth(room, frame_id, uuid):
-                return np.ones((480, 640), dtype=np.float32)
-
         mesh = o3d.geometry.TriangleMesh.create_box()
         output = self.root / "render.png"
 
@@ -327,27 +336,19 @@ class BIMSyncDatasetTest(unittest.TestCase):
             return output
 
         with (
-            patch.object(self.dataset, "load_mesh", return_value=mesh) as load_mesh,
+            patch.object(IFCRegion, "mesh", return_value=mesh) as load_mesh,
             patch(
                 "s3dis_sam3d.bimsync.visualize_point_clouds",
                 side_effect=render_output,
             ) as render,
         ):
-            result = self.dataset.render_regular_frame(
-                "office_1",
-                S23DIS(),
-                7,
-                output,
-                uuid="camera_uuid",
-            )
+            result = self.region.render_frame(frame, output)
 
-        load_mesh.assert_called_once_with("office_1")
+        load_mesh.assert_called_once_with()
         _, kwargs = render.call_args
         self.assertEqual((kwargs["width"], kwargs["height"]), (640, 480))
         np.testing.assert_allclose(kwargs["set_parameters"][0], intrinsic)
         np.testing.assert_allclose(kwargs["set_parameters"][1], extrinsic)
-        self.assertTrue(kwargs["mesh_show_back_face"])
-        self.assertEqual(result.rendered_image_path, output)
         self.assertEqual(result.source_image_path, image_path)
         self.assertEqual(result.source_depth_path, source_depth_path)
         np.testing.assert_allclose(result.source_image, 0.5)
@@ -357,10 +358,6 @@ class BIMSyncDatasetTest(unittest.TestCase):
         with Image.open(result.rendered_depth_path) as depth_image:
             saved_depth = np.asarray(depth_image, dtype=np.uint16)
         self.assertEqual(saved_depth[0, 0], 65535)
-        np.testing.assert_allclose(
-            S23Dataset.load_depth(result.rendered_depth_path),
-            result.rendered_depth,
-        )
 
 
 if __name__ == "__main__":

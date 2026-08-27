@@ -25,11 +25,11 @@ DEFAULT_VIEW_PARAMETERS = None
 #     hidden_instances=DEFAULT_HIDDEN_INSTANCES,
 #     max_points=DEFAULT_MAX_POINTS,
 # ):
-#     return S3DISDataset(DATASET_ROOT).get_visualization_cloud(
-#         f"{area}/{room}",
+#     return S3DISDataset(DATASET_ROOT).room(f"{area}/{room}").point_cloud(
 #         color_mode=color_mode,
-#         hidden_classes=hidden_classes,
-#         hidden_instances=hidden_instances,
+#         exclude_classes=hidden_classes,
+#         exclude_instances=hidden_instances,
+#         ignore_missing_instances=True,
 #         max_points=max_points,
 #     )
 
@@ -37,8 +37,7 @@ DEFAULT_VIEW_PARAMETERS = None
 if __name__ == "__main__":
     room = f"{DEFAULT_AREA}/{DEFAULT_ROOM}"
     print(f"Opening Open3D: {room}")
-    S3DISDataset(DATASET_ROOT).visualize_room(
-        room,
+    S3DISDataset(DATASET_ROOT).room(room).visualize(
         color_mode=DEFAULT_COLOR_MODE,
         hidden_classes=DEFAULT_HIDDEN_CLASSES,
         hidden_instances=DEFAULT_HIDDEN_INSTANCES,

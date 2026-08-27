@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import copy
 import json
 import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +14,14 @@ from PIL import Image
 from .config import s23dis_area
 from .models import PointCloud
 from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
+from .utils import (
+    backproject_pano,
+    backproject_regular,
+    camera_to_world_from_pose,
+    points_from_global_xyz,
+    project_pano_points,
+    project_pinhole_points,
+)
 
 S23DIS_DEPTH_SCALE = 512.0
 S23DIS_INVALID_DEPTH = 65535
@@ -25,6 +33,27 @@ FRAME_PATTERN = re.compile(
 ASSET_PATTERN = re.compile(
     r"_domain_rgb_(?P<class_name>[A-Za-z][A-Za-z0-9_]*?)_(?P<instance_id>\d+)$"
 )
+
+
+def _read_rgb(path):
+    with Image.open(path) as image:
+        return np.asarray(image.convert("RGB"), dtype=np.float32) / 255
+
+
+def _read_depth(path):
+    with Image.open(path) as image:
+        raw = np.asarray(image, dtype=np.uint16)
+    depth = raw.astype(np.float32) / S23DIS_DEPTH_SCALE
+    depth[raw == S23DIS_INVALID_DEPTH] = 0
+    return depth
+
+
+def _read_global_xyz(path):
+    os.environ.setdefault("OPENCV_IO_ENABLE_OPENEXR", "1")
+    import cv2
+
+    xyz = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+    return xyz[:, :, :3][:, :, ::-1].astype(np.float32)
 
 
 def parse_stem(stem):
@@ -48,49 +77,189 @@ def parse_stem(stem):
     return item
 
 
+def _mask_for_frame(mask, frame):
+    if isinstance(mask, Mapping):
+        return mask.get(frame.stem)
+    if callable(mask):
+        return mask(frame)
+    return mask
+
+
 @dataclass(frozen=True)
-class FrameInfo:
+class Frame:
     stem: str
     room: str
     frame_id: int
     uuid: str
     pose_path: Path
     rgb_path: Path
-    depth_path: Path | None
-    xyz_path: Path | None
+    depth_path: Path | None = None
+    xyz_path: Path | None = None
+    projection_type: str = "regular"
+
+    @property
+    def rgb(self):
+        return _read_rgb(self.rgb_path)
+
+    @cached_property
+    def pose(self):
+        return json.loads(self.pose_path.read_text("utf-8"))
+
+    @property
+    def has_depth(self):
+        return self.depth_path is not None
+
+    @property
+    def depth(self):
+        if self.depth_path is None:
+            raise FileNotFoundError(f"depth is unavailable for {self.stem}")
+        return _read_depth(self.depth_path)
+
+    @property
+    def has_xyz(self):
+        return self.xyz_path is not None
+
+    @property
+    def xyz(self):
+        if self.xyz_path is None:
+            raise FileNotFoundError(f"global_xyz is unavailable for {self.stem}")
+        return _read_global_xyz(self.xyz_path)
+
+    @cached_property
+    def intrinsics(self):
+        return np.asarray(self.pose["camera_k_matrix"], dtype=np.float32)
+
+    @cached_property
+    def camera_to_world(self):
+        return camera_to_world_from_pose(self.pose)
+
+    @cached_property
+    def world_to_camera(self):
+        return np.linalg.inv(self.camera_to_world)
+
+    @cached_property
+    def image_shape(self):
+        with Image.open(self.rgb_path) as image:
+            return image.height, image.width
+
+    def project_camera_points(self, points):
+        if self.projection_type == "pano":
+            return project_pano_points(points, self.image_shape)
+        return project_pinhole_points(points, self.intrinsics)
+
+    def project_world_points(self, points):
+        points = transform_points(points, self.world_to_camera)
+        return self.project_camera_points(points)
+
+    def _backproject(
+        self,
+        stride=1,
+        depth_min=0.1,
+        depth_max=10.0,
+        mask=None,
+    ):
+        depth = self.depth
+        mask = _mask_for_frame(mask, self)
+        if self.projection_type == "pano":
+            points, ys, xs = backproject_pano(
+                depth,
+                stride,
+                depth_min,
+                depth_max,
+                mask,
+            )
+        else:
+            points, ys, xs = backproject_regular(
+                depth,
+                self.intrinsics,
+                stride,
+                depth_min,
+                depth_max,
+                mask,
+            )
+        return points, ys, xs, depth
+
+    def point_map(self, world_coordinates=False, mask=None):
+        points, ys, xs, depth = self._backproject(
+            depth_min=None,
+            depth_max=None,
+            mask=mask,
+        )
+        if world_coordinates:
+            points = transform_points(points, self.camera_to_world)
+        result = np.zeros((*depth.shape, 3), dtype=np.float32)
+        result[ys, xs] = points
+        return result
+
+    def point_cloud(
+        self,
+        stride=4,
+        depth_min=0.1,
+        depth_max=8.0,
+        mask=None,
+        world_coordinates=True,
+        from_global_xyz=False,
+    ):
+        rgb = self.rgb
+        if from_global_xyz:
+            points, colors = points_from_global_xyz(
+                self.xyz,
+                rgb,
+                stride,
+                _mask_for_frame(mask, self),
+            )
+            if world_coordinates:
+                coordinates = "world"
+            else:
+                points = transform_points(points, self.world_to_camera)
+                coordinates = "camera"
+        else:
+            points, ys, xs, _ = self._backproject(
+                stride,
+                depth_min,
+                depth_max,
+                mask,
+            )
+            colors = rgb[ys, xs]
+            if world_coordinates:
+                points = transform_points(points, self.camera_to_world)
+            coordinates = "world" if world_coordinates else "camera"
+
+        return PointCloud(
+            points,
+            colors,
+            metadata={"frame": self.stem, "coordinate_frame": coordinates},
+        )
 
 
 class S23Dataset:
     """Stanford 2D-3D-S frame reader and room reconstructor."""
 
-    frame_pattern = FRAME_PATTERN
-    parse_stem = staticmethod(parse_stem)
-
     def __init__(
         self,
         area_path=None,
-        image_type="regular",
+        projection_type="regular",
         area="Area_1",
         default_uuid="first",
     ):
         area_path = s23dis_area(area) if area_path is None else area_path
         self.area_path = Path(area_path)
-        self.image_type = image_type
         self.default_uuid = default_uuid
-        self.data_dir = self.area_path / ("data" if image_type == "regular" else "pano")
+        self.data_dir = self.area_path / (
+            "data" if projection_type == "regular" else "pano"
+        )
         self.pose_dir = self.data_dir / "pose"
         self.rgb_dir = self.data_dir / "rgb"
         self.depth_dir = self.data_dir / "depth"
         self.xyz_dir = self.data_dir / "global_xyz"
-        self.frames = self._index_frames()
+        self.frames = self._index_frames(projection_type)
         self.rooms = {}
-        self.pose_cache = {}
         for frame in self.frames:
             self.rooms.setdefault(frame.room, []).append(frame)
         for frames in self.rooms.values():
             frames.sort(key=lambda frame: (frame.frame_id, frame.uuid))
 
-    def _index_frames(self):
+    def _index_frames(self, projection_type):
         frames = []
         for pose_path in sorted(self.pose_dir.glob("*_pose.json")):
             stem = pose_path.name.removesuffix("_pose.json")
@@ -103,15 +272,16 @@ class S23Dataset:
             xyz_path = self.xyz_dir / f"{stem}_global_xyz.exr"
             if rgb_path.exists() and (depth_path.exists() or xyz_path.exists()):
                 frames.append(
-                    FrameInfo(
-                        stem,
-                        metadata["room"],
-                        metadata["frame_id"],
-                        metadata["uuid"],
-                        pose_path,
-                        rgb_path,
-                        depth_path if depth_path.exists() else None,
-                        xyz_path if xyz_path.exists() else None,
+                    Frame(
+                        stem=stem,
+                        room=metadata["room"],
+                        frame_id=metadata["frame_id"],
+                        uuid=metadata["uuid"],
+                        pose_path=pose_path,
+                        rgb_path=rgb_path,
+                        depth_path=depth_path if depth_path.exists() else None,
+                        xyz_path=xyz_path if xyz_path.exists() else None,
+                        projection_type=projection_type,
                     )
                 )
         return frames
@@ -121,9 +291,6 @@ class S23Dataset:
 
     def room_frames(self, room):
         return list(self.rooms[room])
-
-    def get_room_frames(self, room):
-        return self.room_frames(room)
 
     def list_uuids(self, room=None, frame_id=None):
         """List UUIDs in the Area, one room, or one room/frame."""
@@ -143,298 +310,6 @@ class S23Dataset:
             return frames[0]
         return next(frame for frame in frames if frame.uuid == uuid)
 
-    def load_pose(self, frame):
-        if frame.pose_path not in self.pose_cache:
-            self.pose_cache[frame.pose_path] = json.loads(frame.pose_path.read_text("utf-8"))
-        return self.pose_cache[frame.pose_path]
-
-    def get_depth_path(self, room, frame_id, uuid=None):
-        frame = self.get_frame(room, frame_id, uuid)
-        if frame.depth_path is None:
-            raise FileNotFoundError(f"depth is unavailable for {frame.stem}")
-        return frame.depth_path
-
-    def get_depth(self, room, frame_id, uuid=None, backproject=False, world_coordinates=False):
-        if backproject:
-            return self.point_map(room, frame_id, uuid, world_coordinates)
-        return self.load_depth(self.get_depth_path(room, frame_id, uuid))
-
-    def get_k(self, room, frame_id, uuid=None):
-        frame = self.get_frame(room, frame_id, uuid)
-        return self.intrinsics(self.load_pose(frame))
-
-    def get_xyz(self, room, frame_id, uuid=None):
-        frame = self.get_frame(room, frame_id, uuid)
-        if frame.xyz_path is None:
-            raise FileNotFoundError(f"global_xyz is unavailable for {frame.stem}")
-        return self.load_global_xyz(frame.xyz_path)
-
-    def get_image(self, room, frame_id, uuid=None):
-        return self.load_rgb(self.get_frame(room, frame_id, uuid).rgb_path)
-
-    def get_image_path(self, room, frame_id, uuid=None):
-        return self.get_frame(room, frame_id, uuid).rgb_path
-
-    @staticmethod
-    def load_rgb(path):
-        return np.asarray(Image.open(path).convert("RGB"), dtype=np.float32) / 255
-
-    @staticmethod
-    def load_depth(path, depth_scale=S23DIS_DEPTH_SCALE):
-        raw = np.asarray(Image.open(path), dtype=np.uint16)
-        depth = raw.astype(np.float32) / depth_scale
-        depth[raw == S23DIS_INVALID_DEPTH] = 0
-        return depth
-
-    @staticmethod
-    def load_global_xyz(path):
-        os.environ.setdefault("OPENCV_IO_ENABLE_OPENEXR", "1")
-        import cv2
-
-        xyz = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
-        return xyz[:, :, :3][:, :, ::-1].astype(np.float32)
-
-    @staticmethod
-    def intrinsics(pose):
-        return np.asarray(pose["camera_k_matrix"], dtype=np.float32)
-
-    @staticmethod
-    def euler_xyz_to_matrix(euler):
-        rx, ry, rz = np.asarray(euler)
-        cx, sx = np.cos(rx), np.sin(rx)
-        cy, sy = np.cos(ry), np.sin(ry)
-        cz, sz = np.cos(rz), np.sin(rz)
-        rx_matrix = np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]])
-        ry_matrix = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
-        rz_matrix = np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]])
-        return rz_matrix @ ry_matrix @ rx_matrix
-
-    @classmethod
-    def camera_to_world_from_pose(cls, pose):
-        rotation = np.asarray(pose["camera_rt_matrix"])[:3, :3]
-        adjustment = cls.euler_xyz_to_matrix(pose["final_camera_rotation"])
-        transform = np.eye(4)
-        transform[:3, :3] = adjustment @ rotation @ adjustment
-        transform[:3, 3] = pose["camera_location"]
-        return transform
-
-    def camera_to_world(self, room, frame_id, uuid=None):
-        frame = self.get_frame(room, frame_id, uuid)
-        return self.camera_to_world_from_pose(self.load_pose(frame))
-
-    def get_camera2world_transform(self, room, frame_id, uuid=None):
-        return self.camera_to_world(room, frame_id, uuid)
-
-    def world_to_camera(self, room, frame_id, uuid=None):
-        return np.linalg.inv(self.camera_to_world(room, frame_id, uuid))
-
-    def project_camera_points(self, points, image_shape, intrinsics=None):
-        """Project camera-space points and return pixel coordinates and depth."""
-        points = np.asarray(points, dtype=np.float32)
-        height, width = image_shape
-        if self.image_type == "pano":
-            depth = np.linalg.norm(points, axis=1)
-            valid = np.isfinite(points).all(axis=1) & (depth > 1e-6)
-            points, depth = points[valid], depth[valid]
-            theta = np.arctan2(points[:, 0], points[:, 2])
-            phi = np.arctan2(-points[:, 1], np.hypot(points[:, 0], points[:, 2]))
-            u = np.mod((theta + np.pi) / (2 * np.pi) * width, width)
-            v = (0.5 - phi / np.pi) * height
-        else:
-            depth = points[:, 2]
-            valid = np.isfinite(points).all(axis=1) & (depth > 1e-6)
-            points, depth = points[valid], depth[valid]
-            intrinsics = np.asarray(intrinsics)
-            u = intrinsics[0, 0] * points[:, 0] / depth + intrinsics[0, 2]
-            v = intrinsics[1, 1] * points[:, 1] / depth + intrinsics[1, 2]
-        return np.column_stack((u, v)).astype(np.float32), depth.astype(np.float32)
-
-    def project_world_points(self, points, room, frame_id, uuid=None):
-        """Project world-space points into one frame."""
-        frame = self.get_frame(room, frame_id, uuid)
-        with Image.open(frame.rgb_path) as image:
-            image_shape = (image.height, image.width)
-        pose = self.load_pose(frame)
-        points = transform_points(points, self.world_to_camera(room, frame_id, uuid))
-        return self.project_camera_points(points, image_shape, self.intrinsics(pose))
-
-    @classmethod
-    def get_camera_rotation_from_pose(cls, pose):
-        return cls.camera_to_world_from_pose(pose)[:3, :3]
-
-    @classmethod
-    def transform_mesh(cls, mesh, pose):
-        result = copy.deepcopy(mesh)
-        transform = cls.camera_to_world_from_pose(pose)
-        if hasattr(result, "apply_transform"):
-            result.apply_transform(transform)
-        else:
-            result.transform(transform)
-        return result
-
-    @staticmethod
-    def prepare_mask(mask, shape=None):
-        if mask is None:
-            return None
-        if isinstance(mask, (str, Path)):
-            mask = np.asarray(Image.open(mask))
-        elif isinstance(mask, Image.Image):
-            mask = np.asarray(mask)
-        else:
-            mask = np.asarray(mask)
-
-        if mask.ndim == 3:
-            rgb = np.any(mask[..., :3] > 0, axis=-1)
-            mask = mask[..., 3] > 0 if mask.shape[2] == 4 and not rgb.any() else rgb
-        else:
-            mask = mask > 0
-        if shape is not None and mask.shape != shape:
-            mask = np.asarray(
-                Image.fromarray(mask.astype(np.uint8)).resize(
-                    shape[::-1], Image.Resampling.NEAREST
-                )
-            ) > 0
-        return mask
-
-    @staticmethod
-    def _mask_for_frame(mask, frame):
-        if isinstance(mask, Mapping):
-            return mask.get(frame.stem)
-        if callable(mask):
-            return mask(frame)
-        return mask
-
-    @staticmethod
-    def backproject_regular(
-        depth,
-        intrinsics,
-        stride=1,
-        depth_min=0.1,
-        depth_max=10.0,
-        mask=None,
-    ):
-        height, width = depth.shape
-        ys, xs = np.mgrid[0:height:stride, 0:width:stride]
-        z = depth[ys, xs]
-        valid = np.isfinite(z) & (z > 0)
-        if depth_min is not None:
-            valid &= z >= depth_min
-        if depth_max is not None:
-            valid &= z <= depth_max
-        mask = S23Dataset.prepare_mask(mask, depth.shape)
-        if mask is not None:
-            valid &= mask[ys, xs]
-
-        u, v, z = xs[valid], ys[valid], z[valid]
-        fx, fy = intrinsics[0, 0], intrinsics[1, 1]
-        cx, cy = intrinsics[0, 2], intrinsics[1, 2]
-        points = np.column_stack(((u - cx) * z / fx, (v - cy) * z / fy, z))
-        return points.astype(np.float32), ys[valid], xs[valid]
-
-    @staticmethod
-    def backproject_pano(depth, stride=1, depth_min=0.1, depth_max=10.0, mask=None):
-        height, width = depth.shape
-        ys, xs = np.mgrid[0:height:stride, 0:width:stride]
-        radius = depth[ys, xs]
-        valid = np.isfinite(radius) & (radius > 0)
-        if depth_min is not None:
-            valid &= radius >= depth_min
-        if depth_max is not None:
-            valid &= radius <= depth_max
-        mask = S23Dataset.prepare_mask(mask, depth.shape)
-        if mask is not None:
-            valid &= mask[ys, xs]
-
-        u, v, radius = xs[valid], ys[valid], radius[valid]
-        theta = u / width * 2 * np.pi - np.pi
-        phi = np.pi / 2 - v / height * np.pi
-        points = np.column_stack(
-            (
-                radius * np.cos(phi) * np.sin(theta),
-                -radius * np.sin(phi),
-                radius * np.cos(phi) * np.cos(theta),
-            )
-        )
-        return points.astype(np.float32), ys[valid], xs[valid]
-
-    @staticmethod
-    def points_from_global_xyz(xyz, rgb, stride=4, mask=None):
-        ys, xs = np.mgrid[0 : xyz.shape[0] : stride, 0 : xyz.shape[1] : stride]
-        points = xyz[ys, xs]
-        colors = rgb[ys, xs]
-        valid = np.isfinite(points).all(axis=-1) & ~np.all(np.abs(points) < 1e-8, axis=-1)
-        mask = S23Dataset.prepare_mask(mask, xyz.shape[:2])
-        if mask is not None:
-            valid &= mask[ys, xs]
-        return points[valid], colors[valid]
-
-    def _backproject_frame(
-        self,
-        frame,
-        stride=1,
-        depth_min=0.1,
-        depth_max=10.0,
-        mask=None,
-    ):
-        pose = self.load_pose(frame)
-        if frame.depth_path is None:
-            raise FileNotFoundError(f"depth is unavailable for {frame.stem}")
-        depth = self.load_depth(frame.depth_path)
-        mask = self._mask_for_frame(mask, frame)
-        if self.image_type == "pano":
-            points, ys, xs = self.backproject_pano(
-                depth, stride, depth_min, depth_max, mask
-            )
-        else:
-            points, ys, xs = self.backproject_regular(
-                depth,
-                self.intrinsics(pose),
-                stride,
-                depth_min,
-                depth_max,
-                mask,
-            )
-        return points, ys, xs, pose, depth
-
-    def frame_cloud(
-        self,
-        frame,
-        stride=4,
-        depth_min=0.1,
-        depth_max=8.0,
-        mask=None,
-        world_coordinates=True,
-        from_global_xyz=False,
-    ):
-        rgb = self.load_rgb(frame.rgb_path)
-        if from_global_xyz:
-            if frame.xyz_path is None:
-                raise FileNotFoundError(f"global_xyz is unavailable for {frame.stem}")
-            xyz = self.load_global_xyz(frame.xyz_path)
-            frame_mask = self._mask_for_frame(mask, frame)
-            points, colors = self.points_from_global_xyz(xyz, rgb, stride, frame_mask)
-            if world_coordinates:
-                coordinates = "world"
-            else:
-                pose = self.load_pose(frame)
-                world_to_camera = np.linalg.inv(self.camera_to_world_from_pose(pose))
-                points = transform_points(points, world_to_camera)
-                coordinates = "camera"
-        else:
-            points, ys, xs, pose, _ = self._backproject_frame(
-                frame, stride, depth_min, depth_max, mask
-            )
-            colors = rgb[ys, xs]
-            if world_coordinates:
-                points = transform_points(points, self.camera_to_world_from_pose(pose))
-            coordinates = "world" if world_coordinates else "camera"
-
-        return PointCloud(
-            points,
-            colors,
-            metadata={"frame": frame.stem, "coordinate_frame": coordinates},
-        )
-
     def reconstruct(
         self,
         room,
@@ -453,8 +328,11 @@ class S23Dataset:
         frames = self.room_frames(room)
         if frame_id is not None:
             frames = [self.get_frame(room, frame_id, uuid)]
-        source = "xyz_path" if from_global_xyz else "depth_path"
-        frames = [frame for frame in frames if getattr(frame, source) is not None]
+        frames = (
+            [frame for frame in frames if frame.has_xyz]
+            if from_global_xyz
+            else [frame for frame in frames if frame.has_depth]
+        )
         if isinstance(mask, Mapping):
             frames = [frame for frame in frames if frame.stem in mask]
         if frame_id is None and max_frames is not None:
@@ -468,14 +346,13 @@ class S23Dataset:
 
         clouds = []
         for frame in frame_iterator:
-            cloud = self.frame_cloud(
-                frame,
-                stride,
-                depth_min,
-                depth_max,
-                mask,
-                world_coordinates,
-                from_global_xyz,
+            cloud = frame.point_cloud(
+                stride=stride,
+                depth_min=depth_min,
+                depth_max=depth_max,
+                mask=mask,
+                world_coordinates=world_coordinates,
+                from_global_xyz=from_global_xyz,
             )
             if len(cloud.xyz):
                 clouds.append(cloud)
@@ -492,24 +369,6 @@ class S23Dataset:
             },
         )
         return voxel_downsample(cloud, voxel_size)
-
-    def point_map(
-        self,
-        room,
-        frame_id,
-        uuid=None,
-        world_coordinates=False,
-        mask=None,
-    ):
-        frame = self.get_frame(room, frame_id, uuid)
-        points, ys, xs, pose, depth = self._backproject_frame(
-            frame, depth_min=None, depth_max=None, mask=mask
-        )
-        if world_coordinates:
-            points = transform_points(points, self.camera_to_world_from_pose(pose))
-        result = np.zeros((*depth.shape, 3), dtype=np.float32)
-        result[ys, xs] = points
-        return result
 
     def visualize_room(
         self,

@@ -154,18 +154,17 @@ class SAM3DBatchPredictor:
             try:
                 frame = self.dataset.get_frame(room, frame_id, uuid)
                 image_path = frame.rgb_path
-                pose = self.dataset.load_pose(frame)
                 needs_geometry = use_depth or optimize_pose
-                if needs_geometry and frame.depth_path is None:
+                if needs_geometry and not frame.has_depth:
                     raise FileNotFoundError(f"depth is unavailable for {frame.stem}")
                 depth_path = frame.depth_path if needs_geometry else None
                 intrinsics = (
-                    self.dataset.intrinsics(pose)
-                    if needs_geometry and self.dataset.image_type == "regular"
+                    frame.intrinsics
+                    if needs_geometry and frame.projection_type == "regular"
                     else None
                 )
                 camera_transform = (
-                    self.dataset.camera_to_world_from_pose(pose)
+                    frame.camera_to_world
                     if optimize_pose
                     else None
                 )

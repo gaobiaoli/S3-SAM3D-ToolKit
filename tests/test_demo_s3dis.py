@@ -12,11 +12,13 @@ SPEC.loader.exec_module(DEMO)
 
 
 def test_s3dis_visualization_demo_prepares_open3d_input():
-    cloud = S3DISDataset(DEMO.DATASET_ROOT).get_visualization_cloud(
-        f"{DEMO.DEFAULT_AREA}/{DEMO.DEFAULT_ROOM}",
+    cloud = S3DISDataset(DEMO.DATASET_ROOT).room(
+        f"{DEMO.DEFAULT_AREA}/{DEMO.DEFAULT_ROOM}"
+    ).point_cloud(
         color_mode="semantic",
-        hidden_classes=["clutter", "ceiling"],
-        hidden_instances=["wall_3", "wall_4"],
+        exclude_classes=["clutter", "ceiling"],
+        exclude_instances=["wall_3", "wall_4"],
+        ignore_missing_instances=True,
         max_points=1000,
     )
     assert len(cloud.xyz) == 1000

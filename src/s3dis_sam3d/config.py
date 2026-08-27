@@ -12,6 +12,7 @@ S3DIS_ROOT = Path(
     r"C:\Users\bgao491\Downloads\Stanford3dDataset_v1.2\Stanford3dDataset_v1.2"
 )
 BIMSYNC_ROOT = Path(r"C:\Users\bgao491\pythonProject\glb_scene_to_ifc\ifc\ifc")
+BIMNET_ROOT = Path(r"C:\Users\bgao491\DepthEstimation\BIMNet_release")
 BIMSYNC_CALIBRATION_ROOT = OUTPUT_ROOT / "ifc_to_s3dis"
 
 # Small datasets bundled with the repository for demos and tests.

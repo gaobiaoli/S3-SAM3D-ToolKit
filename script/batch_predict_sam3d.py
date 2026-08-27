@@ -12,7 +12,7 @@ from s3dis_sam3d.sam3d import SAM3DBatchPredictor, SAM3DClient
 ANNOTATIONS_DIR = Path("outputs/room_image_annotations/area_1_office_8")
 IMAGE_ROOT = None
 S23_AREA = s23dis_area("Area_1")
-IMAGE_TYPE = "regular"
+PROJECTION_TYPE = "regular"
 SAM3D_URL = "http://127.0.0.1:8000/infer"
 OUTPUT_DIR = Path("outputs/sam3d_inference/area_1_office_8_depth_op")
 
@@ -33,7 +33,7 @@ SEED = 42
 
 def main():
     annotations = RoomImageAnnotationsParser(ANNOTATIONS_DIR, image_root=IMAGE_ROOT)
-    dataset = S23Dataset(S23_AREA, image_type=IMAGE_TYPE)
+    dataset = S23Dataset(S23_AREA, projection_type=PROJECTION_TYPE)
     predictor = SAM3DBatchPredictor(
         SAM3DClient(SAM3D_URL),
         dataset,

@@ -31,12 +31,13 @@ python -m pip install -e ".[ifc]"
 s3dis-sam3d-toolkit/
 ├── src/s3dis_sam3d/
 │   ├── config.py         # S3DIS、2D-3D-S、BIMSync 默认路径
-│   ├── s3dis.py          # S3DIS
+│   ├── s3dis.py          # S3DISDataset、S3DISRoom、S3DISInstance
 │   ├── s23dis.py         # 2D-3D-S
 │   ├── annotations.py    # S3DIS instance 到图像 bbox 的批量标注
-│   ├── bimsync.py        # BIMSync IFC mesh 与 IFC/S3DIS 坐标配准
+│   ├── bimsync.py        # BIMSyncDataset、IFCRegion 与 IFC/S3DIS 配准
 │   ├── models.py         # PointCloud、BoundingBox3D、GLBMesh
 │   ├── pointcloud.py     # 下采样、变换、Open3D 可视化
+│   ├── utils.py          # 相机、投影/反投影、配准等通用数学函数
 │   └── sam3d/            # SAM3D 请求与位姿转换
 ├── dataset/
 │   ├── s3dis/
@@ -56,6 +57,7 @@ s3dis-sam3d-toolkit/
 S23DIS_ROOT = Path("path/to/2d3ds")
 S3DIS_ROOT = Path("path/to/Stanford3dDataset_v1.2")
 BIMSYNC_ROOT = Path("path/to/bimsync/ifc")
+BIMNET_ROOT = Path("path/to/BIMNet_release")
 BIMSYNC_CALIBRATION_ROOT = OUTPUT_ROOT / "ifc_to_s3dis"
 ```
 
@@ -79,11 +81,13 @@ bimsync = BIMSyncDataset(area="Area_1")
 from s3dis_sam3d import S3DISDataset
 
 dataset = S3DISDataset("dataset/s3dis")
-cloud = dataset.load_room("Area_4/hallway_5")
+room = dataset.room("Area_4/hallway_5")
+cloud = room.point_cloud()
+instance = room.instance("clutter_2")
+print(instance.point_cloud.xyz.shape, instance.bbox.extent)
 print(cloud.xyz.shape)
 
-dataset.visualize_room(
-    "Area_4/hallway_5",
+room.visualize(
     color_mode="semantic",
     hidden_classes=["door", "clutter", "board", "beam", "ceiling", "column"],
     hidden_instances=["wall_3", "wall_4"],
@@ -98,7 +102,7 @@ from s3dis_sam3d import S23Dataset
 dataset = S23Dataset("dataset/2d3ds/area_1")
 room = dataset.list_rooms()[0][0]
 frame = dataset.room_frames(room)[0]
-cloud = dataset.frame_cloud(frame, stride=4)
+cloud = frame.point_cloud(stride=4)
 print(cloud.xyz.shape)
 
 # UUID 可省略，默认按排序结果选择第一个
@@ -106,46 +110,121 @@ frame = dataset.get_frame(room, frame.frame_id)
 print(dataset.list_uuids(room, frame.frame_id))
 
 # 常用单帧数据
-rgb = dataset.get_image(room, frame.frame_id, frame.uuid)
-depth = dataset.get_depth(room, frame.frame_id, frame.uuid)
-point_map = dataset.get_depth(room, frame.frame_id, frame.uuid, backproject=True)
-K = dataset.get_k(room, frame.frame_id, frame.uuid)
-camera_to_world = dataset.camera_to_world(room, frame.frame_id, frame.uuid)
+rgb = frame.rgb
+pose = frame.pose
+depth = frame.depth if frame.has_depth else None
+xyz = frame.xyz if frame.has_xyz else None
+point_map = frame.point_map()
+intrinsics = frame.intrinsics
+camera_to_world = frame.camera_to_world
+world_to_camera = frame.world_to_camera
 
 # 房间级可视化与保存
 dataset.visualize_room(room, stride=8)
 dataset.save_room_ply(room, "room.ply", stride=8, progress=True)
 ```
 
-`mask` 可以是数组、图片路径、`{frame.stem: mask}` 映射或接收 `FrameInfo` 的回调。regular 与 pano 会自动使用各自的反投影模型。
+`Frame` 自己持有 `projection_type`，负责读取 RGB、pose、depth、global XYZ，以及单帧投影、
+反投影、point map 和点云生成；`S23Dataset` 只负责索引、选择和房间重建。`mask` 可以是数组、图片路径、
+`{frame.stem: mask}` 映射或接收 `Frame` 的回调。regular 与 pano 会自动使用各自的反投影模型。
+
+相机变换、针孔/全景投影与反投影、mask 处理、单位归一化和 ICP 等不依赖数据集目录的
+函数位于 `s3dis_sam3d.utils`：
+
+```python
+from s3dis_sam3d.utils import (
+    backproject_regular,
+    camera_to_world_from_pose,
+    euler_xyz_to_matrix,
+    project_pinhole_points,
+)
+```
+
+这些数学函数不再作为 `S23Dataset` 的别名重复暴露。
+
+## BIMNet
+
+`BIMNetDataset` indexes all 25 train/test scenes and keeps BIMNet's parallel
+asset trees together: IFC, component-level OBJ, wall-filled OBJ, point-cloud to
+OBJ matrices, labeled point clouds, room metadata, and optional RVT files.
+
+```python
+from s3dis_sam3d import BIMNetDataset
+
+bimnet = BIMNetDataset(r"C:\Users\bgao491\DepthEstimation\BIMNet_release")
+scene = bimnet["hxp"]
+
+print(scene.key, scene.matterport_scan_id, scene.availability)
+print(len(scene.instances), len(scene.rooms))
+
+# Component metadata and selective OBJ loading.
+walls = scene.elements(["IfcWall", "IfcWallStandardCase"])
+wall = scene.element(walls[0].guid)
+wall_mesh = wall.mesh()
+structural_mesh = scene.mesh(
+    source="obj",
+    include_types=["IfcWall", "IfcWallStandardCase", "IfcSlab"],
+)
+
+# Preserve the selected source's own coordinates (IFC and OBJ differ).
+native_ifc_mesh = scene.mesh(source="ifc", coordinates="original")
+native_obj_mesh = scene.mesh(source="obj", coordinates="original")
+
+# Register either source into the original point-cloud coordinates.
+# OBJ: inverse(mat_pc2obj)
+# IFC: inverse(mat_pc2obj) @ ifc_to_obj
+mesh_in_point_cloud_coordinates = scene.mesh(
+    source="ifc",
+    coordinates="point_cloud",
+)
+
+# BIMNet point clouds contain x y z r g b label.
+cloud = scene.point_cloud(include_labels=[0, 1, 2, 3])
+# visualize(aligned=True) uses the original PC coordinates as the common frame.
+scene.visualize(
+    point_cloud_options={"voxel_size": 0.03},
+    mesh_options={"source": "obj", "wall_filled": True},
+)
+```
+
+Missing optional downloads do not prevent scene discovery. Check
+`scene.has_point_cloud`, `scene.has_rvt`, `scene.has_wall_filled_mesh`, or the
+combined `scene.availability` mapping before loading those assets. A full
+Matterport house can be resolved with
+`scene.matterport_scene(Matterport3DDataset(...))`; floor suffixes such as
+`_1` and `_2` remain BIMNet scene metadata.
 
 ## BIMSync IFC
 
 `BIMSyncDataset` 支持 `root/Area_1/*.ifc` 和 IFC 直接位于 root 下的扁平目录：
+dataset 只负责发现、选择和批量处理区域；单个 IFC 的 mesh、校准、配准、导出、可视化和相机渲染
+均由 `IFCRegion` 负责。
 
 ```python
 from s3dis_sam3d import BIMSyncDataset, S3DISDataset
 
 bimsync = BIMSyncDataset("path/to/bimsync/ifc", area="Area_1")
-print(bimsync.list_regions())
+print([region.key for region in bimsync.regions])
+region = bimsync.region("office_11")
 
 # IFC 世界坐标提取为 Open3D mesh，并统一为米
-raw_mesh = bimsync.load_mesh("office_11", apply_calibration=False)
+raw_mesh = region.mesh(calibrated=False)
 
 # 求 IFC -> S3DIS 坐标转换
 s3dis = S3DISDataset("path/to/Stanford3dDataset_v1.2")
-registration = bimsync.estimate_ifc_to_s3dis("office_11", s3dis)
+s3dis_room = s3dis.room("Area_1/office_11")
+registration = region.register(s3dis_room)
 print(registration.ifc_to_s3dis)
-bimsync.save_registration(registration, "outputs/ifc_to_s3dis/Area_1/office_11")
+region.save_registration(registration, "outputs/ifc_to_s3dis/Area_1/office_11")
 
-# 保存后，该 dataset 读取 office_11 时会自动应用 IFC -> S3DIS 矩阵
-mesh = bimsync.load_mesh("office_11")
-bimsync.export_mesh("office_11", "outputs/office_11_calibrated.ply")
+# 保存后，该 region 读取 mesh 时会自动应用 IFC -> S3DIS 矩阵
+mesh = region.mesh()
+region.export("outputs/office_11_calibrated.ply")
 
 # 将配准后的 IFC mesh 与 S3DIS 点云叠加，并保存截图
-bimsync.visualize_registration(
+region.visualize_registration(
     registration,
-    s3dis.get_region_point_cloud("office_11"),
+    s3dis_room,
     "outputs/ifc_to_s3dis/Area_1/office_11/registration.png",
 )
 ```
@@ -162,9 +241,9 @@ summary = bimsync.calibrate_regions(
 )
 ```
 
-在新的进程中，传入校准目录即可自动恢复所有矩阵。之后 `load_mesh()`、`export_mesh()`
-和 `export_meshes()` 默认输出 S3DIS 坐标；需要 IFC 原始坐标时传入
-`apply_calibration=False`：
+在新的进程中，传入校准目录即可自动恢复所有矩阵。之后 `region.mesh()`、`region.export()`
+和 `dataset.export_meshes()` 默认输出 S3DIS 坐标；需要 IFC 原始坐标时传入
+`calibrated=False`：
 
 ```python
 bimsync = BIMSyncDataset(
@@ -172,12 +251,13 @@ bimsync = BIMSyncDataset(
     area="Area_1",
     calibration_dir="outputs/ifc_to_s3dis/Area_1",
 )
-mesh = bimsync.load_mesh("office_11")
-print(bimsync.calibrated_regions())
+region = bimsync.region("office_11")
+mesh = region.mesh()
+print(region.is_calibrated, region.calibration)
 ```
 
 `visualize_registration` 默认不打开窗口，适合批处理保存截图；需要交互查看时传入
-`show=True`。`get_region_point_cloud("office_11")` 默认读取 `Area_1/office_11`，也可传入完整房间名。
+`show=True`。S3DIS 的房间数据与实例数据分别由 `S3DISRoom` 和 `S3DISInstance` 负责。
 
 ### 使用 2D-3D-S regular 相机渲染 IFC
 
@@ -186,13 +266,12 @@ print(bimsync.calibrated_regions())
 ```python
 from s3dis_sam3d import BIMSyncDataset, S23Dataset
 
-s23dis = S23Dataset(area="Area_1", image_type="regular")
+s23dis = S23Dataset(area="Area_1", projection_type="regular")
 bimsync = BIMSyncDataset(area="Area_1")
-result = bimsync.render_regular_frame(
-    "office_11",
-    s23dis,
-    frame_id=0,
-    output_path="outputs/office_11_frame_0.png",
+frame = s23dis.get_frame("office_11", frame_id=0)
+result = bimsync.region("office_11").render_frame(
+    frame,
+    "outputs/office_11_frame_0.png",
 )
 
 print(result.source_image_path, result.source_image.shape)
@@ -206,7 +285,7 @@ print(result.rendered_depth_path, result.rendered_depth.shape)
 IFC→S3DIS 校准矩阵；默认后台保存 RGB 和深度，传入 `show=True` 可同时打开 Open3D
 窗口。`source_image` 是 `[0, 1]` RGB 数组，`source_depth` 和 `rendered_depth` 的单位均为米。
 渲染深度与 2D-3D-S 原图严格使用相同编码：16 位 PNG、`depth_scale=512`、无效值
-`65535`，因此可以直接交给 `S23Dataset.load_depth()`；不需要渲染深度时传入
+`65535`，读取逻辑与 `Frame.depth` 完全一致；不需要渲染深度时传入
 `render_depth=False`。
 
 也可以编辑并运行现成脚本：
@@ -253,7 +332,7 @@ bbox 保持 3D 实例的 amodal 投影范围。
 ```python
 from s3dis_sam3d.annotations import RoomImageBatchAnnotator
 
-annotator = RoomImageBatchAnnotator(s3dis_root, area_path, image_type="regular")
+annotator = RoomImageBatchAnnotator(s3dis_root, area_path, projection_type="regular")
 summary = annotator.annotate_room_images(
     "Area_1/office_8",
     selected_classes=["chair", "table", "sofa"],
@@ -322,7 +401,7 @@ visualize_point_clouds([cloud, asset])
 mesh = GLBMesh.load_posed(
     "prediction.glb",
     "prediction.json",
-    camera_to_world=dataset.camera_to_world_from_pose(dataset.load_pose(frame)),
+    camera_to_world=frame.camera_to_world,
 )
 ```
 

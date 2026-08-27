@@ -19,8 +19,7 @@ def main():
         outputs = dataset.export_meshes(OUTPUT_DIR, extension=MESH_EXTENSION)
     else:
         outputs = [
-            dataset.export_mesh(
-                REGION,
+            dataset.region(REGION).export(
                 OUTPUT_DIR / f"{REGION}{MESH_EXTENSION}",
             )
         ]

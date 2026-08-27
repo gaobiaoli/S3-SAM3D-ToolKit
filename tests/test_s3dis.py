@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from s3dis_sam3d import S3DISDataset, S3DISInstance, S3DISRoom
 from s3dis_sam3d import s3dis as s3dis_module
 from s3dis_sam3d.io import write_ply
-from s3dis_sam3d.s3dis import S3DISDataset
 
 
 class S3DISTest(unittest.TestCase):
@@ -28,55 +28,70 @@ class S3DISTest(unittest.TestCase):
         self.temp.cleanup()
 
     def test_scan_labels_filter_and_bbox(self):
-        self.assertEqual(self.dataset.list_rooms(), ["Area_1/office_1"])
-        cloud = self.dataset.load_room("office_1")
+        self.assertEqual([room.key for room in self.dataset.rooms], ["Area_1/office_1"])
+        room = self.dataset.room("office_1")
+        self.assertIsInstance(room, S3DISRoom)
+        cloud = room.point_cloud()
         self.assertEqual(cloud.xyz.shape, (3, 3))
-        chair = self.dataset.object_cloud("Area_1/office_1", "chair_1")
-        self.assertEqual(len(chair.xyz), 2)
-        filtered = self.dataset.filter_room("office_1", include_classes=["table"])
+        chair = room.instance("chair_1")
+        self.assertIsInstance(chair, S3DISInstance)
+        self.assertEqual(len(chair.point_cloud.xyz), 2)
+        filtered = room.point_cloud(include_classes=["table"])
         self.assertEqual(len(filtered.xyz), 1)
-        boxes = self.dataset.object_bboxes("office_1", include_classes=["chair"])
-        self.assertEqual(boxes[0]["bbox"]["extent"], [1.0, 0.0, 0.0])
+        self.assertEqual(chair.bbox.extent.tolist(), [1.0, 0.0, 0.0])
 
-        objects = self.dataset.object_clouds("office_1", include_classes=["chair"])
-        self.assertEqual(len(objects), 1)
-        self.assertEqual(objects[0].metadata["name"], "chair_1")
-        self.assertEqual(len(objects[0].xyz), 2)
+        instances = [item for item in room.instances if item.class_name == "chair"]
+        self.assertEqual(len(instances), 1)
+        self.assertEqual(instances[0].name, "chair_1")
+        for name in (
+            "load_room",
+            "filter_room",
+            "visualize_room",
+            "object_cloud",
+            "object_clouds",
+            "object_bboxes",
+            "get_region_point_cloud",
+            "get_visualization_cloud",
+            "resolve_room",
+            "list_rooms",
+        ):
+            self.assertFalse(hasattr(self.dataset, name))
 
     def test_default_root_comes_from_config(self):
         with patch.object(s3dis_module, "S3DIS_ROOT", self.dataset.root):
             dataset = S3DISDataset()
-        self.assertEqual(dataset.list_rooms(), ["Area_1/office_1"])
+        self.assertEqual(dataset.rooms[0].key, "Area_1/office_1")
 
     def test_ply_export(self):
-        cloud = self.dataset.load_room(0)
+        cloud = self.dataset.room(0).point_cloud()
         output = Path(self.temp.name) / "cloud.ply"
         write_ply(output, cloud)
         text = output.read_text("ascii")
         self.assertIn("element vertex 3", text)
         self.assertIn("property uchar red", text)
 
-    def test_get_region_point_cloud_uses_area_1_by_default(self):
-        cloud = self.dataset.get_region_point_cloud("office_1")
-        self.assertEqual(len(cloud.xyz), 3)
-
-        chairs = self.dataset.get_region_point_cloud(
-            "Area_1/office_1",
-            include_classes=["chair"],
-        )
+    def test_room_can_be_selected_by_name_or_key(self):
+        room = self.dataset.room("office_1")
+        self.assertIs(room, self.dataset.room("Area_1/office_1"))
+        chairs = room.point_cloud(include_classes=["chair"])
         self.assertEqual(len(chairs.xyz), 2)
 
     def test_visualization_filter_options_ignore_missing_instances(self):
-        cloud = self.dataset.get_visualization_cloud(
-            "Area_1/office_1",
+        room = self.dataset.room("Area_1/office_1")
+        cloud = room.point_cloud(
             color_mode="semantic",
-            hidden_classes=["floor"],
-            hidden_instances=["wall_3", "wall_4"],
+            exclude_classes=["floor"],
+            exclude_instances=["wall_3", "wall_4"],
             ignore_missing_instances=True,
             max_points=2,
         )
         self.assertEqual(len(cloud.xyz), 2)
         self.assertEqual(cloud.rgb.shape, (2, 3))
+
+        with patch("s3dis_sam3d.s3dis.visualize_point_clouds") as visualize:
+            shown = room.visualize(color_mode="instance")
+        self.assertEqual(len(shown.xyz), 3)
+        visualize.assert_called_once()
 
     def test_text_files_are_cached_and_results_do_not_share_arrays(self):
         with patch.object(
@@ -84,25 +99,26 @@ class S3DISTest(unittest.TestCase):
             "read_xyzrgb_txt",
             wraps=s3dis_module.read_xyzrgb_txt,
         ) as reader:
-            first = self.dataset.load_room("office_1", labels=False)
+            room = self.dataset.room("office_1")
+            first = room.point_cloud(labels=False)
             self.assertEqual(reader.call_count, 1)
             first.xyz[0, 0] = 999
 
-            second = self.dataset.load_room("office_1", labels=False)
+            second = room.point_cloud(labels=False)
             self.assertEqual(reader.call_count, 1)
             self.assertEqual(second.xyz[0, 0], 0)
 
-            point_path = self.dataset.resolve_room("office_1").point_path
+            point_path = room.point_path
             point_path.write_text(
                 point_path.read_text(encoding="utf-8") + "2 2 2 1 2 3\n",
                 encoding="utf-8",
             )
-            changed = self.dataset.load_room("office_1", labels=False)
+            changed = room.point_cloud(labels=False)
             self.assertEqual(reader.call_count, 2)
             self.assertEqual(len(changed.xyz), 4)
 
             self.dataset.clear_cache()
-            self.dataset.load_room("office_1", labels=False)
+            room.point_cloud(labels=False)
             self.assertEqual(reader.call_count, 3)
 
 

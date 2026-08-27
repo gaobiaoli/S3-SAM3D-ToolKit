@@ -7,7 +7,7 @@ from s3dis_sam3d.annotations import RoomImageBatchAnnotator
 from s3dis_sam3d.config import S3DIS_ROOT, s23dis_area
 
 S23_AREA = s23dis_area("Area_3")
-IMAGE_TYPE = "regular"
+PROJECTION_TYPE = "regular"
 ROOM_NAME = "Area_3/office_1"
 SELECTED_CLASSES = ["chair", "table", "sofa", "clutter", "bookcase"]
 MIN_PIXELS = 20
@@ -20,7 +20,7 @@ def main():
     annotator = RoomImageBatchAnnotator(
         S3DIS_ROOT,
         S23_AREA,
-        image_type=IMAGE_TYPE,
+        projection_type=PROJECTION_TYPE,
     )
     summary = annotator.annotate_room_images(
         ROOM_NAME,
