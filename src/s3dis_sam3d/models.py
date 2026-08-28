@@ -35,6 +35,13 @@ class BoundingBox3D:
             "extent": self.extent.tolist(),
         }
 
+@dataclass
+class Mesh:
+    pass
+
+@dataclass
+class IFC:
+    pass
 
 @dataclass
 class PointCloud:

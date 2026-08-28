@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 from PIL import Image
 
-from s3dis_sam3d import s23dis as s23dis_module
+from s3dis_sam3d import RGBDFrame
 from s3dis_sam3d.annotations import RoomImageBatchAnnotator
 
 
@@ -69,9 +69,10 @@ class RoomImageBatchAnnotatorTest(unittest.TestCase):
 
     def test_batch_reuses_frame_data_and_writes_strict_json(self):
         with patch.object(
-            s23dis_module,
+            RGBDFrame,
             "_read_depth",
-            wraps=s23dis_module._read_depth,
+            autospec=True,
+            side_effect=RGBDFrame._read_depth,
         ) as load_depth:
             summary = self.annotator.annotate_room_images(
                 "Area_1/office_1",

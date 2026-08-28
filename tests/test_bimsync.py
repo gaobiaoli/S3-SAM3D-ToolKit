@@ -10,8 +10,10 @@ from PIL import Image
 
 from s3dis_sam3d import (
     BIMSyncDataset,
-    IFCRegion,
-    IFCRegistration,
+    BIMSyncFrameRender,
+    BIMSyncRegion,
+    BIMSyncRegistration,
+    FrameRender,
     PointCloud,
 )
 from s3dis_sam3d import bimsync as bimsync_module
@@ -56,7 +58,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
 
     def _registration(self, transform=None):
         transform = np.eye(4) if transform is None else transform
-        return IFCRegistration(
+        return BIMSyncRegistration(
             "Area_1",
             self.region.name,
             self.region.path,
@@ -74,7 +76,9 @@ class BIMSyncDatasetTest(unittest.TestCase):
             [region.key for region in self.dataset.regions],
             ["Area_1/office_1", "Area_1/office_2"],
         )
-        self.assertIsInstance(self.region, IFCRegion)
+        self.assertIsInstance(self.region, BIMSyncRegion)
+        for old_name in ("IFCRegion", "IFCRegistration", "IFCFrameRender"):
+            self.assertFalse(hasattr(bimsync_module, old_name))
         self.assertEqual(self.dataset.region("Area_1/office_2").name, "office_2")
 
         s3dis = SimpleNamespace(
@@ -142,7 +146,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         self.region.set_calibration(saved)
 
         with patch.object(
-            IFCRegion,
+            BIMSyncRegion,
             "_raw_mesh",
             side_effect=lambda *args, **kwargs: o3d.geometry.TriangleMesh.create_box(),
         ):
@@ -155,7 +159,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         output = self.root / "office_1.ply"
         with (
             patch.object(
-                IFCRegion,
+                BIMSyncRegion,
                 "_raw_mesh",
                 return_value=o3d.geometry.TriangleMesh.create_box(),
             ),
@@ -202,7 +206,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         )
         room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(IFCRegion, "mesh", return_value=mesh):
+        with patch.object(BIMSyncRegion, "mesh", return_value=mesh):
             result = self.region.register(
                 room,
                 ifc_samples=3000,
@@ -235,7 +239,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         )
         room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(IFCRegion, "mesh", return_value=mesh):
+        with patch.object(BIMSyncRegion, "mesh", return_value=mesh):
             result = self.region.register(
                 room,
                 ifc_samples=5000,
@@ -258,8 +262,8 @@ class BIMSyncDatasetTest(unittest.TestCase):
         s3dis = _S3DIS(room)
 
         with (
-            patch.object(IFCRegion, "register", return_value=registration),
-            patch.object(IFCRegion, "visualize_registration") as visualize,
+            patch.object(BIMSyncRegion, "register", return_value=registration),
+            patch.object(BIMSyncRegion, "visualize_registration") as visualize,
         ):
             summary = self.dataset.calibrate_regions(
                 s3dis,
@@ -287,7 +291,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         output = self.root / "registration.png"
 
         with (
-            patch.object(IFCRegion, "mesh", return_value=mesh) as load_mesh,
+            patch.object(BIMSyncRegion, "mesh", return_value=mesh) as load_mesh,
             patch(
                 "s3dis_sam3d.bimsync.visualize_point_clouds",
                 return_value=output,
@@ -330,31 +334,44 @@ class BIMSyncDatasetTest(unittest.TestCase):
         output = self.root / "render.png"
 
         def render_output(*args, **kwargs):
-            raw_depth = np.full((480, 640), 2500, dtype=np.uint16)
-            raw_depth[0, 0] = 0
-            Image.fromarray(raw_depth).save(kwargs["depth_path"])
-            return output
+            image = np.full((480, 640, 3), np.array([64, 128, 255]) / 255)
+            depth = np.full((480, 640), 2500 / 512, dtype=np.float32)
+            depth[0, 0] = 0
+            return image, depth
 
         with (
-            patch.object(IFCRegion, "mesh", return_value=mesh) as load_mesh,
+            patch.object(BIMSyncRegion, "mesh", return_value=mesh) as load_mesh,
             patch(
-                "s3dis_sam3d.bimsync.visualize_point_clouds",
+                "s3dis_sam3d.bimsync.render_geometries",
                 side_effect=render_output,
             ) as render,
         ):
-            result = self.region.render_frame(frame, output)
+            result = self.region.render_frame(frame)
 
+        self.assertIsInstance(result, BIMSyncFrameRender)
+        self.assertIsInstance(result, FrameRender)
+        self.assertIsNone(result.rendered_image_path)
+        self.assertIsNone(result.rendered_depth_path)
         load_mesh.assert_called_once_with()
         _, kwargs = render.call_args
         self.assertEqual((kwargs["width"], kwargs["height"]), (640, 480))
-        np.testing.assert_allclose(kwargs["set_parameters"][0], intrinsic)
-        np.testing.assert_allclose(kwargs["set_parameters"][1], extrinsic)
+        np.testing.assert_allclose(kwargs["intrinsics"], intrinsic)
+        np.testing.assert_allclose(kwargs["world_to_camera"], extrinsic)
         self.assertEqual(result.source_image_path, image_path)
         self.assertEqual(result.source_depth_path, source_depth_path)
         np.testing.assert_allclose(result.source_image, 0.5)
         np.testing.assert_allclose(result.source_depth, 1.0)
+        np.testing.assert_allclose(
+            result.rendered_image[0, 0],
+            np.array([64, 128, 255]) / 255,
+        )
+        self.assertEqual(result.image_shape, (480, 640))
+        self.assertTrue(result.has_source_depth)
+        self.assertTrue(result.has_rendered_depth)
         self.assertEqual(result.rendered_depth[0, 0], 0)
         self.assertAlmostEqual(result.rendered_depth[1, 1], 2500 / 512)
+        self.assertIs(result.save(output), result)
+        self.assertEqual(result.rendered_image_path, output)
         with Image.open(result.rendered_depth_path) as depth_image:
             saved_depth = np.asarray(depth_image, dtype=np.uint16)
         self.assertEqual(saved_depth[0, 0], 65535)

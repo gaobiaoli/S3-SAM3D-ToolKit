@@ -452,7 +452,7 @@ class RoomImageBatchAnnotator:
         progress=True,
     ):
         room = self.s3dis.room(room_name)
-        frames = self.s23.room_frames(room.name)
+        frames = list(self.s23.room(room.name).frames)
         if max_frames is not None:
             frames = frames[:max_frames]
         instances = self._instances(room, selected_classes, max_instance_points)

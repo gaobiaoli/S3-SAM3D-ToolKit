@@ -34,9 +34,10 @@ s3dis-sam3d-toolkit/
 │   ├── s3dis.py          # S3DISDataset、S3DISRoom、S3DISInstance
 │   ├── s23dis.py         # 2D-3D-S
 │   ├── annotations.py    # S3DIS instance 到图像 bbox 的批量标注
-│   ├── bimsync.py        # BIMSyncDataset、IFCRegion 与 IFC/S3DIS 配准
+│   ├── bimsync.py        # BIMSyncDataset、BIMSyncRegion 与 IFC/S3DIS 配准
 │   ├── models.py         # PointCloud、BoundingBox3D、GLBMesh
 │   ├── pointcloud.py     # 下采样、变换、Open3D 可视化
+│   ├── rendering.py      # FrameRender 与共享渲染结果约定
 │   ├── utils.py          # 相机、投影/反投影、配准等通用数学函数
 │   └── sam3d/            # SAM3D 请求与位姿转换
 ├── dataset/
@@ -100,14 +101,14 @@ room.visualize(
 from s3dis_sam3d import S23Dataset
 
 dataset = S23Dataset("dataset/2d3ds/area_1")
-room = dataset.list_rooms()[0][0]
-frame = dataset.room_frames(room)[0]
+room = dataset.room(0)
+frame = room.frames[0]
 cloud = frame.point_cloud(stride=4)
 print(cloud.xyz.shape)
 
 # UUID 可省略，默认按排序结果选择第一个
-frame = dataset.get_frame(room, frame.frame_id)
-print(dataset.list_uuids(room, frame.frame_id))
+frame = room.get_frame(frame.frame_id)
+print(room.list_uuids(frame.frame_id))
 
 # 常用单帧数据
 rgb = frame.rgb
@@ -120,12 +121,14 @@ camera_to_world = frame.camera_to_world
 world_to_camera = frame.world_to_camera
 
 # 房间级可视化与保存
-dataset.visualize_room(room, stride=8)
-dataset.save_room_ply(room, "room.ply", stride=8, progress=True)
+cloud = room.reconstruct(stride=8)
+room.visualize(stride=8)
+room.save_ply("room.ply", stride=8, progress=True)
 ```
 
 `Frame` 自己持有 `projection_type`，负责读取 RGB、pose、depth、global XYZ，以及单帧投影、
-反投影、point map 和点云生成；`S23Dataset` 只负责索引、选择和房间重建。`mask` 可以是数组、图片路径、
+反投影、point map 和点云生成；`S23Room` 持有 frames 并负责房间重建、可视化和导出，
+`S23Dataset` 只负责索引和选择 room。`mask` 可以是数组、图片路径、
 `{frame.stem: mask}` 映射或接收 `Frame` 的回调。regular 与 pano 会自动使用各自的反投影模型。
 
 相机变换、针孔/全景投影与反投影、mask 处理、单位归一化和 ICP 等不依赖数据集目录的
@@ -149,9 +152,12 @@ asset trees together: IFC, component-level OBJ, wall-filled OBJ, point-cloud to
 OBJ matrices, labeled point clouds, room metadata, and optional RVT files.
 
 ```python
-from s3dis_sam3d import BIMNetDataset
+from s3dis_sam3d import BIMNetDataset, Matterport3DDataset
 
 bimnet = BIMNetDataset(r"C:\Users\bgao491\DepthEstimation\BIMNet_release")
+matterport_dataset = Matterport3DDataset(
+    r"C:\Users\bgao491\DepthEstimation\Matterport3D"
+)
 scene = bimnet["hxp"]
 
 print(scene.key, scene.matterport_scan_id, scene.availability)
@@ -185,6 +191,12 @@ scene.visualize(
     point_cloud_options={"voxel_size": 0.03},
     mesh_options={"source": "obj", "wall_filled": True},
 )
+
+# Render the registered BIM mesh from an original Matterport RGB-D frame.
+matterport_scene = scene.matterport_scene(matterport_dataset)
+frame = matterport_scene.frames[0]
+render = scene.render_frame(frame, source="ifc", render_depth=True)
+render.save("outputs/hxp_bim.png")
 ```
 
 Missing optional downloads do not prevent scene discovery. Check
@@ -198,7 +210,7 @@ Matterport house can be resolved with
 
 `BIMSyncDataset` 支持 `root/Area_1/*.ifc` 和 IFC 直接位于 root 下的扁平目录：
 dataset 只负责发现、选择和批量处理区域；单个 IFC 的 mesh、校准、配准、导出、可视化和相机渲染
-均由 `IFCRegion` 负责。
+均由 `BIMSyncRegion` 负责。
 
 ```python
 from s3dis_sam3d import BIMSyncDataset, S3DISDataset
@@ -268,22 +280,30 @@ from s3dis_sam3d import BIMSyncDataset, S23Dataset
 
 s23dis = S23Dataset(area="Area_1", projection_type="regular")
 bimsync = BIMSyncDataset(area="Area_1")
-frame = s23dis.get_frame("office_11", frame_id=0)
-result = bimsync.region("office_11").render_frame(
-    frame,
-    "outputs/office_11_frame_0.png",
-)
+frame = s23dis.room("office_11").get_frame(frame_id=0)
+result = bimsync.region("office_11").render_frame(frame)
+result.save("outputs/office_11_frame_0.png")
 
 print(result.source_image_path, result.source_image.shape)
 print(result.source_depth_path, result.source_depth.shape)
-print(result.rendered_image_path)
+print(result.rendered_image_path, result.rendered_image.shape)
 print(result.rendered_depth_path, result.rendered_depth.shape)
+
+# Visualize one pair at a time. Depth heatmaps share one jointly computed scale.
+result.visualize(mode="rgb")
+result.visualize(
+    mode="depth",
+    show=False,
+    save_path="outputs/office_11_depth_comparison.png",
+)
 ```
 
 同一个 room/frame 对应多个相机 UUID 时，默认使用按字典序排列后的第一个；可通过
-`s23dis.list_uuids(room, frame_id)` 查看并显式传入其他 `uuid`。该方法要求 region 已有
-IFC→S3DIS 校准矩阵；默认后台保存 RGB 和深度，传入 `show=True` 可同时打开 Open3D
-窗口。`source_image` 是 `[0, 1]` RGB 数组，`source_depth` 和 `rendered_depth` 的单位均为米。
+`s23dis.room(room).list_uuids(frame_id)` 查看并显式传入其他 `uuid`。该方法要求 region 已有
+IFC→S3DIS 校准矩阵；`render_frame()` 在内存中返回 RGB-D，调用 `result.save(...)` 时才写入
+RGB 和深度文件，传入 `show=True` 可同时打开 Open3D
+窗口。`source_image` 和 `rendered_image` 是 `[0, 1]` RGB 数组，`source_depth` 和
+`rendered_depth` 的单位均为米。
 渲染深度与 2D-3D-S 原图严格使用相同编码：16 位 PNG、`depth_scale=512`、无效值
 `65535`，读取逻辑与 `Frame.depth` 完全一致；不需要渲染深度时传入
 `render_depth=False`。

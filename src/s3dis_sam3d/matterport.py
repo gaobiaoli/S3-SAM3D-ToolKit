@@ -8,16 +8,16 @@ own their RGB/depth data, point-cloud operations return the shared
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from functools import cached_property
 from pathlib import Path
 
 import numpy as np
 import open3d as o3d
-from PIL import Image
 
+from .frames import RGBDFrame
 from .models import PointCloud
-from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
+from .pointcloud import visualize_point_clouds, voxel_downsample
 from .utils import backproject_regular, project_pinhole_points
 
 MATTERPORT_DEPTH_SCALE = 4000.0
@@ -25,18 +25,6 @@ MATTERPORT_DEPTH_SCALE = 4000.0
 # (x right, y up, looking along -z) to world coordinates. Pinhole depth
 # backprojection uses CV coordinates (x right, y down, looking along +z).
 MATTERPORT_CV_TO_OPENGL = np.diag([1, -1, -1, 1]).astype(np.float32)
-
-
-def _read_rgb(path: Path) -> np.ndarray:
-    with Image.open(path) as image:
-        return np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
-
-
-def _read_depth(path: Path) -> np.ndarray:
-    with Image.open(path) as image:
-        depth = np.asarray(image, dtype=np.uint16)
-    return depth.astype(np.float32) / MATTERPORT_DEPTH_SCALE
-
 
 def _mask_for_frame(mask, frame: MatterportFrame):
     if mask is None:
@@ -49,17 +37,24 @@ def _mask_for_frame(mask, frame: MatterportFrame):
 
 
 @dataclass(frozen=True)
-class MatterportFrame:
+class MatterportFrame(RGBDFrame):
     """One Matterport perspective RGB-D frame and its calibrated pose."""
+
+    depth_scale = MATTERPORT_DEPTH_SCALE
 
     scene_id: str
     panorama_id: str
     camera_index: int
     yaw_index: int
-    rgb_path: Path
-    depth_path: Path
     intrinsics: np.ndarray
     camera_to_world: np.ndarray
+    distortion: np.ndarray | None = None
+    undistorted: bool = True
+    _undistorted_source: MatterportFrame | None = field(
+        default=None,
+        repr=False,
+        compare=False,
+    )
 
     @property
     def frame_id(self) -> str:
@@ -83,42 +78,74 @@ class MatterportFrame:
 
         return self.camera_to_world
 
-    @property
-    def rgb(self) -> np.ndarray:
-        """RGB image as ``float32`` values in ``[0, 1]``."""
-
-        return _read_rgb(self.rgb_path)
-
-    @property
-    def depth(self) -> np.ndarray:
-        """Depth image in metres, with invalid measurements represented by zero."""
-
-        return _read_depth(self.depth_path)
-
     @cached_property
-    def world_to_camera(self) -> np.ndarray:
-        return np.linalg.inv(self.camera_to_world).astype(np.float32)
+    def _original_frame(self) -> MatterportFrame:
+        root = self.rgb_path.parent.parent
+        rgb_path = root / "matterport_color_images" / self.rgb_path.name
+        depth_path = root / "matterport_depth_images" / self.depth_path.name
+        intrinsics_path = (
+            root
+            / "matterport_camera_intrinsics"
+            / f"{self.panorama_id}_intrinsics_{self.camera_index}.txt"
+        )
+        pose_path = (
+            root
+            / "matterport_camera_poses"
+            / f"{self.panorama_id}_pose_{self.camera_index}_{self.yaw_index}.txt"
+        )
+        missing = [
+            path
+            for path in (rgb_path, depth_path, intrinsics_path, pose_path)
+            if not path.is_file()
+        ]
+        if missing:
+            raise FileNotFoundError(
+                f"Original Matterport data for frame {self.frame_id!r} is incomplete: "
+                + ", ".join(str(path) for path in missing)
+            )
 
-    @property
-    def camera_position(self) -> np.ndarray:
-        return self.camera_to_world[:3, 3].copy()
+        calibration = np.loadtxt(intrinsics_path, dtype=np.float64).reshape(-1)
+        if calibration.size < 11:
+            raise ValueError(
+                f"Expected 11 calibration values in {intrinsics_path}, "
+                f"got {calibration.size}"
+            )
+        _, _, fx, fy, cx, cy = calibration[:6]
+        pose = np.loadtxt(pose_path, dtype=np.float32)
+        if pose.shape != (4, 4):
+            raise ValueError(f"Expected a 4x4 camera pose in {pose_path}, got {pose.shape}")
 
-    @cached_property
-    def image_shape(self) -> tuple[int, int]:
-        with Image.open(self.depth_path) as image:
-            width, height = image.size
-        return height, width
+        return replace(
+            self,
+            rgb_path=rgb_path,
+            depth_path=depth_path,
+            intrinsics=np.asarray(
+                ((fx, 0.0, cx), (0.0, fy, cy), (0.0, 0.0, 1.0)),
+                dtype=np.float32,
+            ),
+            camera_to_world=pose,
+            distortion=calibration[6:11].astype(np.float32),
+            undistorted=False,
+            _undistorted_source=self,
+        )
+
+    def with_undistort(self, undistort: bool = True) -> MatterportFrame:
+        """Return this frame's undistorted or original calibrated variant."""
+
+        if not isinstance(undistort, bool):
+            raise TypeError("undistort must be a bool")
+        if undistort == self.undistorted:
+            return self
+        if undistort:
+            if self._undistorted_source is None:
+                raise RuntimeError("the undistorted source frame is unavailable")
+            return self._undistorted_source
+        return self._original_frame
 
     def project_camera_points(self, points: np.ndarray):
         """Project camera-space points to ``(uv, depth)``."""
 
         return project_pinhole_points(points, self.intrinsics)
-
-    def project_world_points(self, points: np.ndarray):
-        """Project world-space points to ``(uv, depth)``."""
-
-        camera_points = transform_points(points, self.world_to_camera)
-        return self.project_camera_points(camera_points)
 
     def _backproject(
         self,
@@ -128,65 +155,23 @@ class MatterportFrame:
         depth_max: float | None = 10.0,
         mask=None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        return backproject_regular(
-            self.depth,
+        depth = self.depth
+        points, ys, xs = backproject_regular(
+            depth,
             self.intrinsics,
             stride=stride,
             depth_min=depth_min,
             depth_max=depth_max,
             mask=_mask_for_frame(mask, self),
         )
+        return points, ys, xs, depth
 
-    def point_map(
-        self,
-        *,
-        world_coordinates: bool = False,
-        mask=None,
-    ) -> np.ndarray:
-        """Return a dense ``(H, W, 3)`` camera- or world-space point map."""
-
-        points, ys, xs = self._backproject(
-            stride=1,
-            depth_min=None,
-            depth_max=None,
-            mask=mask,
-        )
-        if world_coordinates:
-            points = transform_points(points, self.camera_to_world)
-
-        point_map = np.zeros((*self.image_shape, 3), dtype=np.float32)
-        point_map[ys, xs] = points
-        return point_map
-
-    def point_cloud(
-        self,
-        *,
-        stride: int = 4,
-        depth_min: float | None = 0.1,
-        depth_max: float | None = 8.0,
-        world_coordinates: bool = True,
-        mask=None,
-    ) -> PointCloud:
-        """Back-project the frame into the package's shared ``PointCloud`` model."""
-
-        points, ys, xs = self._backproject(
-            stride=stride,
-            depth_min=depth_min,
-            depth_max=depth_max,
-            mask=mask,
-        )
-        if world_coordinates:
-            points = transform_points(points, self.camera_to_world)
-
-        return PointCloud(
-            xyz=points,
-            rgb=self.rgb[ys, xs],
-            metadata={
-                "frame_id": self.frame_id,
-                "panorama_id": self.panorama_id,
-                "coordinate_frame": "world" if world_coordinates else "camera",
-            },
-        )
+    def _point_cloud_metadata(self, coordinate_frame):
+        return {
+            "frame_id": self.frame_id,
+            "panorama_id": self.panorama_id,
+            "coordinate_frame": coordinate_frame,
+        }
 
 
 @dataclass(frozen=True)
@@ -435,10 +420,17 @@ class MatterportScene:
                 f"Invalid matrix at {self.camera_config_path}:{line_number}"
             ) from error
 
-    def get_frame(self, frame_id: str) -> MatterportFrame:
+    def get_frame(self, frame_id: str, *, undistort: bool = True) -> MatterportFrame:
+        """Return a calibrated frame from the undistorted or original images.
+
+        ``undistort=True`` preserves the dataset's default undistorted RGB-D
+        representation. ``False`` selects the original Matterport images and
+        loads their matching intrinsics, distortion coefficients, and pose.
+        """
+
         for frame in self.frames:
             if frame.frame_id == frame_id:
-                return frame
+                return frame.with_undistort(undistort)
         raise KeyError(frame_id)
 
     def get_panorama(self, panorama_id: str) -> MatterportPanorama:

@@ -20,12 +20,9 @@ OUTPUT_PATH = (
 def main():
     s23dis = S23Dataset(area=AREA, projection_type="regular")
     bimsync = BIMSyncDataset()
-    frame = s23dis.get_frame(ROOM, FRAME_ID)
-    result = bimsync.region(REGION).render_frame(
-        frame,
-        OUTPUT_PATH,
-        show=SHOW,
-    )
+    frame = s23dis.room(ROOM).get_frame(FRAME_ID)
+    result = bimsync.region(REGION).render_frame(frame, show=SHOW)
+    result.save(OUTPUT_PATH)
     print(f"Selected UUID: {result.uuid}")
     print(f"Source image: {result.source_image_path}")
     print(f"Source depth: {result.source_depth_path}")

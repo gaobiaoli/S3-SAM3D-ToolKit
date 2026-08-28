@@ -7,15 +7,17 @@ import re
 import warnings
 from dataclasses import dataclass, field
 from functools import cached_property
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import numpy as np
 import open3d as o3d
 
 from .bimsync import load_ifc_mesh
 from .config import BIMNET_ROOT
+from .matterport import MATTERPORT_DEPTH_SCALE, MatterportFrame
 from .models import PointCloud
 from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
+from .rendering import FrameRender, render_geometries
 
 BIMNET_LABELS = (
     "wall",
@@ -202,6 +204,19 @@ class BIMNetRoom:
     def bounding_elements(self):
         by_guid = {element.guid: element for element in self.scene.instances if element.guid}
         return tuple(by_guid[guid] for guid in self.bounding_guids if guid in by_guid)
+
+
+@dataclass(frozen=True)
+class BIMNetFrameRender(FrameRender):
+    """A BIMNet mesh rendering paired with its source Matterport frame."""
+
+    depth_scale = MATTERPORT_DEPTH_SCALE
+    depth_invalid_value = 0
+
+    bimnet_scene_id: str
+    matterport_scene_id: str
+    frame_id: str
+    mesh_source: str
 
 
 class BIMNetScene:
@@ -428,6 +443,41 @@ class BIMNetScene:
                 return room
         raise KeyError(identifier)
 
+    def _validate_matterport_frame(self, frame):
+        if not isinstance(frame, MatterportFrame):
+            raise TypeError("frame must be a MatterportFrame")
+        if frame.scene_id.casefold() != self.matterport_scan_id.casefold():
+            raise ValueError(
+                f"Matterport frame {frame.frame_id!r} belongs to {frame.scene_id!r}, "
+                f"not BIMNet scene {self.scene_id!r} ({self.matterport_scan_id!r})"
+            )
+
+    def show(self, frame: MatterportFrame = None):
+        """Interactively show the registered mesh, optionally from a frame view.
+
+        The mesh is displayed in BIMNet's original point-cloud coordinates. If
+        ``frame`` is supplied, its Matterport intrinsics and world-to-camera
+        transform initialize the Open3D view; the window remains interactive.
+        """
+
+        if frame is not None:
+            self._validate_matterport_frame(frame)
+
+        mesh = self.mesh(coordinates="point_cloud")
+        options = {
+            "window_name": f"BIMNet | {self.key}",
+            "mesh_show_back_face": True,
+        }
+        if frame is not None:
+            height, width = frame.image_shape
+            options.update(
+                window_name=f"BIMNet | {self.key} | {frame.frame_id}",
+                width=width,
+                height=height,
+                set_parameters=(frame.intrinsics, frame.world_to_camera),
+            )
+        return visualize_point_clouds([mesh], **options)
+
     def point_cloud(
         self,
         *,
@@ -555,6 +605,74 @@ class BIMNetScene:
             raise RuntimeError(f"failed to export BIMNet mesh: {output_path}")
         return output_path
 
+    def render_frame(
+        self,
+        frame: MatterportFrame,
+        *,
+        source="obj",
+        wall_filled=False,
+        include_types=None,
+        mesh_color=(0.75, 0.75, 0.75),
+        background_color=(0.05, 0.05, 0.05),
+        render_depth=True,
+        show=False,
+    ):
+        """Render a registered BIMNet mesh from a corresponding Matterport frame.
+
+        The mesh is always transformed into BIMNet's original point-cloud
+        coordinates, which are the Matterport world coordinates used by
+        ``frame.camera_to_world``. The source RGB and depth remain owned by the
+        supplied :class:`MatterportFrame`.
+        """
+
+        self._validate_matterport_frame(frame)
+
+        source = str(source).casefold()
+        source_image = frame.rgb
+        source_depth = frame.depth
+        height, width = source_image.shape[:2]
+
+        mesh = self.mesh(
+            source=source,
+            wall_filled=wall_filled,
+            include_types=include_types,
+            coordinates="point_cloud",
+        )
+        if mesh_color is not None:
+            mesh.paint_uniform_color(mesh_color)
+        rendered_image, rendered_depth = render_geometries(
+            [mesh],
+            window_name=f"BIMNet {source.upper()} | {self.key} | {frame.frame_id}",
+            width=width,
+            height=height,
+            background_color=background_color,
+            intrinsics=frame.intrinsics,
+            world_to_camera=frame.world_to_camera,
+            render_depth=render_depth,
+            show=show,
+            mesh_show_back_face=True,
+        )
+
+        return BIMNetFrameRender(
+            bimnet_scene_id=self.scene_id,
+            matterport_scene_id=frame.scene_id,
+            frame_id=frame.frame_id,
+            mesh_source=source,
+            rendered_image_path=None,
+            rendered_depth_path=None,
+            source_image_path=frame.rgb_path,
+            source_depth_path=frame.depth_path,
+            source_image=source_image,
+            source_depth=source_depth,
+            rendered_image=rendered_image,
+            rendered_depth=rendered_depth,
+        )
+
+    def render(self, frame: MatterportFrame, **render_options):
+        """Compatibility spelling for :meth:`render_frame`."""
+
+        return self.render_frame(frame, **render_options)
+
     def visualize(
         self,
         *,
@@ -629,6 +747,7 @@ class BIMNetDataset:
             raise ValueError("split must be None, 'train', or 'test'")
         self.selected_split = split
         self._scene_index = self._discover_scenes()
+        self._scene_aliases = self._build_scene_aliases()
         self._scene_cache = {}
         if not self._scene_index:
             raise ValueError(f"no BIMNet scenes found below {self.root}")
@@ -651,6 +770,62 @@ class BIMNetDataset:
                 index[f"{split}/{name}".casefold()] = (name, split)
         return index
 
+    def _build_scene_aliases(self):
+        aliases = {}
+        for key, (name, _) in self._scene_index.items():
+            values = (key, name, BIMNET_MATTERPORT_SCANS.get(name.casefold()))
+            for value in values:
+                if value is None:
+                    continue
+                alias = str(value).replace("\\", "/").casefold()
+                aliases.setdefault(alias, []).append(key)
+        return {alias: tuple(dict.fromkeys(keys)) for alias, keys in aliases.items()}
+
+    @staticmethod
+    def _normalize_scene_identifier(identifier):
+        value = str(identifier).strip().replace("\\", "/").rstrip("/")
+        if not value:
+            raise KeyError("BIMNet scene identifier cannot be empty")
+        return value.casefold()
+
+    @staticmethod
+    def _path_scene_aliases(value):
+        """Extract ``split/name`` and ``name`` aliases from an asset path."""
+
+        path = PurePosixPath(value)
+        parts = path.parts
+        candidates = []
+
+        for index, part in enumerate(parts[:-1]):
+            if part in ("train", "test") and index + 1 < len(parts):
+                name = PurePosixPath(parts[index + 1]).stem
+                candidates.append(f"{part}/{name}")
+
+        leaf = path.stem if path.suffix else path.name
+        if leaf:
+            candidates.append(leaf)
+        return tuple(dict.fromkeys(candidates))
+
+    def _scene_from_matches(self, identifier, matches):
+        matches = tuple(dict.fromkeys(matches))
+        if not matches:
+            raise KeyError(
+                f"unknown BIMNet scene: {identifier!r}; expected a BIMNet scene ID, "
+                "split/name, Matterport scan ID, scene asset path, or integer index"
+            )
+        if len(matches) > 1:
+            choices = ", ".join(self._scene_index[key][0] for key in matches)
+            raise KeyError(
+                f"ambiguous BIMNet scene {identifier!r}; matches: {choices}. "
+                "Use split/name or scenes_for_scan() to select explicitly"
+            )
+
+        key = matches[0]
+        if key not in self._scene_cache:
+            name, split = self._scene_index[key]
+            self._scene_cache[key] = BIMNetScene(self, name, split)
+        return self._scene_cache[key]
+
     @property
     def scenes(self):
         return tuple(self.scene(key) for key in self._scene_index)
@@ -667,24 +842,32 @@ class BIMNetDataset:
         }
 
     def scene(self, identifier):
+        """Find a scene from its index, IDs, split key, object, or asset path.
+
+        Both BIMNet IDs (for example ``"hxp"``) and corresponding Matterport
+        scan IDs (``"HxpKQynjfin"``) are accepted. A Matterport scan can map to
+        several BIMNet floor scenes; such ambiguous lookups must be made
+        explicit with ``split/name`` or :meth:`scenes_for_scan`.
+        """
+
+        if isinstance(identifier, BIMNetScene):
+            return self._scene_from_matches(identifier, (identifier.key.casefold(),))
         if isinstance(identifier, int):
             return self.scenes[identifier]
-        value = str(identifier).replace("\\", "/").casefold()
-        if value in self._scene_index:
-            key = value
-        else:
-            matches = [
-                key
-                for key, (name, _) in self._scene_index.items()
-                if name.casefold() == value
-            ]
-            if len(matches) != 1:
-                raise KeyError(f"unknown or ambiguous BIMNet scene: {identifier}")
-            key = matches[0]
-        if key not in self._scene_cache:
-            name, split = self._scene_index[key]
-            self._scene_cache[key] = BIMNetScene(self, name, split)
-        return self._scene_cache[key]
+        if isinstance(identifier, (tuple, list)):
+            if len(identifier) != 2:
+                raise ValueError("a BIMNet scene tuple must contain (split, scene_id)")
+            identifier = f"{identifier[0]}/{identifier[1]}"
+
+        value = self._normalize_scene_identifier(identifier)
+        direct_matches = self._scene_aliases.get(value, ())
+        if direct_matches:
+            return self._scene_from_matches(identifier, direct_matches)
+
+        path_matches = []
+        for alias in self._path_scene_aliases(value):
+            path_matches.extend(self._scene_aliases.get(alias, ()))
+        return self._scene_from_matches(identifier, path_matches)
 
     def split(self, name):
         if name not in ("train", "test"):

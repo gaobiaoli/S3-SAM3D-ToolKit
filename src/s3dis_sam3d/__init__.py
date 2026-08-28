@@ -1,32 +1,43 @@
 from . import config, utils
-from .bimnet import BIMNetDataset, BIMNetElement, BIMNetRoom, BIMNetScene
-from .bimsync import BIMSyncDataset, IFCFrameRender, IFCRegion, IFCRegistration
+from .bimnet import BIMNetDataset, BIMNetElement, BIMNetFrameRender, BIMNetRoom, BIMNetScene
+from .bimsync import (
+    BIMSyncDataset,
+    BIMSyncFrameRender,
+    BIMSyncRegion,
+    BIMSyncRegistration,
+)
+from .frames import RGBDFrame
 from .matterport import Matterport3DDataset, MatterportFrame, MatterportPanorama, MatterportScene
 from .models import BoundingBox3D, GLBMesh, PointCloud
+from .rendering import FrameRender
 from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
-from .s23dis import Frame, S23Dataset, parse_stem
+from .s23dis import Frame, S23Dataset, S23Room, parse_stem
 
 __all__ = [
     "BIMNetDataset",
     "BIMNetElement",
+    "BIMNetFrameRender",
     "BIMNetRoom",
     "BIMNetScene",
     "BIMSyncDataset",
+    "BIMSyncFrameRender",
+    "BIMSyncRegion",
+    "BIMSyncRegistration",
     "BoundingBox3D",
     "Frame",
+    "FrameRender",
     "GLBMesh",
-    "IFCFrameRender",
-    "IFCRegion",
-    "IFCRegistration",
     "Matterport3DDataset",
     "MatterportFrame",
     "MatterportPanorama",
     "MatterportScene",
     "PointCloud",
+    "RGBDFrame",
     "S3DISDataset",
     "S3DISInstance",
     "S3DISRoom",
     "S23Dataset",
+    "S23Room",
     "config",
     "parse_stem",
     "utils",

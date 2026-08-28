@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from s3dis_sam3d.frames import RGBDFrame
 from s3dis_sam3d.matterport import (
     Matterport3DDataset,
     MatterportFrame,
@@ -41,10 +42,35 @@ def _write_scene(path: Path, scene_id: str) -> Path:
     return path
 
 
+def _write_distorted_frame(path: Path, frame: MatterportFrame) -> None:
+    rgb_dir = path / "matterport_color_images"
+    depth_dir = path / "matterport_depth_images"
+    intrinsics_dir = path / "matterport_camera_intrinsics"
+    pose_dir = path / "matterport_camera_poses"
+    for directory in (rgb_dir, depth_dir, intrinsics_dir, pose_dir):
+        directory.mkdir(parents=True)
+
+    Image.fromarray(np.full((2, 2, 3), (0, 128, 255), dtype=np.uint8)).save(
+        rgb_dir / frame.rgb_path.name
+    )
+    Image.fromarray(np.full((2, 2), 8000, dtype=np.uint16)).save(
+        depth_dir / frame.depth_path.name
+    )
+    (intrinsics_dir / f"{frame.panorama_id}_intrinsics_{frame.camera_index}.txt").write_text(
+        "2 2 2 3 0.5 0.75 0.1 0.2 0.3 0.4 0.5\n",
+        encoding="utf-8",
+    )
+    np.savetxt(
+        pose_dir / f"{frame.panorama_id}_pose_{frame.camera_index}_{frame.yaw_index}.txt",
+        frame.camera_to_world,
+    )
+
+
 def test_frame_point_map_and_point_cloud(tmp_path):
     scene = MatterportScene("scene", _write_scene(tmp_path / "scene", "scene"))
     frame = scene.frames[0]
 
+    assert isinstance(frame, RGBDFrame)
     assert isinstance(frame, MatterportFrame)
     assert frame.frame_id.endswith("_i0_0")
     np.testing.assert_allclose(frame.point_map()[1, 1], [1, 1, 1])
@@ -66,6 +92,30 @@ def test_frame_point_map_and_point_cloud(tmp_path):
     # JPEG compression may shift a channel by one or two integer values.
     np.testing.assert_allclose(cloud.rgb[0], [1, 128 / 255, 0], atol=2 / 255)
     assert cloud.metadata["coordinate_frame"] == "world"
+
+
+def test_scene_get_frame_selects_undistorted_or_original_data(tmp_path):
+    root = _write_scene(tmp_path / "scene", "scene")
+    scene = MatterportScene("scene", root)
+    undistorted = scene.frames[0]
+    _write_distorted_frame(root, undistorted)
+
+    assert scene.get_frame(undistorted.frame_id) is undistorted
+    assert scene.get_frame(undistorted.frame_id, undistort=True) is undistorted
+    assert undistorted.undistorted
+    assert undistorted.distortion is None
+
+    original = scene.get_frame(undistorted.frame_id, undistort=False)
+    assert original is scene.get_frame(undistorted.frame_id, undistort=False)
+    assert original is undistorted.with_undistort(False)
+    assert original.with_undistort(True) is undistorted
+    assert not original.undistorted
+    assert original.rgb_path.parent.name == "matterport_color_images"
+    assert original.depth_path.parent.name == "matterport_depth_images"
+    np.testing.assert_allclose(original.intrinsics, [[2, 0, 0.5], [0, 3, 0.75], [0, 0, 1]])
+    np.testing.assert_allclose(original.distortion, [0.1, 0.2, 0.3, 0.4, 0.5])
+    np.testing.assert_allclose(original.camera_to_world, undistorted.camera_to_world)
+    np.testing.assert_allclose(original.depth, 2.0)
 
 
 def test_scene_reconstruct_reuses_shared_point_cloud(tmp_path):

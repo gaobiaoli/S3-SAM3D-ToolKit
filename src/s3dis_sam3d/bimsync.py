@@ -6,11 +6,11 @@ from pathlib import Path
 
 import numpy as np
 import open3d as o3d
-from PIL import Image
 from tqdm import tqdm
 
 from .config import BIMSYNC_ROOT, bimsync_calibration_dir
 from .pointcloud import to_open3d_point_cloud, visualize_point_clouds
+from .rendering import FrameRender, render_geometries
 from .s23dis import S23DIS_DEPTH_SCALE, S23DIS_INVALID_DEPTH
 from .utils import (
     initial_registration_transform,
@@ -88,7 +88,7 @@ def load_ifc_mesh(path, include_types=None):
 
 
 @dataclass(frozen=True)
-class IFCRegion:
+class BIMSyncRegion:
     dataset: BIMSyncDataset = field(repr=False, compare=False)
     area: str
     name: str
@@ -200,7 +200,7 @@ class IFCRegion:
         s3dis_to_ifc = best["transform"]
         ifc_to_s3dis = np.linalg.inv(s3dis_to_ifc)
         final = best["stages"][-1]
-        return IFCRegistration(
+        return BIMSyncRegistration(
             self.area,
             self.name,
             self.path,
@@ -257,12 +257,10 @@ class IFCRegion:
     def render_frame(
         self,
         frame,
-        output_path,
         *,
         mesh_color=(0.75, 0.75, 0.75),
         background_color=(0.05, 0.05, 0.05),
         render_depth=True,
-        depth_output_path=None,
         show=False,
     ):
         if not self.is_calibrated:
@@ -272,55 +270,41 @@ class IFCRegion:
 
         source_image = frame.rgb
         height, width = source_image.shape[:2]
-        output_path = Path(output_path)
-        depth_output_path = (
-            Path(depth_output_path or output_path.with_name(f"{output_path.stem}_depth.png"))
-            if render_depth
-            else None
-        )
 
         mesh = self.mesh()
         mesh.paint_uniform_color(mesh_color)
-        visualize_point_clouds(
+        rendered_image, rendered_depth = render_geometries(
             [mesh],
             window_name=f"BIMSync IFC | {frame.room} | frame {frame.frame_id}",
             width=width,
             height=height,
             background_color=background_color,
-            set_parameters=(frame.intrinsics, frame.world_to_camera),
-            save_path=output_path,
-            depth_path=depth_output_path,
-            depth_scale=S23DIS_DEPTH_SCALE,
+            intrinsics=frame.intrinsics,
+            world_to_camera=frame.world_to_camera,
+            render_depth=render_depth,
             show=show,
             mesh_show_back_face=True,
         )
 
         source_depth = frame.depth if frame.has_depth else None
-        rendered_depth = None
-        if depth_output_path is not None:
-            with Image.open(depth_output_path) as depth_image:
-                raw_depth = np.asarray(depth_image, dtype=np.uint16).copy()
-            raw_depth[raw_depth == 0] = S23DIS_INVALID_DEPTH
-            Image.fromarray(raw_depth).save(depth_output_path)
-            rendered_depth = raw_depth.astype(np.float32) / S23DIS_DEPTH_SCALE
-            rendered_depth[raw_depth == S23DIS_INVALID_DEPTH] = 0
-        return IFCFrameRender(
+        return BIMSyncFrameRender(
             region=self.name,
             room=frame.room,
             frame_id=frame.frame_id,
             uuid=frame.uuid,
-            rendered_image_path=output_path,
-            rendered_depth_path=depth_output_path,
+            rendered_image_path=None,
+            rendered_depth_path=None,
             source_image_path=frame.rgb_path,
             source_depth_path=frame.depth_path,
             source_image=source_image,
-            rendered_depth=rendered_depth,
             source_depth=source_depth,
+            rendered_image=rendered_image,
+            rendered_depth=rendered_depth,
         )
 
 
 @dataclass(frozen=True)
-class IFCRegistration:
+class BIMSyncRegistration:
     area: str
     region: str
     ifc_path: Path
@@ -356,22 +340,18 @@ class IFCRegistration:
 
 
 @dataclass(frozen=True)
-class IFCFrameRender:
+class BIMSyncFrameRender(FrameRender):
+    depth_scale = S23DIS_DEPTH_SCALE
+    depth_invalid_value = S23DIS_INVALID_DEPTH
+
     region: str
     room: str
     frame_id: int
     uuid: str
-    rendered_image_path: Path
-    rendered_depth_path: Path | None
-    source_image_path: Path
-    source_depth_path: Path | None
-    source_image: np.ndarray = field(repr=False)
-    rendered_depth: np.ndarray | None = field(repr=False)
-    source_depth: np.ndarray | None = field(repr=False)
 
 
 class BIMSyncDataset:
-    """Discover IFC regions and coordinate Area-level batch operations."""
+    """Discover BIMSync regions and coordinate Area-level batch operations."""
 
     def __init__(self, root=None, area="Area_1", calibration_dir=None):
         using_default_root = root is None
@@ -386,7 +366,7 @@ class BIMSyncDataset:
         self._calibrations = {}
         self.ifc_dir = self._resolve_ifc_dir()
         self.regions = [
-            IFCRegion(self, area, path.stem, path)
+            BIMSyncRegion(self, area, path.stem, path)
             for path in sorted(self.ifc_dir.glob("*.ifc"))
         ]
         if not self.regions:

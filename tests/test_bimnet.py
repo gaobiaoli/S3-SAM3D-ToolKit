@@ -1,11 +1,22 @@
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import numpy as np
 import open3d as o3d
+import pytest
+from PIL import Image
 
-from s3dis_sam3d import BIMNetDataset, BIMNetElement, BIMNetRoom, BIMNetScene, PointCloud
+from s3dis_sam3d import (
+    BIMNetDataset,
+    BIMNetElement,
+    BIMNetFrameRender,
+    BIMNetRoom,
+    BIMNetScene,
+    FrameRender,
+    MatterportFrame,
+    PointCloud,
+)
 
 
 def _record(filename, ifc_id, rvt_id, guid, ifc_type):
@@ -88,15 +99,33 @@ def _write_scene(root: Path, split="train", scene_id="1px", with_point_cloud=Tru
 def test_dataset_discovers_splits_and_matterport_mapping(tmp_path):
     _write_scene(tmp_path, "train", "1px")
     _write_scene(tmp_path, "test", "7y3")
+    _write_scene(tmp_path, "train", "hxp")
 
     dataset = BIMNetDataset(tmp_path)
 
-    assert len(dataset) == 2
+    assert len(dataset) == 3
     assert isinstance(dataset["train/1px"], BIMNetScene)
     assert dataset["1px"] is dataset["train/1px"]
     assert [scene.scene_id for scene in dataset.split("test")] == ["7y3"]
     assert dataset.scenes_for_scan("7y3sRwLe3Va") == (dataset["7y3"],)
     assert dataset["1px"].matterport_scan_id == "1pXnuDYAj8r"
+    assert dataset.scene("HxpKQynjfin") is dataset["hxp"]
+    assert dataset.scene(("train", "HXP")) is dataset["hxp"]
+    assert dataset.scene(tmp_path / "ifc" / "train" / "hxp.ifc") is dataset["hxp"]
+    assert dataset.scene(dataset["hxp"]) is dataset["hxp"]
+
+
+def test_dataset_rejects_ambiguous_matterport_scene_lookup(tmp_path):
+    _write_scene(tmp_path, "train", "7y3")
+    _write_scene(tmp_path, "test", "7y3_1")
+    dataset = BIMNetDataset(tmp_path)
+
+    assert dataset.scenes_for_scan("7y3sRwLe3Va") == (
+        dataset["train/7y3"],
+        dataset["test/7y3_1"],
+    )
+    with pytest.raises(KeyError, match="ambiguous BIMNet scene"):
+        dataset.scene("7y3sRwLe3Va")
 
 
 def test_scene_parses_elements_rooms_and_registration_matrix(tmp_path):
@@ -211,3 +240,134 @@ def test_mesh_registration_uses_source_specific_coordinate_chain(tmp_path):
         scene.mesh_to_point_cloud_transform("obj"),
         scene.obj_to_point_cloud,
     )
+
+
+def test_render_pairs_registered_mesh_with_matterport_frame(tmp_path):
+    _write_scene(tmp_path)
+    scene = BIMNetDataset(tmp_path)["1px"]
+    rgb_path = tmp_path / "frame.jpg"
+    depth_path = tmp_path / "frame.png"
+    Image.fromarray(np.full((4, 6, 3), 128, dtype=np.uint8)).save(rgb_path)
+    Image.fromarray(np.full((4, 6), 4000, dtype=np.uint16)).save(depth_path)
+    frame = MatterportFrame(
+        scene_id=scene.matterport_scan_id,
+        panorama_id="panorama",
+        camera_index=0,
+        yaw_index=1,
+        rgb_path=rgb_path,
+        depth_path=depth_path,
+        intrinsics=np.array([[5, 0, 3], [0, 5, 2], [0, 0, 1]], dtype=np.float32),
+        camera_to_world=np.eye(4, dtype=np.float32),
+    )
+    output_path = tmp_path / "render.png"
+
+    def fake_render(_geometries, **_options):
+        return (
+            np.zeros((4, 6, 3), dtype=np.float32),
+            np.full((4, 6), 0.5, dtype=np.float32),
+        )
+
+    with (
+        patch.object(
+            BIMNetScene,
+            "mesh",
+            return_value=o3d.geometry.TriangleMesh.create_box(),
+        ) as load_mesh,
+        patch("s3dis_sam3d.bimnet.render_geometries", side_effect=fake_render) as render,
+    ):
+        result = scene.render_frame(frame, source="ifc")
+
+    assert isinstance(result, BIMNetFrameRender)
+    assert isinstance(result, FrameRender)
+    assert result.bimnet_scene_id == "1px"
+    assert result.matterport_scene_id == scene.matterport_scan_id
+    assert result.frame_id == frame.frame_id
+    assert result.mesh_source == "ifc"
+    assert result.rendered_image_path is None
+    assert result.rendered_depth_path is None
+    np.testing.assert_allclose(result.source_depth, 1.0)
+    np.testing.assert_allclose(result.rendered_image, 0.0)
+    np.testing.assert_allclose(result.rendered_depth, 0.5)
+    assert result.save(output_path) is result
+    assert result.rendered_image_path == output_path
+    assert result.rendered_depth_path == tmp_path / "render_depth.png"
+    with Image.open(result.rendered_depth_path) as depth_image:
+        np.testing.assert_array_equal(
+            np.asarray(depth_image, dtype=np.uint16),
+            np.full((4, 6), 2000, dtype=np.uint16),
+        )
+    load_mesh.assert_called_once_with(
+        source="ifc",
+        wall_filled=False,
+        include_types=None,
+        coordinates="point_cloud",
+    )
+    options = render.call_args.kwargs
+    assert (options["width"], options["height"]) == (6, 4)
+    assert options["render_depth"]
+    np.testing.assert_allclose(options["intrinsics"], frame.intrinsics)
+    np.testing.assert_allclose(options["world_to_camera"], frame.world_to_camera)
+
+
+def test_show_uses_automatic_or_matterport_frame_view(tmp_path):
+    _write_scene(tmp_path)
+    scene = BIMNetDataset(tmp_path)["1px"]
+    frame = MatterportFrame(
+        scene_id=scene.matterport_scan_id,
+        panorama_id="panorama",
+        camera_index=0,
+        yaw_index=1,
+        rgb_path=tmp_path / "missing.jpg",
+        depth_path=tmp_path / "frame.png",
+        intrinsics=np.array([[5, 0, 3], [0, 5, 2], [0, 0, 1]], dtype=np.float32),
+        camera_to_world=np.eye(4, dtype=np.float32),
+    )
+    Image.fromarray(np.full((4, 6), 4000, dtype=np.uint16)).save(frame.depth_path)
+    mesh = o3d.geometry.TriangleMesh.create_box()
+
+    with (
+        patch.object(BIMNetScene, "mesh", return_value=mesh) as load_mesh,
+        patch("s3dis_sam3d.bimnet.visualize_point_clouds") as visualize,
+    ):
+        scene.show()
+        automatic_options = visualize.call_args.kwargs
+        scene.show(frame)
+        frame_options = visualize.call_args.kwargs
+
+    assert load_mesh.call_args_list == [
+        call(coordinates="point_cloud"),
+        call(coordinates="point_cloud"),
+    ]
+    assert automatic_options == {
+        "window_name": "BIMNet | train/1px",
+        "mesh_show_back_face": True,
+    }
+    assert (frame_options["width"], frame_options["height"]) == (6, 4)
+    assert frame.frame_id in frame_options["window_name"]
+    intrinsics, extrinsic = frame_options["set_parameters"]
+    np.testing.assert_allclose(intrinsics, frame.intrinsics)
+    np.testing.assert_allclose(extrinsic, frame.world_to_camera)
+
+
+def test_render_rejects_frame_from_another_matterport_scan(tmp_path):
+    _write_scene(tmp_path)
+    scene = BIMNetDataset(tmp_path)["1px"]
+    frame = MatterportFrame(
+        scene_id="another-scan",
+        panorama_id="panorama",
+        camera_index=0,
+        yaw_index=0,
+        rgb_path=tmp_path / "missing.jpg",
+        depth_path=tmp_path / "missing.png",
+        intrinsics=np.eye(3),
+        camera_to_world=np.eye(4),
+    )
+
+    with pytest.raises(ValueError, match="another-scan"):
+        scene.render_frame(frame)
+    with (
+        patch.object(BIMNetScene, "mesh") as load_mesh,
+        pytest.raises(ValueError, match="another-scan"),
+    ):
+        scene.show(frame)
+    load_mesh.assert_not_called()
