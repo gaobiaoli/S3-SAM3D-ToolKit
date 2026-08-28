@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 from PIL import Image
 
-from s3dis_sam3d import Frame, RGBDFrame, S23Dataset, S23Room, parse_stem
+from s3dis_sam3d import S23Frame, RGBDFrame, S23Dataset, S23Room, parse_stem
 from s3dis_sam3d import s23dis as s23dis_module
 
 
@@ -53,7 +53,7 @@ class S23DatasetTest(unittest.TestCase):
     def test_frame_owns_its_data_and_camera_properties(self):
         frame = self.room.get_frame(7)
 
-        self.assertIsInstance(frame, Frame)
+        self.assertIsInstance(frame, S23Frame)
         self.assertEqual(frame.projection_type, "regular")
         self.assertTrue(frame.has_depth)
         self.assertFalse(frame.has_xyz)
@@ -141,6 +141,9 @@ class S23DatasetTest(unittest.TestCase):
             "point_map",
             "visualize",
             "save_ply",
+            "reconstruct",
+            "visualize_room",
+            "save_room_ply",
         ):
             self.assertFalse(hasattr(self.dataset, name))
 

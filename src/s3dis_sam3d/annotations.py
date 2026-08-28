@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from .pointcloud import random_downsample
 from .s3dis import S3DISDataset
-from .s23dis import Frame, S23Dataset
+from .s23dis import S23Frame, S23Dataset
 
 
 class RoomImageAnnotationsParser:
@@ -297,7 +297,7 @@ class RoomImageAnnotationsParser:
 
 @dataclass(frozen=True)
 class FrameProjection:
-    frame: Frame
+    frame: S23Frame
     observed_depth: np.ndarray | None
 
 

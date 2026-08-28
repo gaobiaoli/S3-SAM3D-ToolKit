@@ -18,8 +18,7 @@ write_ply(DEMO_OUTPUT_ROOT / "s3dis_clutter_2.ply", clutter)
 s23dis = S23Dataset(DATASET_ROOT / "2d3ds" / "area_1")
 frame = s23dis.get_frame("hallway_2", frame_id=1)
 point_map = frame.point_map()
-reconstructed = s23dis.reconstruct(
-    "hallway_2",
+reconstructed = s23dis.room("hallway_2").reconstruct(
     frame_id=1,
     stride=16,
     voxel_size=None,

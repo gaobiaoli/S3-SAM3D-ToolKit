@@ -16,6 +16,7 @@ import numpy as np
 import open3d as o3d
 
 from .frames import RGBDFrame
+from .config import MATTERPORT_ROOT
 from .models import PointCloud
 from .pointcloud import visualize_point_clouds, voxel_downsample
 from .utils import backproject_regular, project_pinhole_points
@@ -59,24 +60,6 @@ class MatterportFrame(RGBDFrame):
     @property
     def frame_id(self) -> str:
         return f"{self.panorama_id}_i{self.camera_index}_{self.yaw_index}"
-
-    @property
-    def intrinsic(self) -> np.ndarray:
-        """Compatibility alias for the previous parser API."""
-
-        return self.intrinsics
-
-    @property
-    def K(self) -> np.ndarray:
-        """Compatibility alias for :attr:`intrinsics`."""
-
-        return self.intrinsics
-
-    @property
-    def T_c2w(self) -> np.ndarray:
-        """Compatibility alias for :attr:`camera_to_world`."""
-
-        return self.camera_to_world
 
     @cached_property
     def _original_frame(self) -> MatterportFrame:
@@ -553,8 +536,8 @@ class MatterportScene:
 class Matterport3DDataset:
     """Index Matterport scenes in either flat or official nested layouts."""
 
-    def __init__(self, root: str | Path) -> None:
-        self.root = Path(root).expanduser().resolve()
+    def __init__(self, root: str | Path | None = None) -> None:
+        self.root = Path(MATTERPORT_ROOT if root is None else root).expanduser().resolve()
         if not self.root.is_dir():
             raise FileNotFoundError(f"Matterport root directory not found: {self.root}")
         self._scene_dirs = self._discover_scene_dirs()

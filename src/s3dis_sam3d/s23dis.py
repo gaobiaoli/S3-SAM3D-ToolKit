@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -73,8 +72,7 @@ def _mask_for_frame(mask, frame):
 
 
 @dataclass(frozen=True)
-class Frame(RGBDFrame):
-    # TODO rename to S23Frame
+class S23Frame(RGBDFrame):
     depth_scale = S23DIS_DEPTH_SCALE
     invalid_depth_value = S23DIS_INVALID_DEPTH
 
@@ -189,7 +187,7 @@ class S23Room:
     dataset: S23Dataset = field(repr=False, compare=False)
     area: str
     name: str
-    frames: tuple[Frame, ...]
+    frames: tuple[S23Frame, ...]
 
     @property
     def key(self):
@@ -376,7 +374,7 @@ class S23Dataset:
             xyz_path = self.xyz_dir / f"{stem}_global_xyz.exr"
             if rgb_path.exists() and (depth_path.exists() or xyz_path.exists()):
                 frames.append(
-                    Frame(
+                    S23Frame(
                         stem=stem,
                         room=metadata["room"],
                         frame_id=metadata["frame_id"],
@@ -421,71 +419,6 @@ class S23Dataset:
 
     def get_frame(self, room, frame_id, uuid=None):
         return self.room(room).get_frame(frame_id, uuid)
-
-    def reconstruct(
-        self,
-        room,
-        frame_id=None,
-        uuid=None,
-        stride=4,
-        depth_min=0.1,
-        depth_max=8.0,
-        voxel_size=0.03,
-        max_frames=None,
-        mask=None,
-        world_coordinates=True,
-        from_global_xyz=False,
-        progress=False,
-    ):
-        warnings.warn(
-            "S23Dataset.reconstruct is deprecated; use dataset.room(...).reconstruct",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.room(room).reconstruct(
-            frame_id=frame_id,
-            uuid=uuid,
-            stride=stride,
-            depth_min=depth_min,
-            depth_max=depth_max,
-            voxel_size=voxel_size,
-            max_frames=max_frames,
-            mask=mask,
-            world_coordinates=world_coordinates,
-            from_global_xyz=from_global_xyz,
-            progress=progress,
-        )
-
-    def visualize_room(
-        self,
-        room,
-        *,
-        meshes=(),
-        point_size=2.0,
-        window_name=None,
-        show_coordinate_frame=True,
-        **reconstruct_options,
-    ):
-        warnings.warn(
-            "S23Dataset.visualize_room is deprecated; use dataset.room(...).visualize",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.room(room).visualize(
-            meshes=meshes,
-            point_size=point_size,
-            window_name=window_name,
-            show_coordinate_frame=show_coordinate_frame,
-            **reconstruct_options,
-        )
-
-    def save_room_ply(self, room, output_path, **reconstruct_options):
-        warnings.warn(
-            "S23Dataset.save_room_ply is deprecated; use dataset.room(...).save_ply",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.room(room).save_ply(output_path, **reconstruct_options)
 
     def __len__(self):
         return len(self.rooms)

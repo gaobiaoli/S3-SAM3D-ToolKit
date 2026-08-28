@@ -3,15 +3,15 @@ from .bimnet import BIMNetDataset, BIMNetElement, BIMNetFrameRender, BIMNetRoom,
 from .bimsync import (
     BIMSyncDataset,
     BIMSyncFrameRender,
-    BIMSyncRegion,
     BIMSyncRegistration,
+    BIMSyncScene,
 )
 from .frames import RGBDFrame
 from .matterport import Matterport3DDataset, MatterportFrame, MatterportPanorama, MatterportScene
 from .models import BoundingBox3D, GLBMesh, PointCloud
 from .rendering import FrameRender
 from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
-from .s23dis import Frame, S23Dataset, S23Room, parse_stem
+from .s23dis import S23Frame, S23Dataset, S23Room, parse_stem
 
 __all__ = [
     "BIMNetDataset",
@@ -21,10 +21,10 @@ __all__ = [
     "BIMNetScene",
     "BIMSyncDataset",
     "BIMSyncFrameRender",
-    "BIMSyncRegion",
     "BIMSyncRegistration",
+    "BIMSyncScene",
     "BoundingBox3D",
-    "Frame",
+    "S23Frame",
     "FrameRender",
     "GLBMesh",
     "Matterport3DDataset",

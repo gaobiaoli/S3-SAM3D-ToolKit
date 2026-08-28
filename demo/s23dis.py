@@ -14,8 +14,7 @@ if __name__ == "__main__":
     print(f"frame: {frame.stem}")
     print(f"intrinsics:\n{frame.intrinsics}")
     print(f"camera_to_world:\n{frame.camera_to_world}")
-    dataset.visualize_room(
-        ROOM,
+    dataset.room(ROOM).visualize(
         frame_id=FRAME_ID,
         stride=16,
         voxel_size=None,

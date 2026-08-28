@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import warnings
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path, PurePosixPath
@@ -530,7 +529,6 @@ class BIMNetScene:
         include_types=None,
         coordinates="original",
         progress=False,
-        coordinate_frame=None,
     ):
         """Load an IFC mesh or merge per-component OBJ meshes.
 
@@ -544,30 +542,12 @@ class BIMNetScene:
                 native coordinates. ``"point_cloud"`` registers either source
                 to the original point-cloud coordinates.
             progress: Show component-level OBJ loading progress.
-            coordinate_frame: Deprecated alias for ``coordinates``. The old
-                value ``"obj"`` is treated as ``"original"``.
         """
 
         source = str(source).casefold()
         if source not in {"obj", "ifc"}:
             raise ValueError("source must be 'obj' or 'ifc'")
-        if coordinate_frame is not None:
-            if str(coordinates).casefold() != "original":
-                raise TypeError("use either coordinates or coordinate_frame, not both")
-            warnings.warn(
-                "coordinate_frame is deprecated; use coordinates instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            coordinates = coordinate_frame
         coordinates = str(coordinates).casefold()
-        if coordinates == "obj":
-            warnings.warn(
-                "coordinates='obj' is deprecated; use coordinates='original'",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            coordinates = "original"
         if coordinates not in {"original", "point_cloud"}:
             raise ValueError("coordinates must be 'original' or 'point_cloud'")
 
@@ -689,7 +669,7 @@ class BIMNetScene:
             # Use the original PC frame as the common visualization frame for
             # both OBJ and IFC sources.
             point_cloud_options.setdefault("aligned", False)
-            if "coordinates" not in mesh_options and "coordinate_frame" not in mesh_options:
+            if "coordinates" not in mesh_options:
                 mesh_options["coordinates"] = "point_cloud"
         geometries = []
         if show_point_cloud:

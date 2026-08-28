@@ -11,8 +11,8 @@ from PIL import Image
 from s3dis_sam3d import (
     BIMSyncDataset,
     BIMSyncFrameRender,
-    BIMSyncRegion,
     BIMSyncRegistration,
+    BIMSyncScene,
     FrameRender,
     PointCloud,
 )
@@ -51,7 +51,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         (area / "office_1.ifc").touch()
         (area / "office_2.ifc").touch()
         self.dataset = BIMSyncDataset(self.root)
-        self.region = self.dataset.region("office_1")
+        self.scene = self.dataset.scene("office_1")
 
     def tearDown(self):
         self.temp.cleanup()
@@ -60,8 +60,8 @@ class BIMSyncDatasetTest(unittest.TestCase):
         transform = np.eye(4) if transform is None else transform
         return BIMSyncRegistration(
             "Area_1",
-            self.region.name,
-            self.region.path,
+            self.scene.name,
+            self.scene.path,
             "Area_1/office_1",
             transform,
             np.linalg.inv(transform),
@@ -71,15 +71,15 @@ class BIMSyncDatasetTest(unittest.TestCase):
             [],
         )
 
-    def test_region_selection_matching_and_registration_persistence(self):
+    def test_scene_selection_matching_and_registration_persistence(self):
         self.assertEqual(
-            [region.key for region in self.dataset.regions],
+            [scene.key for scene in self.dataset.scenes],
             ["Area_1/office_1", "Area_1/office_2"],
         )
-        self.assertIsInstance(self.region, BIMSyncRegion)
-        for old_name in ("IFCRegion", "IFCRegistration", "IFCFrameRender"):
+        self.assertIsInstance(self.scene, BIMSyncScene)
+        for old_name in ("BIMSyncRegion", "IFCRegion", "IFCRegistration", "IFCFrameRender"):
             self.assertFalse(hasattr(bimsync_module, old_name))
-        self.assertEqual(self.dataset.region("Area_1/office_2").name, "office_2")
+        self.assertEqual(self.dataset.scene("Area_1/office_2").name, "office_2")
 
         s3dis = SimpleNamespace(
             rooms=[
@@ -88,26 +88,26 @@ class BIMSyncDatasetTest(unittest.TestCase):
             ]
         )
         self.assertEqual(
-            [region.name for region in self.dataset.matching_regions(s3dis)],
+            [scene.name for scene in self.dataset.matching_scenes(s3dis)],
             ["office_2"],
         )
 
         transform = np.eye(4)
         transform[:3, 3] = [1, 2, 3]
-        json_path, npy_path = self.region.save_registration(
+        json_path, npy_path = self.scene.save_registration(
             self._registration(transform),
             self.root / "registration",
         )
         self.assertTrue(json_path.is_file())
         np.testing.assert_allclose(np.load(npy_path), transform)
-        np.testing.assert_allclose(self.region.calibration, transform)
-        self.assertTrue(self.region.is_calibrated)
+        np.testing.assert_allclose(self.scene.calibration, transform)
+        self.assertTrue(self.scene.is_calibrated)
 
         loaded = BIMSyncDataset(
             self.root,
             calibration_dir=self.root / "registration",
         )
-        np.testing.assert_allclose(loaded.region("office_1").calibration, transform)
+        np.testing.assert_allclose(loaded.scene("office_1").calibration, transform)
         for name in (
             "load_mesh",
             "export_mesh",
@@ -116,8 +116,8 @@ class BIMSyncDatasetTest(unittest.TestCase):
             "transformed_mesh",
             "visualize_registration",
             "render_regular_frame",
-            "resolve_region",
-            "list_regions",
+            "resolve_scene",
+            "list_scenes",
             "get_calibration",
             "set_calibration",
         ):
@@ -134,7 +134,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         ):
             dataset = BIMSyncDataset()
         self.assertEqual(
-            [region.key for region in dataset.regions],
+            [scene.key for scene in dataset.scenes],
             ["Area_1/office_1", "Area_1/office_2"],
         )
 
@@ -143,15 +143,15 @@ class BIMSyncDatasetTest(unittest.TestCase):
         saved[:3, 3] = [10, 0, 0]
         requested = np.eye(4)
         requested[:3, 3] = [0, 2, 0]
-        self.region.set_calibration(saved)
+        self.scene.set_calibration(saved)
 
         with patch.object(
-            BIMSyncRegion,
+            BIMSyncScene,
             "_raw_mesh",
             side_effect=lambda *args, **kwargs: o3d.geometry.TriangleMesh.create_box(),
         ):
-            calibrated = self.region.mesh()
-            transformed = self.region.mesh(calibrated=False, transform=requested)
+            calibrated = self.scene.mesh()
+            transformed = self.scene.mesh(calibrated=False, transform=requested)
 
         np.testing.assert_allclose(np.asarray(calibrated.vertices).min(axis=0), [10, 0, 0])
         np.testing.assert_allclose(np.asarray(transformed.vertices).min(axis=0), [0, 2, 0])
@@ -159,13 +159,13 @@ class BIMSyncDatasetTest(unittest.TestCase):
         output = self.root / "office_1.ply"
         with (
             patch.object(
-                BIMSyncRegion,
+                BIMSyncScene,
                 "_raw_mesh",
                 return_value=o3d.geometry.TriangleMesh.create_box(),
             ),
             patch.object(o3d.io, "write_triangle_mesh", return_value=True) as write,
         ):
-            self.assertEqual(self.region.export(output), output)
+            self.assertEqual(self.scene.export(output), output)
         write.assert_called_once()
 
     def test_raw_mesh_preserves_ifcopenshell_meter_coordinates(self):
@@ -186,7 +186,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
             patch("ifcopenshell.geom.settings", return_value=settings),
             patch("ifcopenshell.geom.create_shape", return_value=shape),
         ):
-            mesh = self.region._raw_mesh()
+            mesh = self.scene._raw_mesh()
 
         np.testing.assert_allclose(mesh.get_min_bound(), [0, 0, 0])
         np.testing.assert_allclose(mesh.get_max_bound(), [5, 3, 2])
@@ -206,8 +206,8 @@ class BIMSyncDatasetTest(unittest.TestCase):
         )
         room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(BIMSyncRegion, "mesh", return_value=mesh):
-            result = self.region.register(
+        with patch.object(BIMSyncScene, "mesh", return_value=mesh):
+            result = self.scene.register(
                 room,
                 ifc_samples=3000,
                 voxel_size=0.03,
@@ -239,8 +239,8 @@ class BIMSyncDatasetTest(unittest.TestCase):
         )
         room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(BIMSyncRegion, "mesh", return_value=mesh):
-            result = self.region.register(
+        with patch.object(BIMSyncScene, "mesh", return_value=mesh):
+            result = self.scene.register(
                 room,
                 ifc_samples=5000,
                 voxel_size=0.03,
@@ -253,7 +253,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         np.testing.assert_allclose(result.ifc_to_s3dis, expected, atol=0.04)
         self.assertAlmostEqual(result.scale, 1.2, places=2)
 
-    def test_batch_calibration_uses_region_behavior(self):
+    def test_batch_calibration_uses_scene_behavior(self):
         transform = np.eye(4)
         transform[:3, 3] = [1, 2, 3]
         registration = self._registration(transform)
@@ -262,10 +262,10 @@ class BIMSyncDatasetTest(unittest.TestCase):
         s3dis = _S3DIS(room)
 
         with (
-            patch.object(BIMSyncRegion, "register", return_value=registration),
-            patch.object(BIMSyncRegion, "visualize_registration") as visualize,
+            patch.object(BIMSyncScene, "register", return_value=registration),
+            patch.object(BIMSyncScene, "visualize_registration") as visualize,
         ):
-            summary = self.dataset.calibrate_regions(
+            summary = self.dataset.calibrate_scenes(
                 s3dis,
                 output,
                 ["office_1"],
@@ -278,10 +278,10 @@ class BIMSyncDatasetTest(unittest.TestCase):
         self.assertTrue(
             (output / "office_1" / "office_1_ifc_to_s3dis_transform.npy").is_file()
         )
-        np.testing.assert_allclose(self.region.calibration, transform)
+        np.testing.assert_allclose(self.scene.calibration, transform)
         visualize.assert_called_once()
 
-    def test_visualize_registration_uses_region_mesh(self):
+    def test_visualize_registration_uses_scene_mesh(self):
         transform = np.eye(4)
         transform[:3, 3] = [1, 2, 3]
         registration = self._registration(transform)
@@ -291,13 +291,13 @@ class BIMSyncDatasetTest(unittest.TestCase):
         output = self.root / "registration.png"
 
         with (
-            patch.object(BIMSyncRegion, "mesh", return_value=mesh) as load_mesh,
+            patch.object(BIMSyncScene, "mesh", return_value=mesh) as load_mesh,
             patch(
                 "s3dis_sam3d.bimsync.visualize_point_clouds",
                 return_value=output,
             ) as view,
         ):
-            result = self.region.visualize_registration(registration, room, output)
+            result = self.scene.visualize_registration(registration, room, output)
 
         load_mesh.assert_called_once_with(calibrated=False, transform=transform)
         args, kwargs = view.call_args
@@ -308,7 +308,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         self.assertEqual(result, output)
 
     def test_render_frame_uses_frame_camera_and_calibrated_mesh(self):
-        self.region.set_calibration(np.eye(4))
+        self.scene.set_calibration(np.eye(4))
         image_path = self.root / "frame.png"
         Image.new("RGB", (640, 480)).save(image_path)
         source_depth_path = self.root / "frame_depth.png"
@@ -340,13 +340,13 @@ class BIMSyncDatasetTest(unittest.TestCase):
             return image, depth
 
         with (
-            patch.object(BIMSyncRegion, "mesh", return_value=mesh) as load_mesh,
+            patch.object(BIMSyncScene, "mesh", return_value=mesh) as load_mesh,
             patch(
                 "s3dis_sam3d.bimsync.render_geometries",
                 side_effect=render_output,
             ) as render,
         ):
-            result = self.region.render_frame(frame)
+            result = self.scene.render_frame(frame)
 
         self.assertIsInstance(result, BIMSyncFrameRender)
         self.assertIsInstance(result, FrameRender)

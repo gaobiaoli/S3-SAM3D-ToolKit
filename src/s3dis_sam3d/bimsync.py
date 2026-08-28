@@ -88,7 +88,7 @@ def load_ifc_mesh(path, include_types=None):
 
 
 @dataclass(frozen=True)
-class BIMSyncRegion:
+class BIMSyncScene:
     dataset: BIMSyncDataset = field(repr=False, compare=False)
     area: str
     name: str
@@ -264,7 +264,7 @@ class BIMSyncRegion:
         show=False,
     ):
         if not self.is_calibrated:
-            raise ValueError(f"no calibration found for IFC region: {self.name}")
+            raise ValueError(f"no calibration found for IFC scene: {self.name}")
         if frame.projection_type != "regular":
             raise ValueError("IFC pinhole rendering requires a regular 2D-3D-S frame")
 
@@ -288,7 +288,7 @@ class BIMSyncRegion:
 
         source_depth = frame.depth if frame.has_depth else None
         return BIMSyncFrameRender(
-            region=self.name,
+            scene=self.name,
             room=frame.room,
             frame_id=frame.frame_id,
             uuid=frame.uuid,
@@ -306,7 +306,7 @@ class BIMSyncRegion:
 @dataclass(frozen=True)
 class BIMSyncRegistration:
     area: str
-    region: str
+    scene: str
     ifc_path: Path
     s3dis_room: str
     ifc_to_s3dis: np.ndarray
@@ -326,7 +326,7 @@ class BIMSyncRegistration:
             "target": "S3DIS",
             "transform_direction": "ifc_meters_to_s3dis_meters",
             "area": self.area,
-            "region": self.region,
+            "scene": self.scene,
             "ifc_path": str(self.ifc_path),
             "s3dis_room": self.s3dis_room,
             "ifc_to_s3dis": self.ifc_to_s3dis.tolist(),
@@ -344,14 +344,14 @@ class BIMSyncFrameRender(FrameRender):
     depth_scale = S23DIS_DEPTH_SCALE
     depth_invalid_value = S23DIS_INVALID_DEPTH
 
-    region: str
+    scene: str
     room: str
     frame_id: int
     uuid: str
 
 
 class BIMSyncDataset:
-    """Discover BIMSync regions and coordinate Area-level batch operations."""
+    """Discover BIMSync scenes and coordinate Area-level batch operations."""
 
     def __init__(self, root=None, area="Area_1", calibration_dir=None):
         using_default_root = root is None
@@ -365,11 +365,11 @@ class BIMSyncDataset:
         self.calibration_dir = None
         self._calibrations = {}
         self.ifc_dir = self._resolve_ifc_dir()
-        self.regions = [
-            BIMSyncRegion(self, area, path.stem, path)
+        self.scenes = [
+            BIMSyncScene(self, area, path.stem, path)
             for path in sorted(self.ifc_dir.glob("*.ifc"))
         ]
-        if not self.regions:
+        if not self.scenes:
             raise ValueError(f"no IFC files found under {self.ifc_dir}")
         if calibration_dir is not None:
             self.load_calibrations(calibration_dir)
@@ -380,19 +380,19 @@ class BIMSyncDataset:
         candidates = self.root / self.area, self.root / self.area.casefold(), self.root
         return next((path for path in candidates if list(path.glob("*.ifc"))), self.root)
 
-    def region(self, region):
-        if isinstance(region, int):
-            return self.regions[region]
-        name = Path(str(region).replace("\\", "/")).stem.casefold()
-        return next(item for item in self.regions if item.name.casefold() == name)
+    def scene(self, scene):
+        if isinstance(scene, int):
+            return self.scenes[scene]
+        name = Path(str(scene).replace("\\", "/")).stem.casefold()
+        return next(item for item in self.scenes if item.name.casefold() == name)
 
-    def matching_regions(self, s3dis):
+    def matching_scenes(self, s3dis):
         room_names = {
             room.name.casefold()
             for room in s3dis.rooms
             if room.area.casefold() == self.area.casefold()
         }
-        return [region for region in self.regions if region.name.casefold() in room_names]
+        return [scene for scene in self.scenes if scene.name.casefold() in room_names]
 
     def load_calibrations(self, calibration_dir):
         self.calibration_dir = Path(calibration_dir).expanduser().resolve()
@@ -408,18 +408,18 @@ class BIMSyncDataset:
         output_dir = Path(output_dir)
         extension = extension if extension.startswith(".") else f".{extension}"
         return [
-            region.export(
-                output_dir / f"{region.name}{extension}",
+            scene.export(
+                output_dir / f"{scene.name}{extension}",
                 **mesh_options,
             )
-            for region in self.regions
+            for scene in self.scenes
         ]
 
-    def calibrate_regions(
+    def calibrate_scenes(
         self,
         s3dis,
         output_dir,
-        regions=None,
+        scenes=None,
         *,
         visualize=False,
         visualization_options=None,
@@ -429,24 +429,24 @@ class BIMSyncDataset:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         self.calibration_dir = output_dir.resolve()
-        regions = (
-            self.matching_regions(s3dis)
-            if regions is None
-            else [self.region(region) for region in regions]
+        scenes = (
+            self.matching_scenes(s3dis)
+            if scenes is None
+            else [self.scene(scene) for scene in scenes]
         )
         iterator = (
-            tqdm(regions, desc=f"{self.area} IFC → S3DIS") if progress else regions
+            tqdm(scenes, desc=f"{self.area} IFC → S3DIS") if progress else scenes
         )
         summary = {"area": self.area, "success": {}, "errors": {}}
         summary_path = output_dir / "calibration_summary.json"
 
-        for region in iterator:
+        for scene in iterator:
             try:
-                room = s3dis.room(f"{self.area}/{region.name}")
-                registration = region.register(room, **registration_options)
-                json_path, npy_path = region.save_registration(
+                room = s3dis.room(f"{self.area}/{scene.name}")
+                registration = scene.register(room, **registration_options)
+                json_path, npy_path = scene.save_registration(
                     registration,
-                    output_dir / region.name,
+                    output_dir / scene.name,
                 )
                 result = {
                     "fitness": registration.fitness,
@@ -456,17 +456,17 @@ class BIMSyncDataset:
                     "npy": str(npy_path),
                 }
                 if visualize:
-                    image_path = output_dir / region.name / "registration.png"
-                    region.visualize_registration(
+                    image_path = output_dir / scene.name / "registration.png"
+                    scene.visualize_registration(
                         registration,
                         room,
                         image_path,
                         **(visualization_options or {}),
                     )
                     result["visualization"] = str(image_path)
-                summary["success"][region.name] = result
+                summary["success"][scene.name] = result
             except Exception as error:  # noqa: BLE001 - keep the Area batch running
-                summary["errors"][region.name] = f"{type(error).__name__}: {error}"
+                summary["errors"][scene.name] = f"{type(error).__name__}: {error}"
 
             temporary = summary_path.with_suffix(".json.tmp")
             temporary.write_text(json.dumps(summary, indent=2), "utf-8")
