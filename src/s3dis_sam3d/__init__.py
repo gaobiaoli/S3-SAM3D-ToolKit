@@ -1,5 +1,12 @@
 from . import config, utils
-from .bimnet import BIMNetDataset, BIMNetElement, BIMNetFrameRender, BIMNetRoom, BIMNetScene
+from .bimnet import (
+    BIMNetDataset,
+    BIMNetElement,
+    BIMNetFrameRender,
+    BIMNetRoom,
+    BIMNetScanScene,
+    BIMNetScene,
+)
 from .bimsync import (
     BIMSyncDataset,
     BIMSyncFrameRender,
@@ -18,6 +25,7 @@ __all__ = [
     "BIMNetElement",
     "BIMNetFrameRender",
     "BIMNetRoom",
+    "BIMNetScanScene",
     "BIMNetScene",
     "BIMSyncDataset",
     "BIMSyncFrameRender",

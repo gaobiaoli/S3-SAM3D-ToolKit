@@ -527,7 +527,7 @@ class BIMNetScene:
         *,
         wall_filled=False,
         include_types=None,
-        coordinates="original",
+        coordinates="point_cloud",
         progress=False,
     ):
         """Load an IFC mesh or merge per-component OBJ meshes.
@@ -716,6 +716,188 @@ class BIMNetScene:
         return f"BIMNetScene(key={self.key!r}, elements={len(self.instances)})"
 
 
+class BIMNetScanScene:
+    """A Matterport scan assembled from all matching BIMNet floor scenes."""
+
+    def __init__(self, dataset: BIMNetDataset, scenes):
+        scenes = tuple(scenes)
+        if len(scenes) < 2:
+            raise ValueError("a combined BIMNet scan requires at least two scenes")
+        scan_ids = {scene.matterport_scan_id.casefold() for scene in scenes}
+        if len(scan_ids) != 1:
+            raise ValueError("all combined BIMNet scenes must map to the same Matterport scan")
+        self.dataset = dataset
+        self.root = dataset.root
+        self.scenes = scenes
+        self.matterport_scan_id = scenes[0].matterport_scan_id
+        self.scene_id = "+".join(scene.scene_id for scene in scenes)
+        self.split = "combined"
+
+    @property
+    def key(self):
+        return f"scan/{self.matterport_scan_id}"
+
+    @property
+    def scene_ids(self):
+        return tuple(scene.scene_id for scene in self.scenes)
+
+    @property
+    def instances(self):
+        return tuple(element for scene in self.scenes for element in scene.instances)
+
+    @property
+    def rooms(self):
+        return tuple(room for scene in self.scenes for room in scene.rooms)
+
+    def elements(self, include_types=None, *, wall_filled=False):
+        return tuple(
+            element
+            for scene in self.scenes
+            for element in scene.elements(include_types, wall_filled=wall_filled)
+        )
+
+    def mesh(
+        self,
+        source="obj",
+        *,
+        wall_filled=False,
+        include_types=None,
+        coordinates="point_cloud",
+        progress=False,
+    ):
+        """Merge all floor meshes in their shared Matterport coordinate frame."""
+
+        coordinates = str(coordinates).casefold()
+        if coordinates != "point_cloud":
+            raise ValueError(
+                "combined BIMNet scenes can only be merged in 'point_cloud' coordinates"
+            )
+
+        scenes = self.scenes
+        if progress:
+            from tqdm.auto import tqdm
+
+            scenes = tqdm(scenes, desc=f"Loading BIMNet {self.key}")
+
+        mesh = o3d.geometry.TriangleMesh()
+        for scene in scenes:
+            mesh += scene.mesh(
+                source=source,
+                wall_filled=wall_filled,
+                include_types=include_types,
+                coordinates="point_cloud",
+                progress=False,
+            )
+        mesh.remove_duplicated_vertices()
+        mesh.remove_degenerate_triangles()
+        mesh.remove_unreferenced_vertices()
+        mesh.compute_vertex_normals()
+        return mesh
+
+    def export_mesh(self, output_path, **mesh_options):
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if not o3d.io.write_triangle_mesh(str(output_path), self.mesh(**mesh_options)):
+            raise RuntimeError(f"failed to export combined BIMNet mesh: {output_path}")
+        return output_path
+
+    def _validate_matterport_frame(self, frame):
+        if not isinstance(frame, MatterportFrame):
+            raise TypeError("frame must be a MatterportFrame")
+        if frame.scene_id.casefold() != self.matterport_scan_id.casefold():
+            raise ValueError(
+                f"Matterport frame {frame.frame_id!r} belongs to {frame.scene_id!r}, "
+                f"not BIMNet scan {self.matterport_scan_id!r}"
+            )
+
+    def show(self, frame: MatterportFrame = None):
+        if frame is not None:
+            self._validate_matterport_frame(frame)
+        mesh = self.mesh()
+        options = {
+            "window_name": f"BIMNet | {self.key}",
+            "mesh_show_back_face": True,
+        }
+        if frame is not None:
+            height, width = frame.image_shape
+            options.update(
+                window_name=f"BIMNet | {self.key} | {frame.frame_id}",
+                width=width,
+                height=height,
+                set_parameters=(frame.intrinsics, frame.world_to_camera),
+            )
+        return visualize_point_clouds([mesh], **options)
+
+    def render_frame(
+        self,
+        frame: MatterportFrame,
+        *,
+        source="obj",
+        wall_filled=False,
+        include_types=None,
+        mesh_color=(0.75, 0.75, 0.75),
+        background_color=(0.05, 0.05, 0.05),
+        render_depth=True,
+        show=False,
+    ):
+        self._validate_matterport_frame(frame)
+        source = str(source).casefold()
+        source_image = frame.rgb
+        source_depth = frame.depth
+        height, width = source_image.shape[:2]
+        mesh = self.mesh(
+            source=source,
+            wall_filled=wall_filled,
+            include_types=include_types,
+        )
+        if mesh_color is not None:
+            mesh.paint_uniform_color(mesh_color)
+        rendered_image, rendered_depth = render_geometries(
+            [mesh],
+            window_name=f"BIMNet {source.upper()} | {self.key} | {frame.frame_id}",
+            width=width,
+            height=height,
+            background_color=background_color,
+            intrinsics=frame.intrinsics,
+            world_to_camera=frame.world_to_camera,
+            render_depth=render_depth,
+            show=show,
+            mesh_show_back_face=True,
+        )
+        return BIMNetFrameRender(
+            bimnet_scene_id=self.scene_id,
+            matterport_scene_id=frame.scene_id,
+            frame_id=frame.frame_id,
+            mesh_source=source,
+            rendered_image_path=None,
+            rendered_depth_path=None,
+            source_image_path=frame.rgb_path,
+            source_depth_path=frame.depth_path,
+            source_image=source_image,
+            source_depth=source_depth,
+            rendered_image=rendered_image,
+            rendered_depth=rendered_depth,
+        )
+
+    def render(self, frame: MatterportFrame, **render_options):
+        return self.render_frame(frame, **render_options)
+
+    def matterport_scene(self, matterport_dataset):
+        return matterport_dataset[self.matterport_scan_id]
+
+    def __len__(self):
+        return len(self.instances)
+
+    def __iter__(self):
+        return iter(self.instances)
+
+    def __getitem__(self, index):
+        return self.instances[index]
+
+    def __repr__(self):
+        return f"BIMNetScanScene(key={self.key!r}, scenes={self.scene_ids!r})"
+
+
 class BIMNetDataset:
     """Discover BIMNet train/test scenes and their parallel asset trees."""
 
@@ -729,6 +911,7 @@ class BIMNetDataset:
         self._scene_index = self._discover_scenes()
         self._scene_aliases = self._build_scene_aliases()
         self._scene_cache = {}
+        self._scan_scene_cache = {}
         if not self._scene_index:
             raise ValueError(f"no BIMNet scenes found below {self.root}")
 
@@ -826,10 +1009,14 @@ class BIMNetDataset:
 
         Both BIMNet IDs (for example ``"hxp"``) and corresponding Matterport
         scan IDs (``"HxpKQynjfin"``) are accepted. A Matterport scan can map to
-        several BIMNet floor scenes; such ambiguous lookups must be made
-        explicit with ``split/name`` or :meth:`scenes_for_scan`.
+        several BIMNet floor scenes; a Matterport scan-ID lookup automatically
+        returns a :class:`BIMNetScanScene` that merges all floors in their
+        shared point-cloud coordinates. Use a BIMNet ID or ``split/name`` to
+        retrieve one floor explicitly.
         """
 
+        if isinstance(identifier, BIMNetScanScene):
+            return identifier
         if isinstance(identifier, BIMNetScene):
             return self._scene_from_matches(identifier, (identifier.key.casefold(),))
         if isinstance(identifier, int):
@@ -842,6 +1029,22 @@ class BIMNetDataset:
         value = self._normalize_scene_identifier(identifier)
         direct_matches = self._scene_aliases.get(value, ())
         if direct_matches:
+            if len(direct_matches) > 1:
+                scan_ids = {
+                    BIMNET_MATTERPORT_SCANS.get(self._scene_index[key][0].casefold())
+                    for key in direct_matches
+                }
+                if len(scan_ids) == 1 and None not in scan_ids:
+                    scan_id = next(iter(scan_ids))
+                    if value == scan_id.casefold():
+                        cache_key = scan_id.casefold()
+                        if cache_key not in self._scan_scene_cache:
+                            scenes = tuple(
+                                self._scene_from_matches(identifier, (key,))
+                                for key in direct_matches
+                            )
+                            self._scan_scene_cache[cache_key] = BIMNetScanScene(self, scenes)
+                        return self._scan_scene_cache[cache_key]
             return self._scene_from_matches(identifier, direct_matches)
 
         path_matches = []

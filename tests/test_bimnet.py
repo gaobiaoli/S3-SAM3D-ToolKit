@@ -12,6 +12,7 @@ from s3dis_sam3d import (
     BIMNetElement,
     BIMNetFrameRender,
     BIMNetRoom,
+    BIMNetScanScene,
     BIMNetScene,
     FrameRender,
     MatterportFrame,
@@ -115,7 +116,7 @@ def test_dataset_discovers_splits_and_matterport_mapping(tmp_path):
     assert dataset.scene(dataset["hxp"]) is dataset["hxp"]
 
 
-def test_dataset_rejects_ambiguous_matterport_scene_lookup(tmp_path):
+def test_dataset_combines_scenes_for_matterport_scan_lookup(tmp_path):
     _write_scene(tmp_path, "train", "7y3")
     _write_scene(tmp_path, "test", "7y3_1")
     dataset = BIMNetDataset(tmp_path)
@@ -124,8 +125,22 @@ def test_dataset_rejects_ambiguous_matterport_scene_lookup(tmp_path):
         dataset["train/7y3"],
         dataset["test/7y3_1"],
     )
-    with pytest.raises(KeyError, match="ambiguous BIMNet scene"):
-        dataset.scene("7y3sRwLe3Va")
+    scene = dataset.scene("7y3sRwLe3Va")
+    assert isinstance(scene, BIMNetScanScene)
+    assert scene.scene_ids == ("7y3", "7y3_1")
+    assert scene.scenes == dataset.scenes_for_scan("7y3sRwLe3Va")
+    assert dataset.scene("7y3sRwLe3Va") is scene
+
+    first = o3d.geometry.TriangleMesh.create_box()
+    second = o3d.geometry.TriangleMesh.create_box().translate((2, 0, 0))
+    with patch.object(BIMNetScene, "mesh", side_effect=(first, second)) as load_mesh:
+        merged = scene.mesh()
+
+    np.testing.assert_allclose(merged.get_min_bound(), [0, 0, 0])
+    np.testing.assert_allclose(merged.get_max_bound(), [3, 1, 1])
+    assert load_mesh.call_count == 2
+    for mesh_call in load_mesh.call_args_list:
+        assert mesh_call.kwargs["coordinates"] == "point_cloud"
 
 
 def test_scene_parses_elements_rooms_and_registration_matrix(tmp_path):
