@@ -16,7 +16,7 @@ from .config import BIMNET_ROOT
 from .matterport import MATTERPORT_DEPTH_SCALE, MatterportFrame
 from .models import PointCloud
 from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
-from .rendering import FrameRender, render_geometries
+from .rendering import FrameRender, MeshRaycaster, render_geometries
 
 BIMNET_LABELS = (
     "wall",
@@ -103,6 +103,21 @@ def _normalize_ifc_types(include_types):
     if isinstance(include_types, str):
         include_types = (include_types,)
     return {str(value).casefold() for value in include_types}
+
+
+def _raycaster_mesh_options(source, wall_filled, include_types):
+    """Return reusable mesh arguments and their canonical cache key."""
+
+    source = str(source).casefold()
+    if include_types is None:
+        normalized_types = None
+        type_key = None
+    else:
+        if isinstance(include_types, str):
+            include_types = (include_types,)
+        normalized_types = tuple(include_types)
+        type_key = frozenset(str(value).casefold() for value in normalized_types)
+    return source, normalized_types, (source, bool(wall_filled), type_key)
 
 
 @dataclass(frozen=True)
@@ -227,6 +242,7 @@ class BIMNetScene:
         self.split = split
         self.root = dataset.root
         self._element_cache = {}
+        self._raycaster_cache = {}
 
     @property
     def key(self):
@@ -585,6 +601,41 @@ class BIMNetScene:
             raise RuntimeError(f"failed to export BIMNet mesh: {output_path}")
         return output_path
 
+    def render_depth(
+        self,
+        frame: MatterportFrame,
+        *,
+        source="obj",
+        wall_filled=False,
+        include_types=None,
+    ):
+        """Raycast metric depth for a Matterport frame using a cached scene."""
+
+        self._validate_matterport_frame(frame)
+        source, include_types, cache_key = _raycaster_mesh_options(
+            source,
+            wall_filled,
+            include_types,
+        )
+        raycaster = self._raycaster_cache.get(cache_key)
+        if raycaster is None:
+            mesh = self.mesh(
+                source=source,
+                wall_filled=wall_filled,
+                include_types=include_types,
+                coordinates="point_cloud",
+            )
+            raycaster = MeshRaycaster(mesh)
+            self._raycaster_cache[cache_key] = raycaster
+
+        height, width = frame.image_shape
+        return raycaster.depth(
+            frame.intrinsics,
+            frame.world_to_camera,
+            width,
+            height,
+        )
+
     def render_frame(
         self,
         frame: MatterportFrame,
@@ -732,6 +783,7 @@ class BIMNetScanScene:
         self.matterport_scan_id = scenes[0].matterport_scan_id
         self.scene_id = "+".join(scene.scene_id for scene in scenes)
         self.split = "combined"
+        self._raycaster_cache = {}
 
     @property
     def key(self):
@@ -800,6 +852,41 @@ class BIMNetScanScene:
         if not o3d.io.write_triangle_mesh(str(output_path), self.mesh(**mesh_options)):
             raise RuntimeError(f"failed to export combined BIMNet mesh: {output_path}")
         return output_path
+
+    def render_depth(
+        self,
+        frame: MatterportFrame,
+        *,
+        source="obj",
+        wall_filled=False,
+        include_types=None,
+    ):
+        """Raycast metric depth from the combined mesh using a cached scene."""
+
+        self._validate_matterport_frame(frame)
+        source, include_types, cache_key = _raycaster_mesh_options(
+            source,
+            wall_filled,
+            include_types,
+        )
+        raycaster = self._raycaster_cache.get(cache_key)
+        if raycaster is None:
+            mesh = self.mesh(
+                source=source,
+                wall_filled=wall_filled,
+                include_types=include_types,
+                coordinates="point_cloud",
+            )
+            raycaster = MeshRaycaster(mesh)
+            self._raycaster_cache[cache_key] = raycaster
+
+        height, width = frame.image_shape
+        return raycaster.depth(
+            frame.intrinsics,
+            frame.world_to_camera,
+            width,
+            height,
+        )
 
     def _validate_matterport_frame(self, frame):
         if not isinstance(frame, MatterportFrame):

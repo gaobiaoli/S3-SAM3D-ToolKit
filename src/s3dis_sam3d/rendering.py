@@ -13,6 +13,42 @@ from PIL import Image
 from .pointcloud import to_open3d_geometry
 
 
+class MeshRaycaster:
+    """One reusable CPU raycasting scene for all cameras in a BIMNet scene."""
+
+    def __init__(self, mesh: o3d.geometry.TriangleMesh) -> None:
+        if mesh.is_empty():
+            raise ValueError("BIM mesh is empty")
+        self.minimum = np.asarray(mesh.get_min_bound(), dtype=np.float64)
+        self.maximum = np.asarray(mesh.get_max_bound(), dtype=np.float64)
+        tensor_mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh)
+        self.scene = o3d.t.geometry.RaycastingScene()
+        self.scene.add_triangles(tensor_mesh)
+
+    def depth(
+        self,
+        intrinsics: np.ndarray,
+        world_to_camera: np.ndarray,
+        width: int,
+        height: int,
+    ) -> np.ndarray:
+        rays = self.scene.create_rays_pinhole(
+            np.asarray(intrinsics, dtype=np.float64),
+            np.asarray(world_to_camera, dtype=np.float64),
+            width,
+            height,
+        )
+        depth = self.scene.cast_rays(rays)["t_hit"].numpy().astype(np.float32)
+        depth[~np.isfinite(depth) | (depth <= 0)] = 0.0
+        return depth
+
+    def contains_camera(self, camera_position: np.ndarray, margin: float) -> bool:
+        position = np.asarray(camera_position, dtype=np.float64)
+        return bool(
+            np.all(position >= self.minimum - margin) and np.all(position <= self.maximum + margin)
+        )
+
+
 def render_geometries(
     geometries,
     *,

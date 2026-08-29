@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from .config import BIMSYNC_ROOT, bimsync_calibration_dir
 from .pointcloud import to_open3d_point_cloud, visualize_point_clouds
-from .rendering import FrameRender, render_geometries
+from .rendering import FrameRender, MeshRaycaster, render_geometries
 from .s23dis import S23DIS_DEPTH_SCALE, S23DIS_INVALID_DEPTH
 from .utils import (
     initial_registration_transform,
@@ -38,6 +38,18 @@ STRUCTURAL_IFC_TYPES = {
     "IfcDoor",
     "IfcWindow",
 }
+
+
+def _raycaster_mesh_options(include_types):
+    """Return reusable IFC type arguments and their canonical cache key."""
+
+    if include_types is None:
+        return None, None
+    if isinstance(include_types, str):
+        include_types = (include_types,)
+    include_types = tuple(include_types)
+    cache_key = frozenset(str(ifc_type).casefold() for ifc_type in include_types)
+    return include_types, cache_key
 
 
 def load_ifc_mesh(path, include_types=None):
@@ -93,6 +105,12 @@ class BIMSyncScene:
     area: str
     name: str
     path: Path
+    _raycaster_cache: dict = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     @property
     def key(self):
@@ -112,6 +130,7 @@ class BIMSyncScene:
             transform,
             dtype=np.float64,
         ).copy()
+        self._raycaster_cache.clear()
         return self
 
     def _raw_mesh(self, include_types=None):
@@ -252,6 +271,28 @@ class BIMSyncScene:
             background_color=(0.05, 0.05, 0.05),
             save_path=output_path,
             show=show,
+        )
+
+    def render_depth(self, frame, *, include_types=None):
+        """Raycast metric depth for a regular S3DIS frame using a cached scene."""
+
+        if not self.is_calibrated:
+            raise ValueError(f"no calibration found for IFC scene: {self.name}")
+        if frame.projection_type != "regular":
+            raise ValueError("IFC pinhole rendering requires a regular 2D-3D-S frame")
+
+        include_types, cache_key = _raycaster_mesh_options(include_types)
+        raycaster = self._raycaster_cache.get(cache_key)
+        if raycaster is None:
+            raycaster = MeshRaycaster(self.mesh(include_types))
+            self._raycaster_cache[cache_key] = raycaster
+
+        height, width = frame.image_shape
+        return raycaster.depth(
+            frame.intrinsics,
+            frame.world_to_camera,
+            width,
+            height,
         )
 
     def render_frame(
@@ -402,6 +443,8 @@ class BIMSyncDataset:
                 self.calibration_dir.rglob("*_ifc_to_s3dis_transform.npy")
             )
         }
+        for scene in self.scenes:
+            scene._raycaster_cache.clear()
         return self._calibrations
 
     def export_meshes(self, output_dir, extension=".ply", **mesh_options):

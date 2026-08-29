@@ -376,6 +376,54 @@ class BIMSyncDatasetTest(unittest.TestCase):
             saved_depth = np.asarray(depth_image, dtype=np.uint16)
         self.assertEqual(saved_depth[0, 0], 65535)
 
+    def test_render_depth_reuses_raycaster_and_invalidates_it_after_calibration(self):
+        self.scene.set_calibration(np.eye(4))
+        intrinsic = np.array([[5, 0, 3], [0, 5, 2], [0, 0, 1]], dtype=np.float32)
+        extrinsic = np.eye(4, dtype=np.float32)
+        frame = SimpleNamespace(
+            projection_type="regular",
+            image_shape=(4, 6),
+            intrinsics=intrinsic,
+            world_to_camera=extrinsic,
+        )
+        mesh = o3d.geometry.TriangleMesh.create_box()
+        expected = np.full((4, 6), 2.5, dtype=np.float32)
+
+        with (
+            patch.object(BIMSyncScene, "mesh", return_value=mesh) as load_mesh,
+            patch("s3dis_sam3d.bimsync.MeshRaycaster") as raycaster_type,
+        ):
+            raycaster_type.return_value.depth.return_value = expected
+            first = self.scene.render_depth(
+                frame,
+                include_types=["IfcWall", "IfcSlab"],
+            )
+            second = self.scene.render_depth(
+                frame,
+                include_types=["ifcslab", "ifcwall"],
+            )
+            updated = np.eye(4)
+            updated[0, 3] = 1
+            self.scene.set_calibration(updated)
+            third = self.scene.render_depth(
+                frame,
+                include_types=["IfcWall", "IfcSlab"],
+            )
+
+        self.assertIs(first, expected)
+        self.assertIs(second, expected)
+        self.assertIs(third, expected)
+        self.assertEqual(load_mesh.call_count, 2)
+        for mesh_call in load_mesh.call_args_list:
+            self.assertEqual(mesh_call.args, (("IfcWall", "IfcSlab"),))
+        self.assertEqual(raycaster_type.call_count, 2)
+        self.assertEqual(raycaster_type.return_value.depth.call_count, 3)
+        for depth_call in raycaster_type.return_value.depth.call_args_list:
+            args = depth_call.args
+            np.testing.assert_allclose(args[0], intrinsic)
+            np.testing.assert_allclose(args[1], extrinsic)
+            self.assertEqual(args[2:], (6, 4))
+
 
 if __name__ == "__main__":
     unittest.main()

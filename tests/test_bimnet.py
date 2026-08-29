@@ -143,6 +143,86 @@ def test_dataset_combines_scenes_for_matterport_scan_lookup(tmp_path):
         assert mesh_call.kwargs["coordinates"] == "point_cloud"
 
 
+def test_scene_render_depth_reuses_raycasting_scene_across_frames(tmp_path):
+    _write_scene(tmp_path)
+    scene = BIMNetDataset(tmp_path)["1px"]
+    depth_path = tmp_path / "frame.png"
+    Image.fromarray(np.ones((4, 6), dtype=np.uint16)).save(depth_path)
+    frames = tuple(
+        MatterportFrame(
+            scene_id=scene.matterport_scan_id,
+            panorama_id="panorama",
+            camera_index=0,
+            yaw_index=yaw,
+            rgb_path=tmp_path / "missing.jpg",
+            depth_path=depth_path,
+            intrinsics=np.array([[5, 0, 3], [0, 5, 2], [0, 0, 1]], dtype=np.float32),
+            camera_to_world=np.eye(4, dtype=np.float32),
+        )
+        for yaw in (0, 1)
+    )
+    mesh = o3d.geometry.TriangleMesh.create_box()
+    expected = np.full((4, 6), 2.5, dtype=np.float32)
+
+    with (
+        patch.object(BIMNetScene, "mesh", return_value=mesh) as load_mesh,
+        patch("s3dis_sam3d.bimnet.MeshRaycaster") as raycaster_type,
+    ):
+        raycaster_type.return_value.depth.return_value = expected
+        first = scene.render_depth(frames[0], include_types=["IfcWall", "IfcSlab"])
+        second = scene.render_depth(frames[1], include_types=["ifcslab", "ifcwall"])
+
+    assert first is expected
+    assert second is expected
+    load_mesh.assert_called_once_with(
+        source="obj",
+        wall_filled=False,
+        include_types=("IfcWall", "IfcSlab"),
+        coordinates="point_cloud",
+    )
+    raycaster_type.assert_called_once_with(mesh)
+    assert raycaster_type.return_value.depth.call_args_list == [
+        call(frames[0].intrinsics, frames[0].world_to_camera, 6, 4),
+        call(frames[1].intrinsics, frames[1].world_to_camera, 6, 4),
+    ]
+
+
+def test_scan_scene_render_depth_caches_combined_raycasting_scene(tmp_path):
+    _write_scene(tmp_path, "train", "7y3")
+    _write_scene(tmp_path, "test", "7y3_1")
+    scene = BIMNetDataset(tmp_path).scene("7y3sRwLe3Va")
+    depth_path = tmp_path / "frame.png"
+    Image.fromarray(np.ones((3, 5), dtype=np.uint16)).save(depth_path)
+    frame = MatterportFrame(
+        scene_id=scene.matterport_scan_id,
+        panorama_id="panorama",
+        camera_index=0,
+        yaw_index=0,
+        rgb_path=tmp_path / "missing.jpg",
+        depth_path=depth_path,
+        intrinsics=np.eye(3, dtype=np.float32),
+        camera_to_world=np.eye(4, dtype=np.float32),
+    )
+    mesh = o3d.geometry.TriangleMesh.create_box()
+
+    with (
+        patch.object(BIMNetScanScene, "mesh", return_value=mesh) as load_mesh,
+        patch("s3dis_sam3d.bimnet.MeshRaycaster") as raycaster_type,
+    ):
+        raycaster_type.return_value.depth.return_value = np.ones((3, 5), dtype=np.float32)
+        scene.render_depth(frame, source="ifc")
+        scene.render_depth(frame, source="IFC")
+
+    load_mesh.assert_called_once_with(
+        source="ifc",
+        wall_filled=False,
+        include_types=None,
+        coordinates="point_cloud",
+    )
+    raycaster_type.assert_called_once_with(mesh)
+    assert raycaster_type.return_value.depth.call_count == 2
+
+
 def test_scene_parses_elements_rooms_and_registration_matrix(tmp_path):
     _write_scene(tmp_path)
     scene = BIMNetDataset(tmp_path)["1px"]
