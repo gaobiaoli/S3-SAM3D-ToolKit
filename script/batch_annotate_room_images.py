@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from s3dis_sam3d.annotations import RoomImageBatchAnnotator
-from s3dis_sam3d.config import S3DIS_ROOT, s23dis_area
+from s3dis_sam3d.config import CONFIG, s23dis_area
 
 S23_AREA = s23dis_area("Area_3")
 PROJECTION_TYPE = "regular"
@@ -18,7 +18,7 @@ OUTPUT_DIR = Path("outputs/room_image_annotations/area_3_office_1")
 
 def main():
     annotator = RoomImageBatchAnnotator(
-        S3DIS_ROOT,
+        CONFIG.require("s3dis_root"),
         S23_AREA,
         projection_type=PROJECTION_TYPE,
     )

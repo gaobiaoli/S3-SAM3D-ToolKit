@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -36,8 +36,6 @@ class Config:
     bimnet_root: Optional[Path] = None
     matterport_root: Optional[Path] = None
 
-    output_root: Path = field(default_factory=lambda: OUTPUT_ROOT)
-
     def require(self, name):
         """
         Return a configured path.
@@ -64,7 +62,6 @@ class Config:
             "bimsync_root": self.bimsync_root,
             "bimnet_root": self.bimnet_root,
             "matterport_root": self.matterport_root,
-            "output_root": self.output_root,
         }
 
         data = {
@@ -102,7 +99,6 @@ class Config:
             "bimsync_root",
             "bimnet_root",
             "matterport_root",
-            "output_root",
         ):
             lines.append(f"    {name}={getattr(self, name)!r},")
 
@@ -121,7 +117,6 @@ def configure(
     bimsync_root=None,
     bimnet_root=None,
     matterport_root=None,
-    output_root=None,
 ):
     """
     Configure dataset paths and save them permanently for this user.
@@ -134,14 +129,12 @@ def configure(
         bimnet_root="/data/BIMNet_release",
     )
     """
-
     values = {
         "s23dis_root": s23dis_root,
         "s3dis_root": s3dis_root,
         "bimsync_root": bimsync_root,
         "bimnet_root": bimnet_root,
         "matterport_root": matterport_root,
-        "output_root": output_root,
     }
 
     for name, value in values.items():
@@ -167,4 +160,4 @@ def s23dis_area(area="Area_1", root=None):
 
 def bimsync_calibration_dir(area="Area_1"):
     """Return the saved BIMSync calibration directory for one Area."""
-    return CONFIG.output_root / "ifc_to_s3dis" / str(area)
+    return OUTPUT_ROOT / "ifc_to_s3dis" / str(area)

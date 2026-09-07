@@ -537,6 +537,13 @@ class BIMNetScene:
         )
         return voxel_downsample(cloud, voxel_size)
 
+    @cached_property
+    def aabb(self):
+        """Axis-aligned bounding box in Matterport point-cloud coordinates."""
+        return self.mesh(
+            coordinates="point_cloud"
+        ).get_axis_aligned_bounding_box()
+
     def mesh(
         self,
         source="obj",
@@ -601,6 +608,17 @@ class BIMNetScene:
             raise RuntimeError(f"failed to export BIMNet mesh: {output_path}")
         return output_path
 
+    def is_contained_in(self,frame: MatterportFrame, margin=0.0):
+
+        camera_position = frame.camera_to_world[:3, 3]
+        lower = self.aabb.get_min_bound() - margin
+        upper = self.aabb.get_max_bound() + margin
+
+        return bool(
+            np.all((camera_position >= lower) & (camera_position <= upper))
+        )
+        
+        
     def render_depth(
         self,
         frame: MatterportFrame,
