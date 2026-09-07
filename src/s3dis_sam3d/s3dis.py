@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import S3DIS_ROOT
+from .config import CONFIG
 from .io import read_xyzrgb_txt
 from .models import BoundingBox3D, PointCloud
 from .pointcloud import random_downsample, visualize_point_clouds
@@ -300,7 +300,8 @@ class S3DISDataset:
     semantic_classes = SEMANTIC_CLASSES
 
     def __init__(self, root=None):
-        root = S3DIS_ROOT if root is None else root
+        if root is None:
+            root = CONFIG.require("s3dis_root")
         self.root = Path(root).expanduser().resolve()
         self.class_to_id = {
             name: index for index, name in enumerate(self.semantic_classes)

@@ -8,7 +8,7 @@ import numpy as np
 import open3d as o3d
 from tqdm import tqdm
 
-from .config import BIMSYNC_ROOT, bimsync_calibration_dir
+from .config import CONFIG, bimsync_calibration_dir
 from .pointcloud import to_open3d_point_cloud, visualize_point_clouds
 from .rendering import FrameRender, MeshRaycaster, render_geometries
 from .s23dis import S23DIS_DEPTH_SCALE, S23DIS_INVALID_DEPTH
@@ -396,22 +396,33 @@ class BIMSyncDataset:
 
     def __init__(self, root=None, area="Area_1", calibration_dir=None):
         using_default_root = root is None
-        root = BIMSYNC_ROOT if root is None else root
+
+        if root is None:
+            root = CONFIG.require("bimsync_root")
+
         if using_default_root and calibration_dir is None:
             default_calibration_dir = bimsync_calibration_dir(area)
+
             if default_calibration_dir.is_dir():
                 calibration_dir = default_calibration_dir
+
         self.root = Path(root).expanduser().resolve()
         self.area = area
         self.calibration_dir = None
         self._calibrations = {}
+
         self.ifc_dir = self._resolve_ifc_dir()
+
         self.scenes = [
             BIMSyncScene(self, area, path.stem, path)
             for path in sorted(self.ifc_dir.glob("*.ifc"))
         ]
+
         if not self.scenes:
-            raise ValueError(f"no IFC files found under {self.ifc_dir}")
+            raise ValueError(
+                f"no IFC files found under {self.ifc_dir}"
+            )
+
         if calibration_dir is not None:
             self.load_calibrations(calibration_dir)
 

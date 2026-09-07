@@ -16,7 +16,7 @@ import numpy as np
 import open3d as o3d
 
 from .frames import RGBDFrame
-from .config import MATTERPORT_ROOT
+from .config import CONFIG
 from .models import PointCloud
 from .pointcloud import visualize_point_clouds, voxel_downsample
 from .utils import backproject_regular, project_pinhole_points
@@ -537,9 +537,15 @@ class Matterport3DDataset:
     """Index Matterport scenes in either flat or official nested layouts."""
 
     def __init__(self, root: str | Path | None = None) -> None:
-        self.root = Path(MATTERPORT_ROOT if root is None else root).expanduser().resolve()
+        if root is None:
+            root = CONFIG.require("matterport_root")
+
+        self.root = Path(root).expanduser().resolve()
+
         if not self.root.is_dir():
-            raise FileNotFoundError(f"Matterport root directory not found: {self.root}")
+            raise FileNotFoundError(
+                f"Matterport3D root directory not found: {self.root}"
+            )
         self._scene_dirs = self._discover_scene_dirs()
         if not self._scene_dirs:
             raise FileNotFoundError(f"No Matterport scenes found below {self.root}")

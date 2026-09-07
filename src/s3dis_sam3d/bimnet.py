@@ -12,7 +12,7 @@ import numpy as np
 import open3d as o3d
 
 from .bimsync import load_ifc_mesh
-from .config import BIMNET_ROOT
+from .config import CONFIG
 from .matterport import MATTERPORT_DEPTH_SCALE, MatterportFrame
 from .models import PointCloud
 from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
@@ -989,9 +989,14 @@ class BIMNetDataset:
     """Discover BIMNet train/test scenes and their parallel asset trees."""
 
     def __init__(self, root=None, split=None):
-        self.root = Path(BIMNET_ROOT if root is None else root).expanduser().resolve()
+        if root is None:
+            root = CONFIG.require("bimnet_root")
+        self.root = Path(root).expanduser().resolve()
+
         if not self.root.is_dir():
-            raise FileNotFoundError(f"BIMNet root directory not found: {self.root}")
+            raise FileNotFoundError(
+                f"BIMNet root directory not found: {self.root}"
+            )
         if split not in (None, "train", "test"):
             raise ValueError("split must be None, 'train', or 'test'")
         self.selected_split = split

@@ -1,4 +1,5 @@
 from . import config, utils
+from .config import CONFIG, Config, configure
 from .bimnet import (
     BIMNetDataset,
     BIMNetElement,
@@ -21,6 +22,9 @@ from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
 from .s23dis import S23Frame, S23Dataset, S23Room, parse_stem
 
 __all__ = [
+    "CONFIG",
+    "Config",
+    "configure",
     "BIMNetDataset",
     "BIMNetElement",
     "BIMNetFrameRender",

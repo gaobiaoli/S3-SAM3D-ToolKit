@@ -1,33 +1,170 @@
-"""Project-wide dataset paths. Edit this file when data locations change."""
+from __future__ import annotations
 
+import json
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
+
+
+# ---------------------------------------------------------------------
+# Project-local paths
+# ---------------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_ROOT = PROJECT_ROOT / "outputs"
 BUNDLED_DATASET_ROOT = PROJECT_ROOT / "dataset"
-S23DIS_SEMANTIC_LABELS_PATH = BUNDLED_DATASET_ROOT / "semantic_labels.json"
 
-# Full local datasets.
-S23DIS_ROOT = Path(r"C:\Users\bgao491\pythonProject")
-S3DIS_ROOT = Path(
-    r"C:\Users\bgao491\Downloads\Stanford3dDataset_v1.2\Stanford3dDataset_v1.2"
-)
-BIMSYNC_ROOT = Path(r"C:\Users\bgao491\pythonProject\glb_scene_to_ifc\ifc\ifc")
-BIMNET_ROOT = Path(r"C:\Users\bgao491\DepthEstimation\BIMNet_release")
-MATTERPORT_ROOT = Path(r"C:\Users\bgao491\DepthEstimation\Matterport3D\v1\scans")
-BIMSYNC_CALIBRATION_ROOT = OUTPUT_ROOT / "ifc_to_s3dis"
-
-# Small datasets bundled with the repository for demos and tests.
 MINIMAL_S23DIS_ROOT = BUNDLED_DATASET_ROOT / "2d3ds"
 MINIMAL_S3DIS_ROOT = BUNDLED_DATASET_ROOT / "s3dis"
 MINIMAL_BIMSYNC_ROOT = BUNDLED_DATASET_ROOT / "bimsync"
 
+S23DIS_SEMANTIC_LABELS_PATH = BUNDLED_DATASET_ROOT / "semantic_labels.json"
+
+
+# ---------------------------------------------------------------------
+# User config
+# ---------------------------------------------------------------------
+
+CONFIG_PATH = Path.home() / ".s3dis_sam3d.json"
+
+
+@dataclass
+class Config:
+    s23dis_root: Optional[Path] = None
+    s3dis_root: Optional[Path] = None
+    bimsync_root: Optional[Path] = None
+    bimnet_root: Optional[Path] = None
+    matterport_root: Optional[Path] = None
+
+    output_root: Path = field(default_factory=lambda: OUTPUT_ROOT)
+
+    def require(self, name):
+        """
+        Return a configured path.
+
+        Raises a clear error when a required dataset path has not been configured.
+        """
+        value = getattr(self, name)
+
+        if value is None:
+            raise RuntimeError(
+                f"{name} is not configured.\n"
+                f"Run s3dis_sam3d.configure({name}='...') first."
+            )
+
+        return value
+
+    def save(self, path=CONFIG_PATH):
+        """Save this config to disk."""
+        path = Path(path).expanduser()
+
+        data = {
+            "s23dis_root": self.s23dis_root,
+            "s3dis_root": self.s3dis_root,
+            "bimsync_root": self.bimsync_root,
+            "bimnet_root": self.bimnet_root,
+            "matterport_root": self.matterport_root,
+            "output_root": self.output_root,
+        }
+
+        data = {
+            key: str(value) if value is not None else None
+            for key, value in data.items()
+        }
+
+        path.write_text(
+            json.dumps(data, indent=2),
+            encoding="utf-8",
+        )
+
+    @classmethod
+    def load(cls, path=CONFIG_PATH):
+        """Load config from disk. Return an empty config if none exists."""
+        path = Path(path).expanduser()
+
+        if not path.is_file():
+            return cls()
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+
+        for key, value in data.items():
+            if value is not None:
+                data[key] = Path(value).expanduser()
+
+        return cls(**data)
+
+    def __repr__(self):
+        lines = ["Config("]
+
+        for name in (
+            "s23dis_root",
+            "s3dis_root",
+            "bimsync_root",
+            "bimnet_root",
+            "matterport_root",
+            "output_root",
+        ):
+            lines.append(f"    {name}={getattr(self, name)!r},")
+
+        lines.append(")")
+        return "\n".join(lines)
+
+
+# Loaded once when the package is imported.
+CONFIG = Config.load()
+
+
+def configure(
+    *,
+    s23dis_root=None,
+    s3dis_root=None,
+    bimsync_root=None,
+    bimnet_root=None,
+    matterport_root=None,
+    output_root=None,
+):
+    """
+    Configure dataset paths and save them permanently for this user.
+
+    Example
+    -------
+    configure(
+        s23dis_root="/data/2d3ds",
+        s3dis_root="/data/Stanford3dDataset_v1.2",
+        bimnet_root="/data/BIMNet_release",
+    )
+    """
+
+    values = {
+        "s23dis_root": s23dis_root,
+        "s3dis_root": s3dis_root,
+        "bimsync_root": bimsync_root,
+        "bimnet_root": bimnet_root,
+        "matterport_root": matterport_root,
+        "output_root": output_root,
+    }
+
+    for name, value in values.items():
+        if value is not None:
+            setattr(
+                CONFIG,
+                name,
+                Path(value).expanduser().resolve(),
+            )
+
+    CONFIG.save()
+
+    return CONFIG
+
 
 def s23dis_area(area="Area_1", root=None):
     """Return one 2D-3D-S Area directory."""
-    return Path(root or S23DIS_ROOT) / str(area).lower()
+    if root is None:
+        root = CONFIG.require("s23dis_root")
+
+    return Path(root) / str(area).lower()
 
 
 def bimsync_calibration_dir(area="Area_1"):
-    """Return the directory containing one Area's saved BIMSync matrices."""
-    return BIMSYNC_CALIBRATION_ROOT / str(area)
+    """Return the saved BIMSync calibration directory for one Area."""
+    return CONFIG.output_root / "ifc_to_s3dis" / str(area)
