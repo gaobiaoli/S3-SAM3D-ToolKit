@@ -5,6 +5,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_ROOT = PROJECT_ROOT / "outputs"
 BUNDLED_DATASET_ROOT = PROJECT_ROOT / "dataset"
+S23DIS_SEMANTIC_LABELS_PATH = BUNDLED_DATASET_ROOT / "semantic_labels.json"
 
 # Full local datasets.
 S23DIS_ROOT = Path(r"C:\Users\bgao491\pythonProject")

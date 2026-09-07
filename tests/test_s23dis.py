@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 from PIL import Image
 
-from s3dis_sam3d import S23Frame, RGBDFrame, S23Dataset, S23Room, parse_stem
+from s3dis_sam3d import RGBDFrame, S23Dataset, S23Frame, S23Room, parse_stem
 from s3dis_sam3d import s23dis as s23dis_module
 
 
@@ -16,8 +16,20 @@ class S23DatasetTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         area = Path(self.temp.name) / "area_1"
         self.area = area
-        for name in ("pose", "rgb", "depth"):
+        for name in ("pose", "rgb", "depth", "semantic"):
             (area / "data" / name).mkdir(parents=True)
+        assets = area.parent / "assets"
+        assets.mkdir()
+        (assets / "semantic_labels.json").write_text(
+            json.dumps(
+                [
+                    "<UNK>_0_<UNK>_0_0",
+                    "chair_1_office_1_1",
+                    "wall_1_office_1_1",
+                ]
+            ),
+            "utf-8",
+        )
         stem = "camera_0123456789abcdef_office_1_frame_7_domain"
         pose = {
             "camera_k_matrix": [[2, 0, 0], [0, 2, 0], [0, 0, 1]],
@@ -33,6 +45,16 @@ class S23DatasetTest(unittest.TestCase):
         )
         Image.fromarray(np.full((2, 2), 512, dtype=np.uint16)).save(
             area / "data" / "depth" / f"{stem}_depth.png"
+        )
+        semantic = np.array(
+            [
+                [[0, 0, 1], [0, 0, 2]],
+                [[13, 13, 13], [0, 0, 1]],
+            ],
+            dtype=np.uint8,
+        )
+        Image.fromarray(semantic).save(
+            area / "data" / "semantic" / f"{stem}_semantic.png"
         )
         self.dataset = S23Dataset(area)
         self.room = self.dataset.room("office_1")
@@ -73,6 +95,19 @@ class S23DatasetTest(unittest.TestCase):
         )
         with self.assertRaises(FileNotFoundError):
             _ = frame.xyz
+
+    def test_semantic_categories_are_loaded_from_semantic_modality(self):
+        frame = self.room.get_frame(7)
+
+        self.assertTrue(frame.has_semantic)
+        np.testing.assert_array_equal(frame.instance_labels, [[1, 2], [-1, 1]])
+        np.testing.assert_array_equal(frame.semantic_labels, [[8, 2], [-1, 8]])
+        self.assertEqual(frame.semantic_categories, ("wall", "chair"))
+
+        cloud = frame.point_cloud(stride=1, world_coordinates=False)
+        np.testing.assert_array_equal(cloud.semantic_labels, [8, 2, -1, 8])
+        np.testing.assert_array_equal(cloud.instance_labels, [1, 2, -1, 1])
+        self.assertEqual(cloud.metadata["label_names"][8], "chair")
 
     def test_default_area_path_comes_from_config(self):
         with patch.object(

@@ -9,11 +9,13 @@ from functools import cached_property
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
-from .config import s23dis_area
+from .config import S23DIS_SEMANTIC_LABELS_PATH, s23dis_area
 from .frames import RGBDFrame
 from .models import PointCloud
 from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
+from .s3dis import SEMANTIC_CLASSES
 from .utils import (
     backproject_pano,
     backproject_regular,
@@ -25,6 +27,11 @@ from .utils import (
 
 S23DIS_DEPTH_SCALE = 512.0
 S23DIS_INVALID_DEPTH = 65535
+S23DIS_INVALID_SEMANTIC = 0x0D0D0D
+S23DIS_SEMANTIC_CLASSES = SEMANTIC_CLASSES
+S23DIS_CLASS_TO_ID = {
+    name: class_id for class_id, name in enumerate(S23DIS_SEMANTIC_CLASSES)
+}
 
 FRAME_PATTERN = re.compile(
     r"^camera_(?P<uuid>[0-9a-fA-F]+)_(?P<room>.+?)_frame_"
@@ -71,6 +78,20 @@ def _mask_for_frame(mask, frame):
     return mask
 
 
+def _concatenate_optional_labels(clouds, attribute):
+    labels = [getattr(cloud, attribute) for cloud in clouds]
+    if not any(label is not None for label in labels):
+        return None
+    return np.concatenate(
+        [
+            label
+            if label is not None
+            else np.full(len(cloud.xyz), -1, dtype=np.int32)
+            for cloud, label in zip(clouds, labels)
+        ]
+    )
+
+
 @dataclass(frozen=True)
 class S23Frame(RGBDFrame):
     depth_scale = S23DIS_DEPTH_SCALE
@@ -82,7 +103,18 @@ class S23Frame(RGBDFrame):
     uuid: str
     pose_path: Path
     xyz_path: Path | None = None
+    semantic_path: Path | None = None
     projection_type: str = "regular"
+    semantic_instance_names: tuple[str, ...] = field(
+        default=(),
+        repr=False,
+        compare=False,
+    )
+    semantic_class_lookup: tuple[int, ...] = field(
+        default=(),
+        repr=False,
+        compare=False,
+    )
 
     @cached_property
     def pose(self):
@@ -93,10 +125,62 @@ class S23Frame(RGBDFrame):
         return self.xyz_path is not None
 
     @property
+    def has_semantic(self):
+        return self.semantic_path is not None
+
+    @property
     def xyz(self):
         if self.xyz_path is None:
             raise FileNotFoundError(f"global_xyz is unavailable for {self.stem}")
         return _read_global_xyz(self.xyz_path)
+
+    @property
+    def instance_labels(self):
+        """Return the per-pixel global instance indices encoded by 2D-3D-S."""
+        if self.semantic_path is None:
+            raise FileNotFoundError(f"semantic image is unavailable for {self.stem}")
+        with Image.open(self.semantic_path) as image:
+            encoded = np.asarray(image.convert("RGB"), dtype=np.int32)
+        labels = (
+            (encoded[..., 0] << 16)
+            | (encoded[..., 1] << 8)
+            | encoded[..., 2]
+        )
+        labels[labels == S23DIS_INVALID_SEMANTIC] = -1
+        return labels
+
+    @property
+    def semantic(self):
+        """Alias for the decoded instance-index image."""
+        return self.instance_labels
+
+    @property
+    def semantic_labels(self):
+        """Return per-pixel S3DIS class IDs, with unknown pixels set to ``-1``."""
+        if not self.semantic_class_lookup:
+            raise FileNotFoundError(
+                "semantic_labels.json is required to convert instance indices "
+                f"to semantic classes for {self.stem}"
+            )
+        return self._classes_from_instances(self.instance_labels)
+
+    def _classes_from_instances(self, instances):
+        classes = np.full(instances.shape, -1, dtype=np.int32)
+        valid = (instances >= 0) & (instances < len(self.semantic_class_lookup))
+        classes[valid] = np.asarray(self.semantic_class_lookup, dtype=np.int32)[
+            instances[valid]
+        ]
+        return classes
+
+    @property
+    def semantic_categories(self):
+        """Return the semantic category names visible in this frame."""
+        class_ids = set(np.unique(self.semantic_labels).tolist())
+        return tuple(
+            name
+            for class_id, name in enumerate(S23DIS_SEMANTIC_CLASSES)
+            if class_id in class_ids
+        )
 
     @cached_property
     def intrinsics(self):
@@ -149,35 +233,55 @@ class S23Frame(RGBDFrame):
         from_global_xyz=False,
     ):
         if not from_global_xyz:
-            return super().point_cloud(
+            points, ys, xs, _ = self._backproject(
                 stride=stride,
                 depth_min=depth_min,
                 depth_max=depth_max,
                 mask=mask,
-                world_coordinates=world_coordinates,
+            )
+        else:
+            points, colors, ys, xs = points_from_global_xyz(
+                self.xyz,
+                self.rgb,
+                stride,
+                _mask_for_frame(mask, self),
+                return_indices=True,
             )
 
-        rgb = self.rgb
-        points, colors = points_from_global_xyz(
-            self.xyz,
-            rgb,
-            stride,
-            _mask_for_frame(mask, self),
-        )
-        if world_coordinates:
-            coordinates = "world"
-        else:
-            points = transform_points(points, self.world_to_camera)
-            coordinates = "camera"
+        if from_global_xyz:
+            if not world_coordinates:
+                points = transform_points(points, self.world_to_camera)
+        elif world_coordinates:
+            points = transform_points(points, self.camera_to_world)
+
+        if not from_global_xyz:
+            colors = self.rgb[ys, xs]
+        semantic_labels = None
+        instance_labels = None
+        if self.has_semantic:
+            instance_labels = self.instance_labels[ys, xs]
+            if self.semantic_class_lookup:
+                semantic_labels = self._classes_from_instances(instance_labels)
+
+        coordinates = "world" if world_coordinates else "camera"
 
         return PointCloud(
             points,
             colors,
+            semantic_labels=semantic_labels,
+            instance_labels=instance_labels,
             metadata=self._point_cloud_metadata(coordinates),
         )
 
     def _point_cloud_metadata(self, coordinate_frame):
-        return {"frame": self.stem, "coordinate_frame": coordinate_frame}
+        metadata = {"frame": self.stem, "coordinate_frame": coordinate_frame}
+        if self.semantic_path is not None:
+            metadata["semantic_path"] = str(self.semantic_path)
+        if self.semantic_class_lookup:
+            metadata["label_names"] = S23DIS_SEMANTIC_CLASSES
+        if self.semantic_instance_names:
+            metadata["instance_names"] = self.semantic_instance_names
+        return metadata
 
 
 @dataclass(frozen=True)
@@ -270,11 +374,14 @@ class S23Room:
         cloud = PointCloud(
             np.concatenate([cloud.xyz for cloud in clouds]),
             np.concatenate([cloud.rgb for cloud in clouds]),
+            _concatenate_optional_labels(clouds, "semantic_labels"),
+            _concatenate_optional_labels(clouds, "instance_labels"),
             metadata={
                 "area": self.area,
                 "room": self.name,
                 "frame_count": len(clouds),
                 "coordinate_frame": clouds[0].metadata["coordinate_frame"],
+                "label_names": S23DIS_SEMANTIC_CLASSES,
             },
         )
         return voxel_downsample(cloud, voxel_size)
@@ -329,6 +436,7 @@ class S23Dataset:
         projection_type="regular",
         area="Area_1",
         default_uuid="first",
+        semantic_labels_path=None,
     ):
         using_default_path = area_path is None
         area_path = s23dis_area(area) if using_default_path else area_path
@@ -350,6 +458,15 @@ class S23Dataset:
         self.rgb_dir = self.data_dir / "rgb"
         self.depth_dir = self.data_dir / "depth"
         self.xyz_dir = self.data_dir / "global_xyz"
+        self.semantic_dir = self.data_dir / "semantic"
+        self.semantic_labels_path = self._resolve_semantic_labels_path(
+            semantic_labels_path
+        )
+        self.semantic_instance_names = self._load_semantic_instance_names()
+        self.semantic_class_lookup = tuple(
+            S23DIS_CLASS_TO_ID.get(name.split("_", 1)[0].casefold(), -1)
+            for name in self.semantic_instance_names
+        )
         self.frames = tuple(self._index_frames(projection_type))
         grouped = {}
         for frame in self.frames:
@@ -372,6 +489,7 @@ class S23Dataset:
             rgb_path = self.rgb_dir / f"{stem}_rgb.png"
             depth_path = self.depth_dir / f"{stem}_depth.png"
             xyz_path = self.xyz_dir / f"{stem}_global_xyz.exr"
+            semantic_path = self.semantic_dir / f"{stem}_semantic.png"
             if rgb_path.exists() and (depth_path.exists() or xyz_path.exists()):
                 frames.append(
                     S23Frame(
@@ -383,10 +501,43 @@ class S23Dataset:
                         rgb_path=rgb_path,
                         depth_path=depth_path if depth_path.exists() else None,
                         xyz_path=xyz_path if xyz_path.exists() else None,
+                        semantic_path=(
+                            semantic_path if semantic_path.exists() else None
+                        ),
                         projection_type=projection_type,
+                        semantic_instance_names=self.semantic_instance_names,
+                        semantic_class_lookup=self.semantic_class_lookup,
                     )
                 )
         return frames
+
+    def _resolve_semantic_labels_path(self, path):
+        if path is not None:
+            path = Path(path)
+            if not path.is_file():
+                raise FileNotFoundError(f"semantic label metadata not found: {path}")
+            return path
+
+        candidates = (
+            self.area_path.parent / "assets" / "semantic_labels.json",
+            self.area_path / "assets" / "semantic_labels.json",
+            self.area_path.parent / "semantic_labels.json",
+            self.area_path / "semantic_labels.json",
+            S23DIS_SEMANTIC_LABELS_PATH,
+        )
+        return next((candidate for candidate in candidates if candidate.is_file()), None)
+
+    def _load_semantic_instance_names(self):
+        if self.semantic_labels_path is None:
+            return ()
+        values = json.loads(self.semantic_labels_path.read_text("utf-8"))
+        if not isinstance(values, list) or not all(
+            isinstance(value, str) for value in values
+        ):
+            raise ValueError(
+                "semantic_labels.json must contain a JSON list of label names"
+            )
+        return tuple(values)
 
     def list_rooms(self):
         return [(room.name, len(room)) for room in self.rooms]

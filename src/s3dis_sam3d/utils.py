@@ -138,7 +138,7 @@ def backproject_pano(
     return points.astype(np.float32), ys[valid], xs[valid]
 
 
-def points_from_global_xyz(xyz, rgb, stride=4, mask=None):
+def points_from_global_xyz(xyz, rgb, stride=4, mask=None, return_indices=False):
     ys, xs = np.mgrid[0 : xyz.shape[0] : stride, 0 : xyz.shape[1] : stride]
     points = xyz[ys, xs]
     colors = rgb[ys, xs]
@@ -146,7 +146,10 @@ def points_from_global_xyz(xyz, rgb, stride=4, mask=None):
     mask = prepare_mask(mask, xyz.shape[:2])
     if mask is not None:
         valid &= mask[ys, xs]
-    return points[valid], colors[valid]
+    result = points[valid], colors[valid]
+    if return_indices:
+        return *result, ys[valid], xs[valid]
+    return result
 
 
 def transformed_geometry(geometry, transform):
