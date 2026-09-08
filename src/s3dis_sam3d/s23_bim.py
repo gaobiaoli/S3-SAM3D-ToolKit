@@ -108,7 +108,7 @@ class S23_BIMDataset:
 
         return self._scenes[key]
 
-    def _render_depth(self, bim_scene, frame):
+    def _render_depth(self, bim_scene, frame, size=None):
         if not self.full_scene:
             return bim_scene.render_depth(frame)
 
@@ -121,10 +121,14 @@ class S23_BIMDataset:
             for mesh in meshes:
                 full_mesh += mesh
             self._full_scene_raycaster = MeshRaycaster(full_mesh)
-
-        height, width = frame.image_shape
+        if size is not None:
+            height, width = size
+            intrinsics = frame.intrinsics_for_size(size)
+        else:
+            height, width = frame.image_shape
+            intrinsics = frame.intrinsics
         return self._full_scene_raycaster.depth(
-            frame.intrinsics,
+            intrinsics,
             frame.world_to_camera,
             width,
             height,
