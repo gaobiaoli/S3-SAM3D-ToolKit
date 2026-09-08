@@ -7,7 +7,7 @@ from .matterport import Matterport3DDataset
 
 
 class MP3D_BIMDataset:
-    """Paired Matterport3D + BIMNet data for depth estimation."""
+    """Paired Matterport3D + BIMNet RGB/depth/mask data."""
 
     def __init__(
         self,
@@ -91,11 +91,19 @@ class MP3D_BIMDataset:
                 dtype=np.float32,
             )
 
+            if bim_depth.shape != gt_depth.shape:
+                raise ValueError(
+                    f"BIM depth shape {bim_depth.shape} does not match "
+                    f"GT depth shape {gt_depth.shape} for frame {frame.frame_id}"
+                )
+
+            bim_mask = (
+                np.isfinite(bim_depth)
+                & (bim_depth > 0)
+            )
+
             bim_hit_fraction = float(
-                (
-                    np.isfinite(bim_depth)
-                    & (bim_depth > 0)
-                ).mean()
+                bim_mask.mean()
             )
 
             if (
@@ -128,7 +136,7 @@ class MP3D_BIMDataset:
         return len(self._index_scene(scene_id))
 
     def get(self, scene_id, index):
-        """Load RGB, BIM depth and GT depth for one valid sample."""
+        """Load RGB, GT depth, BIM depth and BIM mask for one valid sample."""
 
         samples = self._index_scene(scene_id)
         sample = samples[index]
@@ -153,13 +161,32 @@ class MP3D_BIMDataset:
             dtype=np.float32,
         )
 
+        if bim_depth.shape != gt_depth.shape:
+            raise ValueError(
+                f"BIM depth shape {bim_depth.shape} does not match "
+                f"GT depth shape {gt_depth.shape}"
+            )
+
+        if rgb.shape[:2] != gt_depth.shape:
+            raise ValueError(
+                f"RGB shape {rgb.shape[:2]} does not match "
+                f"GT depth shape {gt_depth.shape}"
+            )
+
+        bim_mask = (
+            np.isfinite(bim_depth)
+            & (bim_depth > 0)
+        )
+
         return {
             "rgb": rgb,
             "bim_depth": bim_depth,
             "gt_depth": gt_depth,
+            "bim_mask": bim_mask,
 
             "frame_id": frame.frame_id,
             "bim_scene_id": sample["bim_scene_id"],
+            "source_scene_id": sample["mp3d_scene_id"],
             "mp3d_scene_id": sample["mp3d_scene_id"],
 
             "gt_valid_fraction":

@@ -123,13 +123,24 @@ class BIMSyncDatasetTest(unittest.TestCase):
         ):
             self.assertFalse(hasattr(self.dataset, name))
 
-    def test_default_root_comes_from_config(self):
+    def test_default_root_and_calibration_come_from_config(self):
+        calibration_dir = self.root / "registration"
+        calibration_dir.mkdir()
+        np.save(
+            calibration_dir / "office_1_ifc_to_s3dis_transform.npy",
+            np.eye(4),
+        )
+
         with (
-            patch.object(bimsync_module, "BIMSYNC_ROOT", self.root),
+            patch.object(
+                bimsync_module.CONFIG,
+                "require",
+                return_value=self.root,
+            ),
             patch.object(
                 bimsync_module,
                 "bimsync_calibration_dir",
-                return_value=self.root / "missing_calibrations",
+                return_value=calibration_dir,
             ),
         ):
             dataset = BIMSyncDataset()
@@ -137,6 +148,26 @@ class BIMSyncDatasetTest(unittest.TestCase):
             [scene.key for scene in dataset.scenes],
             ["Area_1/office_1", "Area_1/office_2"],
         )
+        self.assertTrue(dataset.scene("office_1").is_calibrated)
+
+    def test_missing_default_calibration_directory_fails(self):
+        with (
+            patch.object(
+                bimsync_module.CONFIG,
+                "require",
+                return_value=self.root,
+            ),
+            patch.object(
+                bimsync_module,
+                "bimsync_calibration_dir",
+                return_value=self.root / "missing_calibrations",
+            ),
+            self.assertRaisesRegex(
+                FileNotFoundError,
+                "BIMSync calibration directory not found",
+            ),
+        ):
+            BIMSyncDataset()
 
     def test_mesh_uses_saved_or_explicit_transform_once(self):
         saved = np.eye(4)

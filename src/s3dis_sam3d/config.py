@@ -174,5 +174,5 @@ def s23dis_area(area="Area_1", root=None):
 
 
 def bimsync_calibration_dir(area="Area_1"):
-    """Return the saved BIMSync calibration directory for one Area."""
-    return OUTPUT_ROOT / "ifc_to_s3dis" / str(area)
+    """Return the project-bundled BIMSync calibration directory for one Area."""
+    return BUNDLED_DATASET_ROOT / "ifc_to_s3dis" / str(area)

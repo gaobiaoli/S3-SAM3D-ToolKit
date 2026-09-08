@@ -59,7 +59,7 @@ S23DIS_ROOT = Path("path/to/2d3ds")
 S3DIS_ROOT = Path("path/to/Stanford3dDataset_v1.2")
 BIMSYNC_ROOT = Path("path/to/bimsync/ifc")
 BIMNET_ROOT = Path("path/to/BIMNet_release")
-BIMSYNC_CALIBRATION_ROOT = OUTPUT_ROOT / "ifc_to_s3dis"
+BIMSYNC_CALIBRATION_ROOT = BUNDLED_DATASET_ROOT / "ifc_to_s3dis"
 ```
 
 省略数据集路径时会读取上述默认值：
@@ -72,8 +72,9 @@ s23dis = S23Dataset(area="Area_1")
 bimsync = BIMSyncDataset(area="Area_1")
 ```
 
-`BIMSyncDataset()` 使用默认 BIMSync 路径时，如果对应 Area 的默认校准目录已经存在，
-还会自动加载其中保存的校准矩阵。仓库内最小示例使用同一配置文件中的
+`BIMSyncDataset()` 使用默认 BIMSync 路径时，会从
+`dataset/ifc_to_s3dis/<Area>` 自动加载校准矩阵；该目录不存在或不包含校准矩阵时会立即报错。
+仓库内最小示例使用同一配置文件中的
 `MINIMAL_S3DIS_ROOT` 和 `MINIMAL_S23DIS_ROOT`，不会与完整数据路径混淆。
 
 ## S3DIS
@@ -261,7 +262,7 @@ summary = bimsync.calibrate_regions(
 bimsync = BIMSyncDataset(
     "path/to/bimsync/ifc",
     area="Area_1",
-    calibration_dir="outputs/ifc_to_s3dis/Area_1",
+    calibration_dir="dataset/ifc_to_s3dis/Area_1",
 )
 region = bimsync.region("office_11")
 mesh = region.mesh()

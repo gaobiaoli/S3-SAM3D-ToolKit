@@ -7,17 +7,7 @@ from .s23dis import S23Dataset, s23dis_area
 
 
 class S23_BIMDataset:
-    """
-    Paired 2D-3D-S + BIMSync dataset for depth estimation.
-
-    Each valid sample contains:
-        RGB
-        BIM-rendered depth
-        2D-3D-S GT depth
-        BIM hit mask
-
-    Samples are indexed lazily per BIMSync scene / S23 room.
-    """
+    """Paired 2D-3D-S + BIMSync RGB/depth/mask data."""
 
     def __init__(
         self,
@@ -114,21 +104,8 @@ class S23_BIMDataset:
 
         return self._scenes[key]
 
-    def room(self, scene_id):
-        """Return the corresponding S23 room."""
-
-        scene = self._resolve_scene(scene_id)
-
-        return self.s23_dataset.room(
-            f"{self.area}/{scene.name}"
-        )
-
-    # ------------------------------------------------------------------
-    # Lazy indexing
-    # ------------------------------------------------------------------
-
     def _index_scene(self, scene_id):
-        """Find valid RGB / BIM-depth / GT-depth frames for one scene."""
+        """Find valid frames for one BIMSync scene."""
 
         bim_scene = self._resolve_scene(scene_id)
         key = bim_scene.name
@@ -227,25 +204,16 @@ class S23_BIMDataset:
 
         return samples
 
-    # ------------------------------------------------------------------
-    # Sample access
-    # ------------------------------------------------------------------
-
-    def scene_size(self, scene_id):
-        """Return number of valid samples in one scene."""
-
-        return len(
-            self._index_scene(scene_id)
-        )
-
     def scene_samples(self, scene_id):
         """Return valid sample metadata for one BIMSync scene."""
+
         return self._index_scene(scene_id)
 
+    def scene_size(self, scene_id):
+        return len(self._index_scene(scene_id))
+
     def get(self, scene_id, index):
-        """
-        Load one RGB / BIM depth / GT depth / BIM mask sample.
-        """
+        """Load RGB, GT depth, BIM depth and BIM mask for one valid sample."""
 
         samples = self._index_scene(scene_id)
         sample = samples[index]
@@ -297,6 +265,7 @@ class S23_BIMDataset:
 
             "area": self.area,
             "bim_scene_id": sample["bim_scene_id"],
+            "source_scene_id": sample["s23_scene_id"],
             "s23_scene_id": sample["s23_scene_id"],
             "scene_id": sample["scene_id"],
             "room": sample["room"],
@@ -322,15 +291,11 @@ class S23_BIMDataset:
                 index,
             )
 
-    # ------------------------------------------------------------------
-    # Explicit multi-scene indexing
-    # ------------------------------------------------------------------
-
     def build_index(self, scene_ids=None):
         """
-        Explicitly index selected scenes.
+        Explicitly index several or all BIMSync scenes.
 
-        If scene_ids is None, index all scenes.
+        Nothing is indexed automatically during __init__.
         """
 
         if scene_ids is None:
@@ -341,20 +306,16 @@ class S23_BIMDataset:
 
         return self
 
-    @property
-    def indexed_sample_count(self):
-        """Number of valid samples in currently indexed scenes."""
-
-        return sum(
+    def __repr__(self):
+        sample_count = sum(
             len(samples)
             for samples in self._scene_samples.values()
         )
 
-    def __repr__(self):
         return (
             f"S23_BIMDataset("
             f"area={self.area!r}, "
             f"scenes={len(self.scene_ids)}, "
             f"indexed_scenes={len(self._scene_samples)}, "
-            f"indexed_samples={self.indexed_sample_count})"
+            f"indexed_samples={sample_count})"
         )

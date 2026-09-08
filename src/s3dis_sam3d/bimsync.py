@@ -401,10 +401,7 @@ class BIMSyncDataset:
             root = CONFIG.require("bimsync_root")
 
         if using_default_root and calibration_dir is None:
-            default_calibration_dir = bimsync_calibration_dir(area)
-
-            if default_calibration_dir.is_dir():
-                calibration_dir = default_calibration_dir
+            calibration_dir = bimsync_calibration_dir(area)
 
         self.root = Path(root).expanduser().resolve()
         self.area = area
@@ -458,11 +455,27 @@ class BIMSyncDataset:
 
     def load_calibrations(self, calibration_dir):
         self.calibration_dir = Path(calibration_dir).expanduser().resolve()
-        self._calibrations = {
-            path.name.removesuffix("_ifc_to_s3dis_transform.npy").casefold(): np.load(path)
-            for path in sorted(
+
+        if not self.calibration_dir.is_dir():
+            raise FileNotFoundError(
+                f"BIMSync calibration directory not found: {self.calibration_dir}"
+            )
+
+        calibration_paths = tuple(
+            sorted(
                 self.calibration_dir.rglob("*_ifc_to_s3dis_transform.npy")
             )
+        )
+
+        if not calibration_paths:
+            raise ValueError(
+                "no *_ifc_to_s3dis_transform.npy files found under "
+                f"{self.calibration_dir}"
+            )
+
+        self._calibrations = {
+            path.name.removesuffix("_ifc_to_s3dis_transform.npy").casefold(): np.load(path)
+            for path in calibration_paths
         }
         for scene in self.scenes:
             scene._raycaster_cache.clear()
