@@ -143,6 +143,8 @@ class BIMSyncScene:
         calibrated=True,
         transform=None,
     ):  
+        if include_types is None:
+            include_types = STRUCTURAL_IFC_TYPES
         mesh = self._raw_mesh(include_types)
         transform = transform if transform is not None else (
             self.calibration if calibrated else None
