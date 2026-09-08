@@ -646,10 +646,16 @@ class BIMNetScene:
             )
             raycaster = MeshRaycaster(mesh)
             self._raycaster_cache[cache_key] = raycaster
+            
+        if size is not None:
+            height, width = size
+            intrinsics = frame.intrinsics_for_size(size)
+        else:
+            height, width = frame.image_shape
+            intrinsics = frame.intrinsics
 
-        height, width = frame.image_shape
         return raycaster.depth(
-            frame.intrinsics,
+            intrinsics,
             frame.world_to_camera,
             width,
             height,

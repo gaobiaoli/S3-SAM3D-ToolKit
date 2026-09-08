@@ -142,7 +142,7 @@ class BIMSyncScene:
         *,
         calibrated=True,
         transform=None,
-    ):
+    ):  
         mesh = self._raw_mesh(include_types)
         transform = transform if transform is not None else (
             self.calibration if calibrated else None
@@ -275,7 +275,8 @@ class BIMSyncScene:
 
     def render_depth(self, frame, *, include_types=None, size=None):
         """Raycast metric depth for a regular S3DIS frame using a cached scene."""
-
+        if include_types is None:
+            include_types = STRUCTURAL_IFC_TYPES
         if not self.is_calibrated:
             raise ValueError(f"no calibration found for IFC scene: {self.name}")
         if frame.projection_type != "regular":
@@ -289,11 +290,13 @@ class BIMSyncScene:
             
         if size is not None:
             height, width = size
+            intrinsics = frame.intrinsics_for_size(size)
         else:
             height, width = frame.image_shape
+            intrinsics = frame.intrinsics
 
         return raycaster.depth(
-            frame.intrinsics,
+            intrinsics,
             frame.world_to_camera,
             width,
             height,

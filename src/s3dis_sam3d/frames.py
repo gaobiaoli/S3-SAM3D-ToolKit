@@ -128,3 +128,16 @@ class RGBDFrame(ABC):
             rgb=self.rgb[ys, xs],
             metadata=self._point_cloud_metadata(coordinate_frame),
         )
+    
+    def intrinsics_for_size(self, size):
+        """Return a copy of the intrinsics matrix for a given image size."""
+        target_height, target_width = size
+        orig_height, orig_width = self.image_shape
+        scale_x = target_width / orig_width
+        scale_y = target_height / orig_height
+        intrinsics = self.intrinsics.copy()
+        intrinsics[0, 0] *= scale_x
+        intrinsics[1, 1] *= scale_y
+        intrinsics[0, 2] *= scale_x
+        intrinsics[1, 2] *= scale_y
+        return intrinsics
