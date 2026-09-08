@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from .bimsync import BIMSyncDataset
+from .rendering import MeshRaycaster
 from .s23dis import S23Dataset, s23dis_area
 
 
@@ -17,8 +18,10 @@ class S23_BIMDataset:
         calibration_dir=None,
         min_gt_valid_fraction=0.1,
         min_bim_hit_fraction=0.2,
+        full_scene=False,
     ):
         self.area = str(area)
+        self.full_scene = bool(full_scene)
 
         if s23_root is None:
             self.s23_dataset = S23Dataset(
@@ -73,6 +76,7 @@ class S23_BIMDataset:
 
         # Indexed only when requested.
         self._scene_samples = {}
+        self._full_scene_raycaster = None
 
     # ------------------------------------------------------------------
     # Scene access
@@ -103,6 +107,28 @@ class S23_BIMDataset:
             )
 
         return self._scenes[key]
+
+    def _render_depth(self, bim_scene, frame):
+        if not self.full_scene:
+            return bim_scene.render_depth(frame)
+
+        if self._full_scene_raycaster is None:
+            meshes = iter(
+                scene.mesh()
+                for scene in self._scenes.values()
+            )
+            full_mesh = next(meshes)
+            for mesh in meshes:
+                full_mesh += mesh
+            self._full_scene_raycaster = MeshRaycaster(full_mesh)
+
+        height, width = frame.image_shape
+        return self._full_scene_raycaster.depth(
+            frame.intrinsics,
+            frame.world_to_camera,
+            width,
+            height,
+        )
 
     def _index_scene(self, scene_id):
         """Find valid frames for one BIMSync scene."""
@@ -153,7 +179,7 @@ class S23_BIMDataset:
             # ----------------------------------------------------------
 
             bim_depth = np.asarray(
-                bim_scene.render_depth(frame),
+                self._render_depth(bim_scene, frame),
                 dtype=np.float32,
             )
 
@@ -234,7 +260,7 @@ class S23_BIMDataset:
         )
 
         bim_depth = np.asarray(
-            bim_scene.render_depth(frame),
+            self._render_depth(bim_scene, frame),
             dtype=np.float32,
         )
 
@@ -315,6 +341,7 @@ class S23_BIMDataset:
         return (
             f"S23_BIMDataset("
             f"area={self.area!r}, "
+            f"full_scene={self.full_scene}, "
             f"scenes={len(self.scene_ids)}, "
             f"indexed_scenes={len(self._scene_samples)}, "
             f"indexed_samples={sample_count})"
