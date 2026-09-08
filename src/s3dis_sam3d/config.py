@@ -155,7 +155,22 @@ def s23dis_area(area="Area_1", root=None):
     if root is None:
         root = CONFIG.require("s23dis_root")
 
-    return Path(root) / str(area).lower()
+    root = Path(root).expanduser()
+    area_name = str(area)
+    area_names = tuple(dict.fromkeys((area_name, area_name.casefold())))
+
+    # Accept either an Area directory or the common extracted dataset layouts:
+    # ``root/area_1`` and ``root/no_xyz/area_1``.
+    if (root / "data").is_dir():
+        return root
+
+    candidates = tuple(root / name for name in area_names) + tuple(
+        root / "no_xyz" / name for name in area_names
+    )
+    return next(
+        (candidate for candidate in candidates if candidate.is_dir()),
+        root / area_name.casefold(),
+    )
 
 
 def bimsync_calibration_dir(area="Area_1"):

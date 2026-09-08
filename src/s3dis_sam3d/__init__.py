@@ -20,8 +20,12 @@ from .models import BoundingBox3D, GLBMesh, PointCloud
 from .rendering import FrameRender
 from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
 from .s23dis import S23Frame, S23Dataset, S23Room, parse_stem
+from .mp3d_bim import MP3D_BIMDataset
+from .s23_bim import S23_BIMDataset
 
 __all__ = [
+    "MP3D_BIMDataset",
+    "S23_BIMDataset",
     "CONFIG",
     "Config",
     "configure",

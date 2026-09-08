@@ -429,7 +429,17 @@ class BIMSyncDataset:
     def _resolve_ifc_dir(self):
         if self.root.is_file():
             return self.root.parent
-        candidates = self.root / self.area, self.root / self.area.casefold(), self.root
+        area_names = tuple(dict.fromkeys((str(self.area), str(self.area).casefold())))
+        roots = (
+            self.root,
+            self.root / "ifc",
+            self.root / "BIM_model" / "ifc",
+        )
+        candidates = tuple(
+            root / area_name
+            for root in roots
+            for area_name in area_names
+        ) + roots
         return next((path for path in candidates if list(path.glob("*.ifc"))), self.root)
 
     def scene(self, scene):
