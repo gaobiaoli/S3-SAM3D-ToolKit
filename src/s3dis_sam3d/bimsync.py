@@ -273,7 +273,7 @@ class BIMSyncScene:
             show=show,
         )
 
-    def render_depth(self, frame, *, include_types=None):
+    def render_depth(self, frame, *, include_types=None, size=None):
         """Raycast metric depth for a regular S3DIS frame using a cached scene."""
 
         if not self.is_calibrated:
@@ -286,8 +286,12 @@ class BIMSyncScene:
         if raycaster is None:
             raycaster = MeshRaycaster(self.mesh(include_types))
             self._raycaster_cache[cache_key] = raycaster
+            
+        if size is not None:
+            height, width = size
+        else:
+            height, width = frame.image_shape
 
-        height, width = frame.image_shape
         return raycaster.depth(
             frame.intrinsics,
             frame.world_to_camera,

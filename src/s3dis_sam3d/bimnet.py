@@ -626,6 +626,7 @@ class BIMNetScene:
         source="obj",
         wall_filled=False,
         include_types=None,
+        size = None,
     ):
         """Raycast metric depth for a Matterport frame using a cached scene."""
 
