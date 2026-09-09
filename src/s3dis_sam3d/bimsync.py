@@ -9,94 +9,40 @@ import open3d as o3d
 from tqdm import tqdm
 
 from .config import CONFIG, bimsync_calibration_dir
-from .pointcloud import to_open3d_point_cloud, visualize_point_clouds
+from .pointcloud import visualize_point_clouds, voxel_downsample
+from .registration import (
+    downsample_points,
+    register_upright,
+    sample_labeled_mesh,
+    stable_seed,
+)
 from .rendering import FrameRender, MeshRaycaster, render_geometries
 from .s23dis import S23DIS_DEPTH_SCALE, S23DIS_INVALID_DEPTH
-from .utils import (
-    initial_registration_transform,
-    preprocess_registration_cloud,
-    run_icp,
+from .utils_ifc import (
+    STRUCTURAL_CLASSES,
+    STRUCTURAL_IFC_TYPES,
+    load_ifc_mesh,
+    load_labeled_ifc_geometry,
+    raycaster_mesh_options,
 )
 
-STRUCTURAL_S3DIS_CLASSES = (
-    "ceiling",
-    "floor",
-    "wall",
-    "beam",
-    "column",
-    "window",
-    "door",
-)
-
-STRUCTURAL_IFC_TYPES = {
-    "IfcWall",
-    "IfcWallStandardCase",
-    "IfcSlab",
-    "IfcCovering",
-    "IfcColumn",
-    "IfcBeam",
-    "IfcDoor",
-    "IfcWindow",
-}
+STRUCTURAL_S3DIS_CLASSES = STRUCTURAL_CLASSES
 
 
-def _raycaster_mesh_options(include_types):
-    """Return reusable IFC type arguments and their canonical cache key."""
-
-    if include_types is None:
-        return None, None
-    if isinstance(include_types, str):
-        include_types = (include_types,)
-    include_types = tuple(include_types)
-    cache_key = frozenset(str(ifc_type).casefold() for ifc_type in include_types)
-    return include_types, cache_key
-
-
-def load_ifc_mesh(path, include_types=None):
-    """Load IFC products into one Open3D mesh in IFC world coordinates."""
-
-    import ifcopenshell
-    import ifcopenshell.geom
-
-    path = Path(path)
-    model = ifcopenshell.open(str(path))
-    settings = ifcopenshell.geom.settings()
-    settings.set(settings.USE_WORLD_COORDS, True)
-    include_types = None if include_types is None else {
-        str(ifc_type).casefold() for ifc_type in include_types
-    }
-
-    vertices = []
-    triangles = []
-    offset = 0
-    for product in model.by_type("IfcProduct"):
-        if include_types and product.is_a().casefold() not in include_types:
-            continue
-        if product.Representation is None:
-            continue
-        try:
-            shape = ifcopenshell.geom.create_shape(settings, product)
-        except RuntimeError:
-            continue
-        product_vertices = np.asarray(shape.geometry.verts, dtype=np.float64).reshape(-1, 3)
-        product_faces = np.asarray(shape.geometry.faces, dtype=np.int32).reshape(-1, 3)
-        if not len(product_vertices) or not len(product_faces):
-            continue
-        vertices.append(product_vertices)
-        triangles.append(product_faces + offset)
-        offset += len(product_vertices)
-
-    if not vertices:
-        raise RuntimeError(f"no IFC mesh geometry found: {path}")
-    mesh = o3d.geometry.TriangleMesh(
-        o3d.utility.Vector3dVector(np.vstack(vertices)),
-        o3d.utility.Vector3iVector(np.vstack(triangles)),
-    )
-    mesh.remove_duplicated_vertices()
-    mesh.remove_degenerate_triangles()
-    mesh.remove_unreferenced_vertices()
-    mesh.compute_vertex_normals()
-    return mesh
+def _canonical_target_labels(room, cloud):
+    if cloud.semantic_labels is None:
+        return None
+    names = getattr(getattr(room, "dataset", None), "semantic_classes", None)
+    if names is None:
+        names = cloud.metadata.get("label_names")
+    if names is None:
+        return None
+    names = [str(name).casefold() for name in names]
+    labels = np.full(len(cloud.xyz), -1, dtype=np.int32)
+    for output_id, name in enumerate(STRUCTURAL_S3DIS_CLASSES):
+        if name in names:
+            labels[cloud.semantic_labels == names.index(name)] = output_id
+    return labels
 
 
 @dataclass(frozen=True)
@@ -136,18 +82,21 @@ class BIMSyncScene:
     def _raw_mesh(self, include_types=None):
         return load_ifc_mesh(self.path, include_types)
 
+    def _registration_geometry(self, include_types):
+        return load_labeled_ifc_geometry(self.path, include_types)
+
     def mesh(
         self,
         include_types=None,
         *,
         calibrated=True,
         transform=None,
-    ):  
+    ):
         if include_types is None:
             include_types = STRUCTURAL_IFC_TYPES
         mesh = self._raw_mesh(include_types)
-        transform = transform if transform is not None else (
-            self.calibration if calibrated else None
+        transform = (
+            transform if transform is not None else (self.calibration if calibrated else None)
         )
         if transform is not None:
             mesh.transform(np.asarray(transform))
@@ -176,62 +125,87 @@ class BIMSyncScene:
         *,
         s3dis_classes=STRUCTURAL_S3DIS_CLASSES,
         ifc_types=STRUCTURAL_IFC_TYPES,
-        ifc_samples=250_000,
-        voxel_size=0.05,
-        thresholds=(0.8, 0.4, 0.2, 0.1, 0.05),
-        yaw_candidates=(0, 90, 180, 270),
-        max_iterations=500,
-        seed=42,
+        ifc_samples=8_000,
+        voxel_size=None,
+        thresholds=(1.5, 0.75, 0.35, 0.18),
+        yaw_candidates=None,
+        yaw_starts=36,
+        refine_candidates=4,
+        coarse_points=1_500,
+        max_iterations=25,
+        seed=20260810,
         with_scaling=False,
     ):
+        """Register IFC to S3DIS with unit scale, Z-up and yaw-only rotation.
+
+        The upright prior is intentional: both IFC and Stanford geometry use
+        metres and a vertical Z axis.  Symmetric trimmed correspondences avoid
+        letting the denser point set dominate, while class-aware reranking
+        resolves otherwise indistinguishable 180-degree room layouts.
+        """
+        if with_scaling:
+            raise ValueError("upright IFC registration fixes scale to one")
+        if voxel_size is not None and voxel_size <= 0:
+            raise ValueError("voxel_size must be positive or None")
+
         s3_cloud = s3dis_room.point_cloud(include_classes=s3dis_classes)
-        s3_o3d = to_open3d_point_cloud(s3_cloud)
-        ifc_mesh = self.mesh(ifc_types, calibrated=False)
-        o3d.utility.random.seed(seed)
-        ifc_o3d = ifc_mesh.sample_points_uniformly(ifc_samples)
+        if voxel_size is not None:
+            s3_cloud = voxel_downsample(s3_cloud, voxel_size)
+        target_labels = _canonical_target_labels(s3dis_room, s3_cloud)
+        target = np.asarray(s3_cloud.xyz, dtype=np.float64)
+        valid = np.isfinite(target).all(axis=1)
+        target = target[valid]
+        target_labels = None if target_labels is None else target_labels[valid]
+        target, target_labels = downsample_points(
+            target,
+            target_labels,
+            ifc_samples,
+            stable_seed(seed, self.name, "s3dis"),
+        )
 
-        source = preprocess_registration_cloud(s3_o3d, voxel_size)
-        target = preprocess_registration_cloud(ifc_o3d, voxel_size)
-        best = None
-        for yaw in yaw_candidates:
-            initial = initial_registration_transform(
-                source,
-                target,
-                yaw,
-                with_scaling,
-            )
-            transform, stages = run_icp(
-                source,
-                target,
-                initial,
-                thresholds,
-                max_iterations,
-                with_scaling,
-            )
-            final = stages[-1]
-            score = final["fitness"], -final["rmse"]
-            if best is None or score > best["score"]:
-                best = {
-                    "score": score,
-                    "yaw": float(yaw),
-                    "transform": transform,
-                    "stages": stages,
-                }
-
-        s3dis_to_ifc = best["transform"]
-        ifc_to_s3dis = np.linalg.inv(s3dis_to_ifc)
-        final = best["stages"][-1]
+        vertices, triangles, face_labels = self._registration_geometry(ifc_types)
+        source, source_labels = sample_labeled_mesh(
+            vertices,
+            triangles,
+            face_labels,
+            ifc_samples,
+            stable_seed(seed, self.name, "ifc"),
+        )
+        explicit_yaws = (
+            None
+            if yaw_candidates is None
+            else [np.deg2rad(float(value)) for value in yaw_candidates]
+        )
+        result = register_upright(
+            source,
+            target,
+            source_labels=source_labels if target_labels is not None else None,
+            target_labels=target_labels,
+            label_names=STRUCTURAL_S3DIS_CLASSES,
+            yaw_starts=yaw_starts,
+            yaw_angles=explicit_yaws,
+            refine_candidates=refine_candidates,
+            coarse_points=min(coarse_points, len(source), len(target)),
+            distances=tuple(float(value) for value in thresholds),
+            iterations=max_iterations,
+        )
+        ifc_to_s3dis = result.transform
+        s3dis_to_ifc = np.linalg.inv(ifc_to_s3dis)
+        yaw_deg = float(np.rad2deg(np.arctan2(ifc_to_s3dis[1, 0], ifc_to_s3dis[0, 0])))
         return BIMSyncRegistration(
-            self.area,
-            self.name,
-            self.path,
-            s3dis_room.key,
-            ifc_to_s3dis,
-            s3dis_to_ifc,
-            final["fitness"],
-            final["rmse"],
-            best["yaw"],
-            best["stages"],
+            area=self.area,
+            scene=self.name,
+            ifc_path=self.path,
+            s3dis_room=s3dis_room.key,
+            ifc_to_s3dis=ifc_to_s3dis,
+            s3dis_to_ifc=s3dis_to_ifc,
+            fitness=result.metrics["fitness"],
+            rmse=result.metrics["rmse"],
+            yaw_deg=yaw_deg,
+            stages=result.candidates,
+            accepted=result.accepted,
+            quality_checks=result.quality_checks,
+            semantic_audit=result.semantic_audit,
         )
 
     def save_registration(self, registration, output_dir):
@@ -284,12 +258,12 @@ class BIMSyncScene:
         if frame.projection_type != "regular":
             raise ValueError("IFC pinhole rendering requires a regular 2D-3D-S frame")
 
-        include_types, cache_key = _raycaster_mesh_options(include_types)
+        include_types, cache_key = raycaster_mesh_options(include_types)
         raycaster = self._raycaster_cache.get(cache_key)
         if raycaster is None:
             raycaster = MeshRaycaster(self.mesh(include_types))
             self._raycaster_cache[cache_key] = raycaster
-            
+
         if size is not None:
             height, width = size
             intrinsics = frame.intrinsics_for_size(size)
@@ -365,6 +339,9 @@ class BIMSyncRegistration:
     rmse: float
     yaw_deg: float
     stages: list[dict]
+    accepted: bool = True
+    quality_checks: dict[str, bool] = field(default_factory=dict)
+    semantic_audit: dict = field(default_factory=dict)
 
     @property
     def scale(self):
@@ -384,8 +361,11 @@ class BIMSyncRegistration:
             "ifc_to_s3dis_scale": self.scale,
             "fitness": self.fitness,
             "rmse": self.rmse,
-            "initial_yaw_deg": self.yaw_deg,
-            "stages": self.stages,
+            "yaw_deg": self.yaw_deg,
+            "accepted": self.accepted,
+            "quality_checks": self.quality_checks,
+            "semantic_reranking": self.semantic_audit,
+            "candidates": self.stages,
         }
 
 
@@ -420,14 +400,11 @@ class BIMSyncDataset:
         self.ifc_dir = self._resolve_ifc_dir()
 
         self.scenes = [
-            BIMSyncScene(self, area, path.stem, path)
-            for path in sorted(self.ifc_dir.glob("*.ifc"))
+            BIMSyncScene(self, area, path.stem, path) for path in sorted(self.ifc_dir.glob("*.ifc"))
         ]
 
         if not self.scenes:
-            raise ValueError(
-                f"no IFC files found under {self.ifc_dir}"
-            )
+            raise ValueError(f"no IFC files found under {self.ifc_dir}")
 
         if calibration_dir is not None:
             self.load_calibrations(calibration_dir)
@@ -441,11 +418,7 @@ class BIMSyncDataset:
             self.root / "ifc",
             self.root / "BIM_model" / "ifc",
         )
-        candidates = tuple(
-            root / area_name
-            for root in roots
-            for area_name in area_names
-        ) + roots
+        candidates = tuple(root / area_name for root in roots for area_name in area_names) + roots
         return next((path for path in candidates if list(path.glob("*.ifc"))), self.root)
 
     def scene(self, scene):
@@ -471,15 +444,12 @@ class BIMSyncDataset:
             )
 
         calibration_paths = tuple(
-            sorted(
-                self.calibration_dir.rglob("*_ifc_to_s3dis_transform.npy")
-            )
+            sorted(self.calibration_dir.rglob("*_ifc_to_s3dis_transform.npy"))
         )
 
         if not calibration_paths:
             raise ValueError(
-                "no *_ifc_to_s3dis_transform.npy files found under "
-                f"{self.calibration_dir}"
+                f"no *_ifc_to_s3dis_transform.npy files found under {self.calibration_dir}"
             )
 
         self._calibrations = {
@@ -520,9 +490,7 @@ class BIMSyncDataset:
             if scenes is None
             else [self.scene(scene) for scene in scenes]
         )
-        iterator = (
-            tqdm(scenes, desc=f"{self.area} IFC → S3DIS") if progress else scenes
-        )
+        iterator = tqdm(scenes, desc=f"{self.area} IFC → S3DIS") if progress else scenes
         summary = {"area": self.area, "success": {}, "errors": {}}
         summary_path = output_dir / "calibration_summary.json"
 
@@ -538,6 +506,8 @@ class BIMSyncDataset:
                     "fitness": registration.fitness,
                     "rmse": registration.rmse,
                     "scale": registration.scale,
+                    "accepted": registration.accepted,
+                    "quality_checks": registration.quality_checks,
                     "json": str(json_path),
                     "npy": str(npy_path),
                 }
@@ -550,7 +520,8 @@ class BIMSyncDataset:
                         **(visualization_options or {}),
                     )
                     result["visualization"] = str(image_path)
-                summary["success"][scene.name] = result
+                destination = "success" if registration.accepted else "errors"
+                summary[destination][scene.name] = result
             except Exception as error:  # noqa: BLE001 - keep the Area batch running
                 summary["errors"][scene.name] = f"{type(error).__name__}: {error}"
 

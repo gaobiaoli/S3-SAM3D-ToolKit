@@ -1,0 +1,603 @@
+{
+  "source": "IFC",
+  "target": "S3DIS",
+  "transform_direction": "ifc_meters_to_s3dis_meters",
+  "area": "Area_1",
+  "scene": "office_19",
+  "ifc_path": "/mnt/priorbimda-data/PriorBIMDA-Datasets/BIMSyn/BIM_model/ifc/office_19.ifc",
+  "s3dis_room": "Area_1/office_19",
+  "ifc_to_s3dis": [
+    [
+      -0.9999929704388504,
+      0.0037495430234121157,
+      0.0,
+      2.5880657699240865
+    ],
+    [
+      -0.0037495430234121157,
+      -0.9999929704388504,
+      0.0,
+      34.67736412994269
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -0.02245204270897916
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "s3dis_to_ifc": [
+    [
+      -0.9999929704388505,
+      -0.0037495430234121166,
+      -0.0,
+      2.718071845701246
+    ],
+    [
+      0.003749543023412116,
+      -0.9999929704388505,
+      -0.0,
+      34.66741629933928
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.02245204270897916
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "ifc_to_s3dis_scale": 1.0,
+  "fitness": 0.8829375,
+  "rmse": 0.08138566816610103,
+  "yaw_deg": -179.78516650626048,
+  "accepted": true,
+  "quality_checks": {
+    "minimum_fitness": true,
+    "maximum_rmse": true,
+    "unit_scale": true,
+    "z_axis_up": true
+  },
+  "semantic_reranking": {
+    "enabled": true,
+    "changed_geometry_best": false,
+    "geometry_best_index": 0,
+    "semantic_best_index": 0,
+    "selected_index": 0,
+    "improvement": 0.0,
+    "discriminative_improvement": 0.0
+  },
+  "candidates": [
+    {
+      "index": 0,
+      "initial_yaw": -3.141592653589793,
+      "coarse_score": 0.19772401953992638,
+      "iterations": 100,
+      "metrics": {
+        "fitness": 0.8829375,
+        "rmse": 0.08138566816610103,
+        "symmetric_trimmed_rmse": 0.07576295976052434,
+        "symmetric_median": 0.074436831724224,
+        "symmetric_p90": 0.23633510410438868
+      },
+      "objective": 0.09917545976052433,
+      "semantic": {
+        "score": 0.14807589287500023,
+        "discriminative_score": 0.1622630004646043,
+        "per_class": {
+          "ceiling": {
+            "score": 0.062165781556318245,
+            "source_points": 1239,
+            "target_points": 1796
+          },
+          "floor": {
+            "score": 0.09050664559045958,
+            "source_points": 1395,
+            "target_points": 1199
+          },
+          "wall": {
+            "score": 0.12130996040297401,
+            "source_points": 4102,
+            "target_points": 3537
+          },
+          "beam": {
+            "score": 0.12618337275772756,
+            "source_points": 374,
+            "target_points": 454
+          },
+          "column": {
+            "score": 0.14066941239166836,
+            "source_points": 156,
+            "target_points": 158
+          },
+          "window": {
+            "score": 0.07041180408402549,
+            "source_points": 530,
+            "target_points": 467
+          },
+          "door": {
+            "score": 0.31178741262499576,
+            "source_points": 204,
+            "target_points": 389
+          }
+        }
+      },
+      "transform": [
+        [
+          -0.9999929704388504,
+          0.0037495430234121157,
+          0.0,
+          2.5880657699240865
+        ],
+        [
+          -0.0037495430234121157,
+          -0.9999929704388504,
+          0.0,
+          34.67736412994269
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.02245204270897916
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "selected": true
+    },
+    {
+      "index": 1,
+      "initial_yaw": -2.9670597283903604,
+      "coarse_score": 0.22952164753558527,
+      "iterations": 100,
+      "metrics": {
+        "fitness": 0.8828125,
+        "rmse": 0.08135625624624598,
+        "symmetric_trimmed_rmse": 0.07576240974236685,
+        "symmetric_median": 0.07442898683784131,
+        "symmetric_p90": 0.23629552362635114
+      },
+      "objective": 0.09919990974236685,
+      "semantic": {
+        "score": 0.14807875139209573,
+        "discriminative_score": 0.1622667022031469,
+        "per_class": {
+          "ceiling": {
+            "score": 0.06216635604031167,
+            "source_points": 1239,
+            "target_points": 1796
+          },
+          "floor": {
+            "score": 0.09050588540252122,
+            "source_points": 1395,
+            "target_points": 1199
+          },
+          "wall": {
+            "score": 0.12130860300084038,
+            "source_points": 4102,
+            "target_points": 3537
+          },
+          "beam": {
+            "score": 0.12617169999336827,
+            "source_points": 374,
+            "target_points": 454
+          },
+          "column": {
+            "score": 0.1406765317204392,
+            "source_points": 156,
+            "target_points": 158
+          },
+          "window": {
+            "score": 0.07041954389770493,
+            "source_points": 530,
+            "target_points": 467
+          },
+          "door": {
+            "score": 0.3117990332010752,
+            "source_points": 204,
+            "target_points": 389
+          }
+        }
+      },
+      "transform": [
+        [
+          -0.9999930269992964,
+          0.0037344280398051767,
+          0.0,
+          2.5880592639605737
+        ],
+        [
+          -0.0037344280398051767,
+          -0.9999930269992964,
+          0.0,
+          34.677272551201135
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.022452032700810642
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "selected": false
+    },
+    {
+      "index": 2,
+      "initial_yaw": -2.792526803190927,
+      "coarse_score": 0.3253776975825024,
+      "selected": false
+    },
+    {
+      "index": 3,
+      "initial_yaw": -2.6179938779914944,
+      "coarse_score": 0.43082887435727957,
+      "selected": false
+    },
+    {
+      "index": 4,
+      "initial_yaw": -2.443460952792061,
+      "coarse_score": 0.5329220764200189,
+      "selected": false
+    },
+    {
+      "index": 5,
+      "initial_yaw": -2.2689280275926285,
+      "coarse_score": 0.6249168665641982,
+      "selected": false
+    },
+    {
+      "index": 6,
+      "initial_yaw": -2.0943951023931957,
+      "coarse_score": 0.7089731759308459,
+      "selected": false
+    },
+    {
+      "index": 7,
+      "initial_yaw": -1.9198621771937625,
+      "coarse_score": 0.7762770742851364,
+      "selected": false
+    },
+    {
+      "index": 8,
+      "initial_yaw": -1.7453292519943295,
+      "coarse_score": 0.8279371833422737,
+      "selected": false
+    },
+    {
+      "index": 9,
+      "initial_yaw": -1.5707963267948966,
+      "coarse_score": 0.8531087585181498,
+      "selected": false
+    },
+    {
+      "index": 10,
+      "initial_yaw": -1.3962634015954636,
+      "coarse_score": 0.8436095263792552,
+      "selected": false
+    },
+    {
+      "index": 11,
+      "initial_yaw": -1.2217304763960308,
+      "coarse_score": 0.8070994901725833,
+      "selected": false
+    },
+    {
+      "index": 12,
+      "initial_yaw": -1.0471975511965979,
+      "coarse_score": 0.7511620507172694,
+      "selected": false
+    },
+    {
+      "index": 13,
+      "initial_yaw": -0.8726646259971647,
+      "coarse_score": 0.6736853598400457,
+      "selected": false
+    },
+    {
+      "index": 14,
+      "initial_yaw": -0.6981317007977319,
+      "coarse_score": 0.5836102394513089,
+      "selected": false
+    },
+    {
+      "index": 15,
+      "initial_yaw": -0.5235987755982991,
+      "coarse_score": 0.47591825199769594,
+      "selected": false
+    },
+    {
+      "index": 16,
+      "initial_yaw": -0.34906585039886595,
+      "coarse_score": 0.3672774466453085,
+      "selected": false
+    },
+    {
+      "index": 17,
+      "initial_yaw": -0.17453292519943275,
+      "coarse_score": 0.2670285298210871,
+      "selected": false
+    },
+    {
+      "index": 18,
+      "initial_yaw": 0.0,
+      "coarse_score": 0.20320793947160343,
+      "iterations": 79,
+      "metrics": {
+        "fitness": 0.8574999999999999,
+        "rmse": 0.08238755961318452,
+        "symmetric_trimmed_rmse": 0.08071806011818196,
+        "symmetric_median": 0.0753046652545731,
+        "symmetric_p90": 0.2730894414123011
+      },
+      "objective": 0.10921806011818197,
+      "semantic": {
+        "score": 0.6192740694857065,
+        "discriminative_score": 0.75,
+        "per_class": {
+          "ceiling": {
+            "score": 0.06157817358357971,
+            "source_points": 1239,
+            "target_points": 1796
+          },
+          "floor": {
+            "score": 0.09000673190920554,
+            "source_points": 1395,
+            "target_points": 1199
+          },
+          "wall": {
+            "score": 0.1375261367928112,
+            "source_points": 4102,
+            "target_points": 3537
+          },
+          "beam": {
+            "score": 0.75,
+            "source_points": 374,
+            "target_points": 454
+          },
+          "column": {
+            "score": 0.75,
+            "source_points": 156,
+            "target_points": 158
+          },
+          "window": {
+            "score": 0.75,
+            "source_points": 530,
+            "target_points": 467
+          },
+          "door": {
+            "score": 0.75,
+            "source_points": 204,
+            "target_points": 389
+          }
+        }
+      },
+      "transform": [
+        [
+          0.9999964310718605,
+          -0.0026716742955834685,
+          0.0,
+          -4.5368364088618645
+        ],
+        [
+          0.0026716742955834685,
+          0.9999964310718605,
+          0.0,
+          29.672408443781883
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.022441914215076908
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "selected": false
+    },
+    {
+      "index": 19,
+      "initial_yaw": 0.17453292519943275,
+      "coarse_score": 0.2316147625619303,
+      "iterations": 100,
+      "metrics": {
+        "fitness": 0.8574999999999999,
+        "rmse": 0.08238755961318452,
+        "symmetric_trimmed_rmse": 0.08071806011818196,
+        "symmetric_median": 0.0753046652545731,
+        "symmetric_p90": 0.2730894414123011
+      },
+      "objective": 0.10921806011818197,
+      "semantic": {
+        "score": 0.6192740694857065,
+        "discriminative_score": 0.75,
+        "per_class": {
+          "ceiling": {
+            "score": 0.06157817358357971,
+            "source_points": 1239,
+            "target_points": 1796
+          },
+          "floor": {
+            "score": 0.09000673190920554,
+            "source_points": 1395,
+            "target_points": 1199
+          },
+          "wall": {
+            "score": 0.1375261367928112,
+            "source_points": 4102,
+            "target_points": 3537
+          },
+          "beam": {
+            "score": 0.75,
+            "source_points": 374,
+            "target_points": 454
+          },
+          "column": {
+            "score": 0.75,
+            "source_points": 156,
+            "target_points": 158
+          },
+          "window": {
+            "score": 0.75,
+            "source_points": 530,
+            "target_points": 467
+          },
+          "door": {
+            "score": 0.75,
+            "source_points": 204,
+            "target_points": 389
+          }
+        }
+      },
+      "transform": [
+        [
+          0.9999964310718605,
+          -0.0026716742955834685,
+          0.0,
+          -4.5368364088618645
+        ],
+        [
+          0.0026716742955834685,
+          0.9999964310718605,
+          0.0,
+          29.672408443781883
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.022441914215076908
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "selected": false
+    },
+    {
+      "index": 20,
+      "initial_yaw": 0.34906585039886595,
+      "coarse_score": 0.3299358584865133,
+      "selected": false
+    },
+    {
+      "index": 21,
+      "initial_yaw": 0.5235987755982991,
+      "coarse_score": 0.4343965782996412,
+      "selected": false
+    },
+    {
+      "index": 22,
+      "initial_yaw": 0.6981317007977315,
+      "coarse_score": 0.5382768694451483,
+      "selected": false
+    },
+    {
+      "index": 23,
+      "initial_yaw": 0.8726646259971647,
+      "coarse_score": 0.633760166861442,
+      "selected": false
+    },
+    {
+      "index": 24,
+      "initial_yaw": 1.0471975511965974,
+      "coarse_score": 0.7186587767481324,
+      "selected": false
+    },
+    {
+      "index": 25,
+      "initial_yaw": 1.221730476396031,
+      "coarse_score": 0.7869339033040198,
+      "selected": false
+    },
+    {
+      "index": 26,
+      "initial_yaw": 1.3962634015954638,
+      "coarse_score": 0.8343356239550562,
+      "selected": false
+    },
+    {
+      "index": 27,
+      "initial_yaw": 1.5707963267948966,
+      "coarse_score": 0.8540787160197045,
+      "selected": false
+    },
+    {
+      "index": 28,
+      "initial_yaw": 1.7453292519943293,
+      "coarse_score": 0.8463912167600605,
+      "selected": false
+    },
+    {
+      "index": 29,
+      "initial_yaw": 1.919862177193763,
+      "coarse_score": 0.8123355161006198,
+      "selected": false
+    },
+    {
+      "index": 30,
+      "initial_yaw": 2.094395102393195,
+      "coarse_score": 0.7552308901066936,
+      "selected": false
+    },
+    {
+      "index": 31,
+      "initial_yaw": 2.2689280275926285,
+      "coarse_score": 0.6797552676833747,
+      "selected": false
+    },
+    {
+      "index": 32,
+      "initial_yaw": 2.443460952792061,
+      "coarse_score": 0.5873778080766808,
+      "selected": false
+    },
+    {
+      "index": 33,
+      "initial_yaw": 2.617993877991495,
+      "coarse_score": 0.47989843202835425,
+      "selected": false
+    },
+    {
+      "index": 34,
+      "initial_yaw": 2.7925268031909276,
+      "coarse_score": 0.36908395841065017,
+      "selected": false
+    },
+    {
+      "index": 35,
+      "initial_yaw": 2.9670597283903604,
+      "coarse_score": 0.26666936477943487,
+      "selected": false
+    }
+  ]
+}

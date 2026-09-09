@@ -16,10 +16,10 @@ import numpy as np
 #
 # export S3_SAM3D_TOOLKIT_ROOT=/home/bgao491/S3-SAM3D-ToolKit
 
-# python prepare_area1.py \
+# python script/prepare_area1_prior.py \
 #   --s23-root /home/bgao491/Stanford2D3DS/no_xyz \
 #   --bimsync-root /home/bgao491/BIMSyn \
-#   --calibration-dir /home/bgao491/S3-SAM3D-ToolKit/dataset/ifc_to_s3dis/Area_1 \
+#   --calibration-dir /home/bgao491/S3-SAM3D-ToolKit/dataset/ifc_to_s3dis/Area_1_upright_v2 \
 #   --output-root /mnt/priorbimda-data/area1_priorbimda_504
 
 

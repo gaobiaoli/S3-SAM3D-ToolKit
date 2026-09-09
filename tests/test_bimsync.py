@@ -200,9 +200,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         write.assert_called_once()
 
     def test_raw_mesh_preserves_ifcopenshell_meter_coordinates(self):
-        model = SimpleNamespace(
-            by_type=lambda _: [SimpleNamespace(Representation=object())]
-        )
+        model = SimpleNamespace(by_type=lambda _: [SimpleNamespace(Representation=object())])
         settings = SimpleNamespace(USE_WORLD_COORDS="use-world-coords")
         settings.set = lambda *_: None
         shape = SimpleNamespace(
@@ -224,6 +222,14 @@ class BIMSyncDatasetTest(unittest.TestCase):
 
     def test_registration_direction(self):
         mesh = o3d.geometry.TriangleMesh.create_box(1.0, 2.0, 0.7)
+        extension = o3d.geometry.TriangleMesh.create_box(0.4, 0.6, 0.7)
+        extension.translate((1.0, 0.0, 0.0))
+        mesh += extension
+        geometry = (
+            np.asarray(mesh.vertices),
+            np.asarray(mesh.triangles),
+            np.full(len(mesh.triangles), 2, dtype=np.int32),
+        )
         o3d.utility.random.seed(7)
         ifc_points = np.asarray(mesh.sample_points_uniformly(3000).points)
         expected = np.array(
@@ -237,7 +243,11 @@ class BIMSyncDatasetTest(unittest.TestCase):
         )
         room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(BIMSyncScene, "mesh", return_value=mesh):
+        with patch.object(
+            BIMSyncScene,
+            "_registration_geometry",
+            return_value=geometry,
+        ):
             result = self.scene.register(
                 room,
                 ifc_samples=3000,
@@ -255,7 +265,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         np.testing.assert_allclose(result.ifc_to_s3dis, expected, atol=0.03)
         self.assertTrue(room.calls)
 
-    def test_registration_with_scaling(self):
+    def test_upright_registration_rejects_scaling(self):
         mesh = o3d.geometry.TriangleMesh.create_box(1.0, 2.0, 0.7)
         o3d.utility.random.seed(11)
         ifc_points = np.asarray(mesh.sample_points_uniformly(5000).points)
@@ -270,8 +280,8 @@ class BIMSyncDatasetTest(unittest.TestCase):
         )
         room = _S3DISRoom(PointCloud(transform_points(ifc_points, expected)))
 
-        with patch.object(BIMSyncScene, "mesh", return_value=mesh):
-            result = self.scene.register(
+        with self.assertRaisesRegex(ValueError, "fixes scale to one"):
+            self.scene.register(
                 room,
                 ifc_samples=5000,
                 voxel_size=0.03,
@@ -280,9 +290,6 @@ class BIMSyncDatasetTest(unittest.TestCase):
                 seed=11,
                 with_scaling=True,
             )
-
-        np.testing.assert_allclose(result.ifc_to_s3dis, expected, atol=0.04)
-        self.assertAlmostEqual(result.scale, 1.2, places=2)
 
     def test_batch_calibration_uses_scene_behavior(self):
         transform = np.eye(4)
@@ -306,9 +313,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
 
         self.assertIn("office_1", summary["success"])
         self.assertTrue((output / "calibration_summary.json").is_file())
-        self.assertTrue(
-            (output / "office_1" / "office_1_ifc_to_s3dis_transform.npy").is_file()
-        )
+        self.assertTrue((output / "office_1" / "office_1_ifc_to_s3dis_transform.npy").is_file())
         np.testing.assert_allclose(self.scene.calibration, transform)
         visualize.assert_called_once()
 
@@ -343,9 +348,7 @@ class BIMSyncDatasetTest(unittest.TestCase):
         image_path = self.root / "frame.png"
         Image.new("RGB", (640, 480)).save(image_path)
         source_depth_path = self.root / "frame_depth.png"
-        Image.fromarray(np.full((480, 640), 512, dtype=np.uint16)).save(
-            source_depth_path
-        )
+        Image.fromarray(np.full((480, 640), 512, dtype=np.uint16)).save(source_depth_path)
         intrinsic = np.array([[500, 0, 320], [0, 501, 240], [0, 0, 1]])
         extrinsic = np.eye(4)
         frame = SimpleNamespace(

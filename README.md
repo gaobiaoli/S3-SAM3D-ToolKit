@@ -34,7 +34,8 @@ s3dis-sam3d-toolkit/
 │   ├── s3dis.py          # S3DISDataset、S3DISRoom、S3DISInstance
 │   ├── s23dis.py         # 2D-3D-S
 │   ├── annotations.py    # S3DIS instance 到图像 bbox 的批量标注
-│   ├── bimsync.py        # BIMSyncDataset、BIMSyncRegion 与 IFC/S3DIS 配准
+│   ├── bimsync.py        # BIMSyncDataset、BIMSyncScene 与 IFC/S3DIS 配准
+│   ├── utils_ifc.py      # IFC 类型筛选、语义映射与 mesh 加载
 │   ├── models.py         # PointCloud、BoundingBox3D、GLBMesh
 │   ├── pointcloud.py     # 下采样、变换、Open3D 可视化
 │   ├── rendering.py      # FrameRender 与共享渲染结果约定
@@ -73,7 +74,7 @@ bimsync = BIMSyncDataset(area="Area_1")
 ```
 
 `BIMSyncDataset()` 使用默认 BIMSync 路径时，会从
-`dataset/ifc_to_s3dis/<Area>` 自动加载校准矩阵；该目录不存在或不包含校准矩阵时会立即报错。
+`dataset/ifc_to_s3dis/<Area>_upright_v2` 自动加载校准矩阵；该目录不存在或不包含校准矩阵时会立即报错。
 仓库内最小示例使用同一配置文件中的
 `MINIMAL_S3DIS_ROOT` 和 `MINIMAL_S23DIS_ROOT`，不会与完整数据路径混淆。
 
@@ -209,52 +210,51 @@ Matterport house can be resolved with
 
 ## BIMSync IFC
 
-`BIMSyncDataset` 支持 `root/Area_1/*.ifc` 和 IFC 直接位于 root 下的扁平目录：
-dataset 只负责发现、选择和批量处理区域；单个 IFC 的 mesh、校准、配准、导出、可视化和相机渲染
-均由 `BIMSyncRegion` 负责。
+`BIMSyncDataset` 支持 `root/Area_1/*.ifc` 和 IFC 直接位于 root 下的扁平目录。
+dataset 负责发现和批量处理场景；单个 IFC 的 mesh、配准、导出、可视化和相机渲染
+均由 `BIMSyncScene` 负责。
 
 ```python
 from s3dis_sam3d import BIMSyncDataset, S3DISDataset
 
 bimsync = BIMSyncDataset("path/to/bimsync/ifc", area="Area_1")
-print([region.key for region in bimsync.regions])
-region = bimsync.region("office_11")
+print([scene.key for scene in bimsync.scenes])
+scene = bimsync.scene("office_11")
 
 # IFC 世界坐标提取为 Open3D mesh，并统一为米
-raw_mesh = region.mesh(calibrated=False)
+raw_mesh = scene.mesh(calibrated=False)
 
 # 求 IFC -> S3DIS 坐标转换
 s3dis = S3DISDataset("path/to/Stanford3dDataset_v1.2")
 s3dis_room = s3dis.room("Area_1/office_11")
-registration = region.register(s3dis_room)
+registration = scene.register(s3dis_room)
 print(registration.ifc_to_s3dis)
-region.save_registration(registration, "outputs/ifc_to_s3dis/Area_1/office_11")
+scene.save_registration(registration, "outputs/ifc_to_s3dis/Area_1/office_11")
 
-# 保存后，该 region 读取 mesh 时会自动应用 IFC -> S3DIS 矩阵
-mesh = region.mesh()
-region.export("outputs/office_11_calibrated.ply")
+# 保存后，该 scene 读取 mesh 时会自动应用 IFC -> S3DIS 矩阵
+mesh = scene.mesh()
+scene.export("outputs/office_11_calibrated.ply")
 
 # 将配准后的 IFC mesh 与 S3DIS 点云叠加，并保存截图
-region.visualize_registration(
+scene.visualize_registration(
     registration,
     s3dis_room,
     "outputs/ifc_to_s3dis/Area_1/office_11/registration.png",
 )
 ```
 
-批量校准并保存每个 region 的矩阵：
+批量校准并保存每个 scene 的矩阵：
 
 ```python
-summary = bimsync.calibrate_regions(
+summary = bimsync.calibrate_scenes(
     s3dis,
     "outputs/ifc_to_s3dis/Area_1",
-    regions=None,          # 自动处理所有同名 IFC/S3DIS region
+    scenes=None,           # 自动处理所有同名 IFC/S3DIS scene
     visualize=True,
-    with_scaling=False,    # True 时额外估计统一尺度
 )
 ```
 
-在新的进程中，传入校准目录即可自动恢复所有矩阵。之后 `region.mesh()`、`region.export()`
+在新的进程中，传入校准目录即可自动恢复所有矩阵。之后 `scene.mesh()`、`scene.export()`
 和 `dataset.export_meshes()` 默认输出 S3DIS 坐标；需要 IFC 原始坐标时传入
 `calibrated=False`：
 
@@ -262,11 +262,11 @@ summary = bimsync.calibrate_regions(
 bimsync = BIMSyncDataset(
     "path/to/bimsync/ifc",
     area="Area_1",
-    calibration_dir="dataset/ifc_to_s3dis/Area_1",
+    calibration_dir="dataset/ifc_to_s3dis/Area_1_upright_v2",
 )
-region = bimsync.region("office_11")
-mesh = region.mesh()
-print(region.is_calibrated, region.calibration)
+scene = bimsync.scene("office_11")
+mesh = scene.mesh()
+print(scene.is_calibrated, scene.calibration)
 ```
 
 `visualize_registration` 默认不打开窗口，适合批处理保存截图；需要交互查看时传入
@@ -282,7 +282,7 @@ from s3dis_sam3d import BIMSyncDataset, S23Dataset
 s23dis = S23Dataset(area="Area_1", projection_type="regular")
 bimsync = BIMSyncDataset(area="Area_1")
 frame = s23dis.room("office_11").get_frame(frame_id=0)
-result = bimsync.region("office_11").render_frame(frame)
+result = bimsync.scene("office_11").render_frame(frame)
 result.save("outputs/office_11_frame_0.png")
 
 print(result.source_image_path, result.source_image.shape)
@@ -300,7 +300,7 @@ result.visualize(
 ```
 
 同一个 room/frame 对应多个相机 UUID 时，默认使用按字典序排列后的第一个；可通过
-`s23dis.room(room).list_uuids(frame_id)` 查看并显式传入其他 `uuid`。该方法要求 region 已有
+`s23dis.room(room).list_uuids(frame_id)` 查看并显式传入其他 `uuid`。该方法要求 scene 已有
 IFC→S3DIS 校准矩阵；`render_frame()` 在内存中返回 RGB-D，调用 `result.save(...)` 时才写入
 RGB 和深度文件，传入 `show=True` 可同时打开 Open3D
 窗口。`source_image` 和 `rendered_image` 是 `[0, 1]` RGB 数组，`source_depth` 和
@@ -315,10 +315,20 @@ RGB 和深度文件，传入 `show=True` 可同时打开 Open3D
 python script/render_calibrated_ifc.py
 ```
 
-配准默认使用 S3DIS 与 IFC 的墙、地面、天花板、梁柱、门窗等结构几何，通过多组
-水平旋转初始化和分阶段 point-to-plane ICP 求出 `S3DIS -> IFC`，再取严格逆矩阵得到
-`IFC -> S3DIS`。开启 `with_scaling=True` 后改用 similarity ICP，统一尺度会直接写入
-4×4 校准矩阵。保存结果同时包含两个方向、scale 及 fitness/RMSE，坐标单位均为米。
+配准只使用墙、地面、天花板、梁柱、门窗等结构几何。算法固定尺度为 1，并固定 Z 轴
+竖直，只优化 yaw 和 XYZ 平移；36 个水平旋转起点经过双向最近邻、trim 和 Huber
+鲁棒拟合，再用门窗、梁柱类别消除近 180° 的对称解。结果包含两个方向的矩阵、
+fitness/RMSE、质量门限和候选审计；未通过门限的房间进入 summary 的 `errors`。
+
+如果没有传统的 `Stanford3dDataset_v1.2` 点云，也可以直接使用 2D-3D-S 自带的
+`semantic.obj`。这是 PriorBIMDA 标定 Area_1 使用的输入：
+
+```bash
+python script/register_ifc_to_semantic_obj.py \
+  --semantic-obj /path/to/area_1/3d/semantic.obj \
+  --bimsync-root /path/to/BIMSyn/BIM_model/ifc \
+  --output-dir dataset/ifc_to_s3dis/Area_1_upright
+```
 
 批量转换 Area_1 IFC mesh：
 
@@ -332,7 +342,7 @@ python script/export_bimsync_ifc_meshes.py
 python script/register_ifc_to_s3dis.py
 ```
 
-该脚本的 `REGIONS` 默认列出要处理的房间；设为 `None` 会自动匹配并处理 Area 下所有
+该脚本的 `SCENES` 默认列出要处理的房间；设为 `None` 会自动匹配并处理 Area 下所有
 同名的 IFC/S3DIS 区域。每个房间单独保存矩阵，同时持续更新 Area 级 summary，某个
 房间失败不会中断其余房间。
 
