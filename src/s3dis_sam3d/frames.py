@@ -32,7 +32,7 @@ class RGBDFrame(ABC):
 
     def _read_rgb(self):
         with Image.open(self.rgb_path) as image:
-            return np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
+            return np.asarray(image.convert("RGB"), dtype=np.float32) 
 
     @property
     def rgb(self):

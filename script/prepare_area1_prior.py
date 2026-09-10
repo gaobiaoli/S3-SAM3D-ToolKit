@@ -34,6 +34,10 @@ if TOOLKIT_ROOT:
     if str(toolkit_src) not in sys.path:
         sys.path.insert(0, str(toolkit_src))
 
+from s3dis_sam3d.mde import (
+    DA3_CANONICAL_FOCAL,
+    DA3Predictor,
+)
 from s3dis_sam3d.s23_bim import S23_BIMDataset
 
 
@@ -44,12 +48,7 @@ from s3dis_sam3d.s23_bim import S23_BIMDataset
 AREA = "Area_1"
 TARGET_SHAPE = (504, 504)
 
-DA3_MODEL = "depth-anything/da3metric-large"
-DA3_REVISION = "4010e39f3634a45bc60553321fb49fb760bd594e"
-DA3_PROCESS_RES = 504
-
-# DA3 metric model uses a canonical 300-pixel focal reference.
-DA3_REFERENCE_FOCAL = 300.0
+DA3_REFERENCE_FOCAL = DA3_CANONICAL_FOCAL
 
 
 # Exact room-disjoint split used by PriorBIMDA.
@@ -350,121 +349,6 @@ def load_gt_depth(
         depth.astype(np.float32),
         valid,
     )
-
-
-# ================================================================
-# DA3
-# ================================================================
-
-class DA3Predictor:
-    def __init__(
-        self,
-        *,
-        device=None,
-        local_files_only=False,
-    ):
-        self.device_name = device
-        self.local_files_only = bool(
-            local_files_only
-        )
-        self.model = None
-
-    def _load(self):
-        if self.model is not None:
-            return
-
-        import torch
-        from depth_anything_3.api import DepthAnything3
-
-        if self.device_name is None:
-            device = torch.device(
-                "cuda"
-                if torch.cuda.is_available()
-                else "cpu"
-            )
-        else:
-            device = torch.device(
-                self.device_name
-            )
-
-        print(
-            f"Loading DA3 on {device}...",
-            flush=True,
-        )
-
-        self.model = (
-            DepthAnything3.from_pretrained(
-                DA3_MODEL,
-                revision=DA3_REVISION,
-                local_files_only=(
-                    self.local_files_only
-                ),
-            )
-            .to(device)
-            .eval()
-        )
-
-        loaded_revision = getattr(
-            self.model,
-            "_commit_hash",
-            None,
-        )
-
-        if loaded_revision not in {
-            None,
-            DA3_REVISION,
-        }:
-            raise RuntimeError(
-                "Unexpected DA3 revision: "
-                f"{loaded_revision}, "
-                f"expected {DA3_REVISION}"
-            )
-
-    def predict_raw(
-        self,
-        image_path: Path,
-        target_shape=TARGET_SHAPE,
-    ):
-        """
-        Return the raw DA3 metric-model prediction.
-
-        Important:
-        focal correction is deliberately NOT applied here.
-        This preserves the old PriorBIMDA convention exactly.
-        """
-
-        self._load()
-
-        height, width = target_shape
-
-        result = self.model.inference(
-            [str(image_path)],
-            process_res=DA3_PROCESS_RES,
-            export_dir=None,
-        )
-
-        depth = np.asarray(
-            result.depth[0],
-            dtype=np.float32,
-        )
-
-        if depth.shape != target_shape:
-            depth = cv2.resize(
-                depth,
-                (width, height),
-                interpolation=cv2.INTER_LINEAR,
-            )
-
-        if (
-            not np.isfinite(depth).all()
-            or np.any(depth <= 0)
-        ):
-            raise ValueError(
-                f"DA3 produced invalid depth: "
-                f"{image_path}"
-            )
-
-        return depth
 
 
 # ================================================================

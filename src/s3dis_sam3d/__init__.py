@@ -1,4 +1,4 @@
-from . import config, utils, utils_ifc
+from . import config, mde, utils, utils_ifc
 from .bimnet import (
     BIMNetDataset,
     BIMNetElement,
@@ -57,6 +57,7 @@ __all__ = [
     "StanfordSemanticMesh",
     "config",
     "configure",
+    "mde",
     "parse_stem",
     "utils",
     "utils_ifc",

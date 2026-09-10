@@ -77,6 +77,7 @@ BIMNET_MATTERPORT_SCANS = {
 }
 
 WALL_FILLED_ALIASES = {"d7n": "d7n2"}
+MESH_SOURCES = ("obj", "ifc", "obj_wall_filled")
 
 ELEMENT_PATTERN = re.compile(
     r"^(?P<ifc_type>IFC[A-Z]+)-IFC#(?P<ifc_id>\d+)-RVT#(?P<rvt_id>[^-]+)-"
@@ -105,10 +106,17 @@ def _normalize_ifc_types(include_types):
     return {str(value).casefold() for value in include_types}
 
 
-def _raycaster_mesh_options(source, wall_filled, include_types):
-    """Return reusable mesh arguments and their canonical cache key."""
-
+def _normalize_mesh_source(source):
     source = str(source).casefold()
+    if source not in MESH_SOURCES:
+        choices = ", ".join(MESH_SOURCES)
+        raise ValueError(f"mesh source must be one of: {choices}")
+    return source
+
+
+def _raycaster_mesh_options(include_types):
+    """Return reusable IFC type arguments and their cache key."""
+
     if include_types is None:
         normalized_types = None
         type_key = None
@@ -117,7 +125,7 @@ def _raycaster_mesh_options(source, wall_filled, include_types):
             include_types = (include_types,)
         normalized_types = tuple(include_types)
         type_key = frozenset(str(value).casefold() for value in normalized_types)
-    return source, normalized_types, (source, bool(wall_filled), type_key)
+    return normalized_types, type_key
 
 
 @dataclass(frozen=True)
@@ -249,6 +257,10 @@ class BIMNetScene:
         return f"{self.split}/{self.scene_id}"
 
     @property
+    def default_mesh_source(self):
+        return self.dataset.default_mesh_source
+
+    @property
     def floor_index(self):
         parts = self.scene_id.rsplit("_", 1)
         return int(parts[1]) if len(parts) == 2 and parts[1].isdigit() else None
@@ -337,19 +349,16 @@ class BIMNetScene:
 
         return self.obj_to_point_cloud @ BIMNET_IFC_TO_OBJ
 
-    def mesh_to_point_cloud_transform(self, source="obj"):
-        """Return the source-specific transform into point-cloud coordinates."""
+    def mesh_to_point_cloud_transform(self):
+        """Return the selected mesh transform into point-cloud coordinates."""
 
-        source = str(source).casefold()
-        if source == "obj":
+        if self.default_mesh_source in {"obj", "obj_wall_filled"}:
             return self.obj_to_point_cloud.copy()
-        if source == "ifc":
-            return self.ifc_to_point_cloud.copy()
-        raise ValueError("source must be 'obj' or 'ifc'")
+        return self.ifc_to_point_cloud.copy()
 
     @property
     def instances(self):
-        return self._load_elements(wall_filled=False)
+        return self._load_elements("obj")
 
     @cached_property
     def rooms(self):
@@ -369,12 +378,12 @@ class BIMNetScene:
             for record in _read_json(path)
         )
 
-    def _load_elements(self, wall_filled=False):
-        if wall_filled in self._element_cache:
-            return self._element_cache[wall_filled]
-        directory = self.wall_filled_obj_dir if wall_filled else self.obj_dir
+    def _load_elements(self, mesh_source):
+        if mesh_source in self._element_cache:
+            return self._element_cache[mesh_source]
+        directory = self.wall_filled_obj_dir if mesh_source == "obj_wall_filled" else self.obj_dir
         if not directory.is_dir():
-            self._element_cache[wall_filled] = ()
+            self._element_cache[mesh_source] = ()
             return ()
 
         metadata_path = directory / "ifcinstances.json"
@@ -389,7 +398,7 @@ class BIMNetScene:
             elements = tuple(
                 self._element_from_path(path) for path in sorted(directory.glob("*.obj"))
             )
-        self._element_cache[wall_filled] = elements
+        self._element_cache[mesh_source] = elements
         return elements
 
     def _element_from_record(self, directory, record):
@@ -427,8 +436,9 @@ class BIMNetScene:
             curved=match.group("curved").casefold() == "true",
         )
 
-    def elements(self, include_types=None, *, wall_filled=False):
-        elements = self._load_elements(wall_filled)
+    def elements(self, include_types=None):
+        """Return the regular OBJ component metadata for this scene."""
+        elements = self.instances
         include_types = _normalize_ifc_types(include_types)
         if include_types is not None:
             elements = tuple(
@@ -436,9 +446,9 @@ class BIMNetScene:
             )
         return elements
 
-    def element(self, identifier, *, wall_filled=False):
+    def element(self, identifier):
         value = str(identifier).casefold()
-        for element in self._load_elements(wall_filled):
+        for element in self.instances:
             candidates = {
                 str(element.ifc_id).casefold(),
                 f"ifc#{element.ifc_id}".casefold(),
@@ -540,26 +550,18 @@ class BIMNetScene:
     @cached_property
     def aabb(self):
         """Axis-aligned bounding box in Matterport point-cloud coordinates."""
-        return self.mesh(
-            coordinates="point_cloud"
-        ).get_axis_aligned_bounding_box()
+        return self.mesh(coordinates="point_cloud").get_axis_aligned_bounding_box()
 
     def mesh(
         self,
-        source="obj",
         *,
-        wall_filled=False,
         include_types=None,
         coordinates="point_cloud",
         progress=False,
     ):
-        """Load an IFC mesh or merge per-component OBJ meshes.
+        """Load the dataset's selected IFC or OBJ mesh.
 
         Args:
-            source: Select the component ``"obj"`` representation or the IFC
-                representation.
-            wall_filled: Use BIMNet's wall-filled OBJ variant. Only valid for
-                ``source="obj"``.
             include_types: Optional IFC entity types to retain.
             coordinates: ``"original"`` preserves the selected source's own
                 native coordinates. ``"point_cloud"`` registers either source
@@ -567,22 +569,24 @@ class BIMNetScene:
             progress: Show component-level OBJ loading progress.
         """
 
-        source = str(source).casefold()
-        if source not in {"obj", "ifc"}:
-            raise ValueError("source must be 'obj' or 'ifc'")
+        source = self.default_mesh_source
         coordinates = str(coordinates).casefold()
         if coordinates not in {"original", "point_cloud"}:
             raise ValueError("coordinates must be 'original' or 'point_cloud'")
 
         if source == "ifc":
-            if wall_filled:
-                raise ValueError("wall_filled is only available for OBJ meshes")
             mesh = load_ifc_mesh(self.ifc_path, include_types)
         else:
-            elements = self.elements(include_types, wall_filled=wall_filled)
+            elements = self._load_elements(source)
+            normalized_types = _normalize_ifc_types(include_types)
+            if normalized_types is not None:
+                elements = tuple(
+                    element
+                    for element in elements
+                    if element.ifc_type.casefold() in normalized_types
+                )
             if not elements:
-                variant = "wall-filled OBJ" if wall_filled else "OBJ"
-                raise FileNotFoundError(f"no {variant} components found for {self.key}")
+                raise FileNotFoundError(f"no {source} components found for {self.key}")
             iterator = elements
             if progress:
                 from tqdm.auto import tqdm
@@ -598,7 +602,7 @@ class BIMNetScene:
             mesh.compute_vertex_normals()
 
         if coordinates == "point_cloud":
-            mesh.transform(self.mesh_to_point_cloud_transform(source))
+            mesh.transform(self.mesh_to_point_cloud_transform())
         return mesh
 
     def export_mesh(self, output_path, **mesh_options):
@@ -608,45 +612,33 @@ class BIMNetScene:
             raise RuntimeError(f"failed to export BIMNet mesh: {output_path}")
         return output_path
 
-    def is_contained_in(self,frame: MatterportFrame, margin=0.0):
-
+    def is_contained_in(self, frame: MatterportFrame, margin=0.0):
         camera_position = frame.camera_to_world[:3, 3]
         lower = self.aabb.get_min_bound() - margin
         upper = self.aabb.get_max_bound() + margin
 
-        return bool(
-            np.all((camera_position >= lower) & (camera_position <= upper))
-        )
-        
-        
+        return bool(np.all((camera_position >= lower) & (camera_position <= upper)))
+
     def render_depth(
         self,
         frame: MatterportFrame,
         *,
-        source="obj",
-        wall_filled=False,
         include_types=None,
-        size = None,
+        size=None,
     ):
         """Raycast metric depth for a Matterport frame using a cached scene."""
 
         self._validate_matterport_frame(frame)
-        source, include_types, cache_key = _raycaster_mesh_options(
-            source,
-            wall_filled,
-            include_types,
-        )
+        include_types, cache_key = _raycaster_mesh_options(include_types)
         raycaster = self._raycaster_cache.get(cache_key)
         if raycaster is None:
             mesh = self.mesh(
-                source=source,
-                wall_filled=wall_filled,
                 include_types=include_types,
                 coordinates="point_cloud",
             )
             raycaster = MeshRaycaster(mesh)
             self._raycaster_cache[cache_key] = raycaster
-            
+
         if size is not None:
             height, width = size
             intrinsics = frame.intrinsics_for_size(size)
@@ -665,8 +657,6 @@ class BIMNetScene:
         self,
         frame: MatterportFrame,
         *,
-        source="obj",
-        wall_filled=False,
         include_types=None,
         mesh_color=(0.75, 0.75, 0.75),
         background_color=(0.05, 0.05, 0.05),
@@ -683,14 +673,11 @@ class BIMNetScene:
 
         self._validate_matterport_frame(frame)
 
-        source = str(source).casefold()
         source_image = frame.rgb
         source_depth = frame.depth
         height, width = source_image.shape[:2]
 
         mesh = self.mesh(
-            source=source,
-            wall_filled=wall_filled,
             include_types=include_types,
             coordinates="point_cloud",
         )
@@ -698,7 +685,9 @@ class BIMNetScene:
             mesh.paint_uniform_color(mesh_color)
         rendered_image, rendered_depth = render_geometries(
             [mesh],
-            window_name=f"BIMNet {source.upper()} | {self.key} | {frame.frame_id}",
+            window_name=(
+                f"BIMNet {self.default_mesh_source.upper()} | {self.key} | {frame.frame_id}"
+            ),
             width=width,
             height=height,
             background_color=background_color,
@@ -713,7 +702,7 @@ class BIMNetScene:
             bimnet_scene_id=self.scene_id,
             matterport_scene_id=frame.scene_id,
             frame_id=frame.frame_id,
-            mesh_source=source,
+            mesh_source=self.default_mesh_source,
             rendered_image_path=None,
             rendered_depth_path=None,
             source_image_path=frame.rgb_path,
@@ -815,6 +804,10 @@ class BIMNetScanScene:
         return f"scan/{self.matterport_scan_id}"
 
     @property
+    def default_mesh_source(self):
+        return self.dataset.default_mesh_source
+
+    @property
     def scene_ids(self):
         return tuple(scene.scene_id for scene in self.scenes)
 
@@ -826,18 +819,12 @@ class BIMNetScanScene:
     def rooms(self):
         return tuple(room for scene in self.scenes for room in scene.rooms)
 
-    def elements(self, include_types=None, *, wall_filled=False):
-        return tuple(
-            element
-            for scene in self.scenes
-            for element in scene.elements(include_types, wall_filled=wall_filled)
-        )
+    def elements(self, include_types=None):
+        return tuple(element for scene in self.scenes for element in scene.elements(include_types))
 
     def mesh(
         self,
-        source="obj",
         *,
-        wall_filled=False,
         include_types=None,
         coordinates="point_cloud",
         progress=False,
@@ -859,8 +846,6 @@ class BIMNetScanScene:
         mesh = o3d.geometry.TriangleMesh()
         for scene in scenes:
             mesh += scene.mesh(
-                source=source,
-                wall_filled=wall_filled,
                 include_types=include_types,
                 coordinates="point_cloud",
                 progress=False,
@@ -882,32 +867,30 @@ class BIMNetScanScene:
         self,
         frame: MatterportFrame,
         *,
-        source="obj",
-        wall_filled=False,
         include_types=None,
+        size=None,
     ):
         """Raycast metric depth from the combined mesh using a cached scene."""
 
         self._validate_matterport_frame(frame)
-        source, include_types, cache_key = _raycaster_mesh_options(
-            source,
-            wall_filled,
-            include_types,
-        )
+        include_types, cache_key = _raycaster_mesh_options(include_types)
         raycaster = self._raycaster_cache.get(cache_key)
         if raycaster is None:
             mesh = self.mesh(
-                source=source,
-                wall_filled=wall_filled,
                 include_types=include_types,
                 coordinates="point_cloud",
             )
             raycaster = MeshRaycaster(mesh)
             self._raycaster_cache[cache_key] = raycaster
 
-        height, width = frame.image_shape
+        if size is None:
+            height, width = frame.image_shape
+            intrinsics = frame.intrinsics
+        else:
+            height, width = size
+            intrinsics = frame.intrinsics_for_size(size)
         return raycaster.depth(
-            frame.intrinsics,
+            intrinsics,
             frame.world_to_camera,
             width,
             height,
@@ -944,8 +927,6 @@ class BIMNetScanScene:
         self,
         frame: MatterportFrame,
         *,
-        source="obj",
-        wall_filled=False,
         include_types=None,
         mesh_color=(0.75, 0.75, 0.75),
         background_color=(0.05, 0.05, 0.05),
@@ -953,20 +934,19 @@ class BIMNetScanScene:
         show=False,
     ):
         self._validate_matterport_frame(frame)
-        source = str(source).casefold()
         source_image = frame.rgb
         source_depth = frame.depth
         height, width = source_image.shape[:2]
         mesh = self.mesh(
-            source=source,
-            wall_filled=wall_filled,
             include_types=include_types,
         )
         if mesh_color is not None:
             mesh.paint_uniform_color(mesh_color)
         rendered_image, rendered_depth = render_geometries(
             [mesh],
-            window_name=f"BIMNet {source.upper()} | {self.key} | {frame.frame_id}",
+            window_name=(
+                f"BIMNet {self.default_mesh_source.upper()} | {self.key} | {frame.frame_id}"
+            ),
             width=width,
             height=height,
             background_color=background_color,
@@ -980,7 +960,7 @@ class BIMNetScanScene:
             bimnet_scene_id=self.scene_id,
             matterport_scene_id=frame.scene_id,
             frame_id=frame.frame_id,
-            mesh_source=source,
+            mesh_source=self.default_mesh_source,
             rendered_image_path=None,
             rendered_depth_path=None,
             source_image_path=frame.rgb_path,
@@ -1011,17 +991,16 @@ class BIMNetScanScene:
 
 
 class BIMNetDataset:
-    """Discover BIMNet train/test scenes and their parallel asset trees."""
+    """Discover BIMNet scenes with one mesh source shared by every scene."""
 
-    def __init__(self, root=None, split=None):
+    def __init__(self, root=None, split=None, default_mesh_source="obj"):
         if root is None:
             root = CONFIG.require("bimnet_root")
         self.root = Path(root).expanduser().resolve()
+        self._default_mesh_source = _normalize_mesh_source(default_mesh_source)
 
         if not self.root.is_dir():
-            raise FileNotFoundError(
-                f"BIMNet root directory not found: {self.root}"
-            )
+            raise FileNotFoundError(f"BIMNet root directory not found: {self.root}")
         if split not in (None, "train", "test"):
             raise ValueError("split must be None, 'train', or 'test'")
         self.selected_split = split
@@ -1031,6 +1010,10 @@ class BIMNetDataset:
         self._scan_scene_cache = {}
         if not self._scene_index:
             raise ValueError(f"no BIMNet scenes found below {self.root}")
+
+    @property
+    def default_mesh_source(self):
+        return self._default_mesh_source
 
     def _discover_scenes(self):
         index = {}
@@ -1176,9 +1159,7 @@ class BIMNetDataset:
 
     def scenes_for_scan(self, matterport_scan_id):
         value = str(matterport_scan_id).casefold()
-        return tuple(
-            scene for scene in self.scenes if scene.matterport_scan_id.casefold() == value
-        )
+        return tuple(scene for scene in self.scenes if scene.matterport_scan_id.casefold() == value)
 
     def __len__(self):
         return len(self._scene_index)
@@ -1191,4 +1172,7 @@ class BIMNetDataset:
 
     def __repr__(self):
         split = self.selected_split or "all"
-        return f"BIMNetDataset(root={str(self.root)!r}, split={split!r}, scenes={len(self)})"
+        return (
+            f"BIMNetDataset(root={str(self.root)!r}, split={split!r}, "
+            f"default_mesh_source={self.default_mesh_source!r}, scenes={len(self)})"
+        )

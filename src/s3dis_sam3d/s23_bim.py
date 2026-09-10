@@ -289,10 +289,11 @@ class S23_BIMDataset:
 
         return {
             "rgb": rgb,
+            "rgb_path": frame.rgb_path,
             "bim_depth": bim_depth,
             "gt_depth": gt_depth,
             "bim_mask": bim_mask,
-
+            "intrinsics": frame.intrinsics,
             "area": self.area,
             "bim_scene_id": sample["bim_scene_id"],
             "source_scene_id": sample["s23_scene_id"],

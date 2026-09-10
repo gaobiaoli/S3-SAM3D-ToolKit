@@ -116,6 +116,21 @@ def test_dataset_discovers_splits_and_matterport_mapping(tmp_path):
     assert dataset.scene(dataset["hxp"]) is dataset["hxp"]
 
 
+@pytest.mark.parametrize("source", ["obj", "ifc", "obj_wall_filled"])
+def test_dataset_uses_one_default_mesh_source(tmp_path, source):
+    _write_scene(tmp_path)
+    dataset = BIMNetDataset(tmp_path, default_mesh_source=source.upper())
+
+    assert dataset.default_mesh_source == source
+    assert dataset["1px"].default_mesh_source == source
+
+
+def test_dataset_rejects_unknown_default_mesh_source(tmp_path):
+    _write_scene(tmp_path)
+    with pytest.raises(ValueError, match="obj_wall_filled"):
+        BIMNetDataset(tmp_path, default_mesh_source="wall_filled")
+
+
 def test_dataset_combines_scenes_for_matterport_scan_lookup(tmp_path):
     _write_scene(tmp_path, "train", "7y3")
     _write_scene(tmp_path, "test", "7y3_1")
@@ -175,8 +190,6 @@ def test_scene_render_depth_reuses_raycasting_scene_across_frames(tmp_path):
     assert first is expected
     assert second is expected
     load_mesh.assert_called_once_with(
-        source="obj",
-        wall_filled=False,
         include_types=("IfcWall", "IfcSlab"),
         coordinates="point_cloud",
     )
@@ -190,7 +203,7 @@ def test_scene_render_depth_reuses_raycasting_scene_across_frames(tmp_path):
 def test_scan_scene_render_depth_caches_combined_raycasting_scene(tmp_path):
     _write_scene(tmp_path, "train", "7y3")
     _write_scene(tmp_path, "test", "7y3_1")
-    scene = BIMNetDataset(tmp_path).scene("7y3sRwLe3Va")
+    scene = BIMNetDataset(tmp_path, default_mesh_source="ifc").scene("7y3sRwLe3Va")
     depth_path = tmp_path / "frame.png"
     Image.fromarray(np.ones((3, 5), dtype=np.uint16)).save(depth_path)
     frame = MatterportFrame(
@@ -210,12 +223,10 @@ def test_scan_scene_render_depth_caches_combined_raycasting_scene(tmp_path):
         patch("s3dis_sam3d.bimnet.MeshRaycaster") as raycaster_type,
     ):
         raycaster_type.return_value.depth.return_value = np.ones((3, 5), dtype=np.float32)
-        scene.render_depth(frame, source="ifc")
-        scene.render_depth(frame, source="IFC")
+        scene.render_depth(frame)
+        scene.render_depth(frame)
 
     load_mesh.assert_called_once_with(
-        source="ifc",
-        wall_filled=False,
         include_types=None,
         coordinates="point_cloud",
     )
@@ -278,8 +289,12 @@ def test_wall_filled_alias_and_filename_fallback(tmp_path):
     filename = "IFCWINDOW-IFC#31-RVT#301-CurvedTrue-el3.31_guid.obj"
     (filled_dir / filename).write_text("v 0 0 0\n", encoding="utf-8")
 
-    scene = BIMNetDataset(tmp_path, split="test")["d7n"]
-    elements = scene.elements(wall_filled=True)
+    scene = BIMNetDataset(
+        tmp_path,
+        split="test",
+        default_mesh_source="obj_wall_filled",
+    )["d7n"]
+    elements = scene._load_elements(scene.default_mesh_source)
 
     assert scene.wall_filled_obj_dir == filled_dir
     assert scene.has_wall_filled_mesh
@@ -291,22 +306,23 @@ def test_wall_filled_alias_and_filename_fallback(tmp_path):
 
 def test_obj_and_ifc_meshes_can_be_returned_in_point_cloud_coordinates(tmp_path):
     _write_scene(tmp_path)
-    scene = BIMNetDataset(tmp_path)["1px"]
+    obj_scene = BIMNetDataset(tmp_path, default_mesh_source="obj")["1px"]
+    ifc_scene = BIMNetDataset(tmp_path, default_mesh_source="ifc")["1px"]
 
     with patch.object(
         BIMNetElement,
         "mesh",
         side_effect=lambda: o3d.geometry.TriangleMesh.create_box(),
     ):
-        original_obj = scene.mesh(coordinates="original")
-        registered_obj = scene.mesh(coordinates="point_cloud")
+        original_obj = obj_scene.mesh(coordinates="original")
+        registered_obj = obj_scene.mesh(coordinates="point_cloud")
 
     with patch(
         "s3dis_sam3d.bimnet.load_ifc_mesh",
         side_effect=lambda *_args, **_kwargs: o3d.geometry.TriangleMesh.create_box(),
     ):
-        original_ifc = scene.mesh(source="ifc", coordinates="original")
-        registered_ifc = scene.mesh(source="ifc", coordinates="point_cloud")
+        original_ifc = ifc_scene.mesh(coordinates="original")
+        registered_ifc = ifc_scene.mesh(coordinates="point_cloud")
 
     np.testing.assert_allclose(original_obj.get_min_bound(), [0, 0, 0])
     np.testing.assert_allclose(registered_obj.get_min_bound(), [-10, -20, -30])
@@ -316,7 +332,12 @@ def test_obj_and_ifc_meshes_can_be_returned_in_point_cloud_coordinates(tmp_path)
 
 def test_mesh_registration_uses_source_specific_coordinate_chain(tmp_path):
     _write_scene(tmp_path)
-    scene = BIMNetDataset(tmp_path)["1px"]
+    obj_scene = BIMNetDataset(tmp_path, default_mesh_source="obj")["1px"]
+    ifc_scene = BIMNetDataset(tmp_path, default_mesh_source="ifc")["1px"]
+    wall_filled_scene = BIMNetDataset(
+        tmp_path,
+        default_mesh_source="obj_wall_filled",
+    )["1px"]
 
     expected_ifc_to_obj = np.array(
         [
@@ -326,20 +347,24 @@ def test_mesh_registration_uses_source_specific_coordinate_chain(tmp_path):
             [0, 0, 0, 1],
         ]
     )
-    np.testing.assert_allclose(scene.ifc_to_obj, expected_ifc_to_obj)
+    np.testing.assert_allclose(obj_scene.ifc_to_obj, expected_ifc_to_obj)
     np.testing.assert_allclose(
-        scene.mesh_to_point_cloud_transform("ifc"),
-        scene.obj_to_point_cloud @ expected_ifc_to_obj,
+        ifc_scene.mesh_to_point_cloud_transform(),
+        ifc_scene.obj_to_point_cloud @ expected_ifc_to_obj,
     )
     np.testing.assert_allclose(
-        scene.mesh_to_point_cloud_transform("obj"),
-        scene.obj_to_point_cloud,
+        obj_scene.mesh_to_point_cloud_transform(),
+        obj_scene.obj_to_point_cloud,
+    )
+    np.testing.assert_allclose(
+        wall_filled_scene.mesh_to_point_cloud_transform(),
+        wall_filled_scene.obj_to_point_cloud,
     )
 
 
 def test_render_pairs_registered_mesh_with_matterport_frame(tmp_path):
     _write_scene(tmp_path)
-    scene = BIMNetDataset(tmp_path)["1px"]
+    scene = BIMNetDataset(tmp_path, default_mesh_source="ifc")["1px"]
     rgb_path = tmp_path / "frame.jpg"
     depth_path = tmp_path / "frame.png"
     Image.fromarray(np.full((4, 6, 3), 128, dtype=np.uint8)).save(rgb_path)
@@ -370,7 +395,7 @@ def test_render_pairs_registered_mesh_with_matterport_frame(tmp_path):
         ) as load_mesh,
         patch("s3dis_sam3d.bimnet.render_geometries", side_effect=fake_render) as render,
     ):
-        result = scene.render_frame(frame, source="ifc")
+        result = scene.render_frame(frame)
 
     assert isinstance(result, BIMNetFrameRender)
     assert isinstance(result, FrameRender)
@@ -392,8 +417,6 @@ def test_render_pairs_registered_mesh_with_matterport_frame(tmp_path):
             np.full((4, 6), 2000, dtype=np.uint16),
         )
     load_mesh.assert_called_once_with(
-        source="ifc",
-        wall_filled=False,
         include_types=None,
         coordinates="point_cloud",
     )

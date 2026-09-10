@@ -78,6 +78,26 @@ bimsync = BIMSyncDataset(area="Area_1")
 仓库内最小示例使用同一配置文件中的
 `MINIMAL_S3DIS_ROOT` 和 `MINIMAL_S23DIS_ROOT`，不会与完整数据路径混淆。
 
+## MDE
+
+```python
+from s3dis_sam3d.mde import DA3Predictor, DepthMetricAccumulator, depth_metrics
+
+predictor = DA3Predictor(device="cuda", cache_root="outputs/da3_cache")
+metric_depth = predictor.predict_frame(frame)  # 已做 300 px canonical focal 修正
+scores = depth_metrics(metric_depth, gt_depth, gt_valid)
+
+total = DepthMetricAccumulator()
+total.update(metric_depth, gt_depth, gt_valid)
+result = total.compute()
+print(result["pixel_micro"], result["frame_macro"])
+```
+
+`predict_raw()` 保留 DA3 原始 canonical-focal depth，适合制备训练数据；缓存中也只保存这份
+无损 `float32` 原始结果，因此同一缓存可在不同相机焦距下复用。
+`DepthMetricAccumulator.update()` 每次按一帧累计；处理 batch 时逐帧调用即可同时得到
+pixel-micro 和 frame-macro 结果。
+
 ## S3DIS
 
 ```python
@@ -156,7 +176,10 @@ OBJ matrices, labeled point clouds, room metadata, and optional RVT files.
 ```python
 from s3dis_sam3d import BIMNetDataset, Matterport3DDataset
 
-bimnet = BIMNetDataset(r"C:\Users\bgao491\DepthEstimation\BIMNet_release")
+bimnet = BIMNetDataset(
+    r"C:\Users\bgao491\DepthEstimation\BIMNet_release",
+    default_mesh_source="obj_wall_filled",
+)
 matterport_dataset = Matterport3DDataset(
     r"C:\Users\bgao491\DepthEstimation\Matterport3D"
 )
@@ -170,34 +193,26 @@ walls = scene.elements(["IfcWall", "IfcWallStandardCase"])
 wall = scene.element(walls[0].guid)
 wall_mesh = wall.mesh()
 structural_mesh = scene.mesh(
-    source="obj",
     include_types=["IfcWall", "IfcWallStandardCase", "IfcSlab"],
 )
 
-# Preserve the selected source's own coordinates (IFC and OBJ differ).
-native_ifc_mesh = scene.mesh(source="ifc", coordinates="original")
-native_obj_mesh = scene.mesh(source="obj", coordinates="original")
-
-# Register either source into the original point-cloud coordinates.
-# OBJ: inverse(mat_pc2obj)
-# IFC: inverse(mat_pc2obj) @ ifc_to_obj
-mesh_in_point_cloud_coordinates = scene.mesh(
-    source="ifc",
-    coordinates="point_cloud",
-)
+# Mesh source is fixed for this dataset: obj, ifc, or obj_wall_filled.
+ifc_scene = BIMNetDataset(
+    r"C:\Users\bgao491\DepthEstimation\BIMNet_release",
+    default_mesh_source="ifc",
+)["hxp"]
+native_ifc_mesh = ifc_scene.mesh(coordinates="original")
+mesh_in_point_cloud_coordinates = ifc_scene.mesh(coordinates="point_cloud")
 
 # BIMNet point clouds contain x y z r g b label.
 cloud = scene.point_cloud(include_labels=[0, 1, 2, 3])
 # visualize(aligned=True) uses the original PC coordinates as the common frame.
-scene.visualize(
-    point_cloud_options={"voxel_size": 0.03},
-    mesh_options={"source": "obj", "wall_filled": True},
-)
+scene.visualize(point_cloud_options={"voxel_size": 0.03})
 
 # Render the registered BIM mesh from an original Matterport RGB-D frame.
 matterport_scene = scene.matterport_scene(matterport_dataset)
 frame = matterport_scene.frames[0]
-render = scene.render_frame(frame, source="ifc", render_depth=True)
+render = scene.render_frame(frame, render_depth=True)
 render.save("outputs/hxp_bim.png")
 ```
 
