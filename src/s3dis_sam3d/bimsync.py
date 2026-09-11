@@ -294,12 +294,15 @@ class BIMSyncScene:
 
         source_image = frame.rgb
         height, width = source_image.shape[:2]
+        frame_scene = getattr(frame, "scene", None)
+        if frame_scene is None:
+            frame_scene = frame.room
 
         mesh = self.mesh()
         mesh.paint_uniform_color(mesh_color)
         rendered_image, rendered_depth = render_geometries(
             [mesh],
-            window_name=f"BIMSync IFC | {frame.room} | frame {frame.frame_id}",
+            window_name=f"BIMSync IFC | {frame_scene} | frame {frame.frame_id}",
             width=width,
             height=height,
             background_color=background_color,
@@ -313,7 +316,7 @@ class BIMSyncScene:
         source_depth = frame.depth if frame.has_depth else None
         return BIMSyncFrameRender(
             scene=self.name,
-            room=frame.room,
+            room=frame_scene,
             frame_id=frame.frame_id,
             uuid=frame.uuid,
             rendered_image_path=None,

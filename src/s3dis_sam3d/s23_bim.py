@@ -143,13 +143,13 @@ class S23_BIMDataset:
         if key in self._scene_samples:
             return self._scene_samples[key]
 
-        s23_room = self.s23_dataset.room(
+        s23_scene = self.s23_dataset.get_scene(
             f"{self.area}/{bim_scene.name}"
         )
 
         samples = []
 
-        for frame in s23_room.frames:
+        for frame in s23_scene.frames:
 
             # ----------------------------------------------------------
             # 1. GT depth must exist
@@ -217,9 +217,9 @@ class S23_BIMDataset:
                     "frame": frame,
                     "bim_scene_key": bim_scene.key,
                     "bim_scene_id": bim_scene.name,
-                    "s23_scene_id": s23_room.name,
+                    "s23_scene_id": s23_scene.name,
                     "scene_id": bim_scene.name,
-                    "room": s23_room.name,
+                    "room": s23_scene.name,
                     "frame_id": frame.frame_id,
                     "uuid": frame.uuid,
                     "stem": frame.stem,
@@ -294,6 +294,7 @@ class S23_BIMDataset:
             "gt_depth": gt_depth,
             "bim_mask": bim_mask,
             "intrinsics": frame.intrinsics,
+            "semantic_labels": frame.semantic_labels,
             "area": self.area,
             "bim_scene_id": sample["bim_scene_id"],
             "source_scene_id": sample["s23_scene_id"],

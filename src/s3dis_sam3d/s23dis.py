@@ -34,7 +34,7 @@ S23DIS_CLASS_TO_ID = {
 }
 
 FRAME_PATTERN = re.compile(
-    r"^camera_(?P<uuid>[0-9a-fA-F]+)_(?P<room>.+?)_frame_"
+    r"^camera_(?P<uuid>[0-9a-fA-F]+)_(?P<scene>.+?)_frame_"
     r"(?P<frame_id>\d+|equirectangular)(?P<suffix>.*)$"
 )
 ASSET_PATTERN = re.compile(
@@ -59,7 +59,7 @@ def parse_stem(stem):
         raise ValueError(f"invalid 2D-3D-S stem: {stem}")
 
     item = match.groupdict()
-    item["room_name"] = item["room"]
+    item["scene_name"] = item["scene"]
     item["frame_id"] = 0 if item["frame_id"] == "equirectangular" else int(item["frame_id"])
     asset = ASSET_PATTERN.search(stem)
     if asset is not None:
@@ -98,7 +98,7 @@ class S23Frame(RGBDFrame):
     invalid_depth_value = S23DIS_INVALID_DEPTH
 
     stem: str
-    room: str
+    scene: str
     frame_id: int
     uuid: str
     pose_path: Path
@@ -285,8 +285,8 @@ class S23Frame(RGBDFrame):
 
 
 @dataclass(frozen=True)
-class S23Room:
-    """One 2D-3D-S room and its regular or panorama frames."""
+class S23Scene:
+    """One 2D-3D-S scene and its regular or panorama frames."""
 
     dataset: S23Dataset = field(repr=False, compare=False)
     area: str
@@ -296,6 +296,10 @@ class S23Room:
     @property
     def key(self):
         return f"{self.area}/{self.name}"
+
+    @property
+    def scene_id(self):
+        return self.name
 
     @property
     def projection_type(self):
@@ -369,7 +373,7 @@ class S23Room:
             if len(cloud.xyz):
                 clouds.append(cloud)
         if not clouds:
-            raise ValueError(f"no usable frames for room: {self.key}")
+            raise ValueError(f"no usable frames for scene: {self.key}")
 
         cloud = PointCloud(
             np.concatenate([cloud.xyz for cloud in clouds]),
@@ -378,7 +382,7 @@ class S23Room:
             _concatenate_optional_labels(clouds, "instance_labels"),
             metadata={
                 "area": self.area,
-                "room": self.name,
+                "scene": self.name,
                 "frame_count": len(clouds),
                 "coordinate_frame": clouds[0].metadata["coordinate_frame"],
                 "label_names": S23DIS_SEMANTIC_CLASSES,
@@ -424,11 +428,11 @@ class S23Room:
         return self.frames[index]
 
     def __repr__(self):
-        return f"S23Room(key={self.key!r}, frames={len(self)})"
+        return f"S23Scene(key={self.key!r}, frames={len(self)})"
 
 
 class S23Dataset:
-    """Discover 2D-3D-S rooms and index their camera frames."""
+    """Discover 2D-3D-S scenes and index their camera frames."""
 
     def __init__(
         self,
@@ -470,11 +474,11 @@ class S23Dataset:
         self.frames = tuple(self._index_frames(projection_type))
         grouped = {}
         for frame in self.frames:
-            grouped.setdefault(frame.room, []).append(frame)
+            grouped.setdefault(frame.scene, []).append(frame)
         for frames in grouped.values():
             frames.sort(key=lambda frame: (frame.frame_id, frame.uuid))
-        self.rooms = tuple(
-            S23Room(self, self.area, name, tuple(frames))
+        self.scenes = tuple(
+            S23Scene(self, self.area, name, tuple(frames))
             for name, frames in sorted(grouped.items())
         )
 
@@ -494,7 +498,7 @@ class S23Dataset:
                 frames.append(
                     S23Frame(
                         stem=stem,
-                        room=metadata["room"],
+                        scene=metadata["scene"],
                         frame_id=metadata["frame_id"],
                         uuid=metadata["uuid"],
                         pose_path=pose_path,
@@ -539,49 +543,62 @@ class S23Dataset:
             )
         return tuple(values)
 
-    def list_rooms(self):
-        return [(room.name, len(room)) for room in self.rooms]
+    @property
+    def scene_ids(self):
+        return [scene.scene_id for scene in self.scenes]
 
-    def room(self, room):
-        if isinstance(room, S23Room):
-            if room.dataset is self:
-                return room
-            raise ValueError("room belongs to another S23Dataset")
-        if isinstance(room, int):
-            return self.rooms[room]
-        query = str(room).replace("\\", "/").strip("/").casefold()
-        exact = [item for item in self.rooms if item.key.casefold() == query]
-        matches = exact or [item for item in self.rooms if item.name.casefold() == query]
-        if len(matches) != 1:
-            raise ValueError(f"room not found or ambiguous: {room}")
+    def list_scenes(self):
+        return self.scene_ids
+
+    def get_scene(self, scene_id):
+        if isinstance(scene_id, S23Scene):
+            if scene_id.dataset is self:
+                return scene_id
+            raise ValueError("scene belongs to another S23Dataset")
+        if isinstance(scene_id, int):
+            return self.scenes[scene_id]
+        query = str(scene_id).replace("\\", "/").strip("/").casefold()
+        exact = [item for item in self.scenes if item.key.casefold() == query]
+        matches = exact or [
+            item for item in self.scenes if item.scene_id.casefold() == query
+        ]
+        if not matches:
+            raise KeyError(f"Unknown 2D-3D-S scene: {scene_id}")
+        if len(matches) > 1:
+            raise ValueError(f"scene is ambiguous: {scene_id}")
         return matches[0]
 
-    def room_frames(self, room):
-        return list(self.room(room).frames)
+    def iter_scenes(self):
+        return iter(self)
 
-    def list_uuids(self, room=None, frame_id=None):
-        """List UUIDs in the Area, one room, or one room/frame."""
-        if room is not None:
-            return self.room(room).list_uuids(frame_id)
+    def scene_frames(self, scene_id):
+        return list(self.get_scene(scene_id).frames)
+
+    def list_uuids(self, scene_id=None, frame_id=None):
+        """List UUIDs in the Area, one scene, or one scene/frame."""
+        if scene_id is not None:
+            return self.get_scene(scene_id).list_uuids(frame_id)
         frames = self.frames
         if frame_id is not None:
             frames = tuple(frame for frame in frames if frame.frame_id == frame_id)
         return sorted({frame.uuid for frame in frames})
 
-    def get_frame(self, room, frame_id, uuid=None):
-        return self.room(room).get_frame(frame_id, uuid)
+    def get_frame(self, scene_id=None, frame_id=None, uuid=None):
+        if scene_id is None or frame_id is None:
+            raise TypeError("scene_id and frame_id are required")
+        return self.get_scene(scene_id).get_frame(frame_id, uuid)
 
     def __len__(self):
-        return len(self.rooms)
+        return len(self.scenes)
 
     def __iter__(self):
-        return iter(self.rooms)
+        return iter(self.scenes)
 
     def __getitem__(self, index):
-        return self.room(index)
+        return self.get_scene(index)
 
     def __repr__(self):
         return (
             f"S23Dataset(area={self.area!r}, projection_type={self.projection_type!r}, "
-            f"rooms={len(self)})"
+            f"scenes={len(self)})"
         )

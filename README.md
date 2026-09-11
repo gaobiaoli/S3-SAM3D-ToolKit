@@ -123,14 +123,14 @@ room.visualize(
 from s3dis_sam3d import S23Dataset
 
 dataset = S23Dataset("dataset/2d3ds/area_1")
-room = dataset.room(0)
-frame = room.frames[0]
+scene = dataset.get_scene(0)
+frame = scene.frames[0]
 cloud = frame.point_cloud(stride=4)
 print(cloud.xyz.shape)
 
 # UUID 可省略，默认按排序结果选择第一个
-frame = room.get_frame(frame.frame_id)
-print(room.list_uuids(frame.frame_id))
+frame = scene.get_frame(frame.frame_id)
+print(scene.list_uuids(frame.frame_id))
 
 # 常用单帧数据
 rgb = frame.rgb
@@ -142,15 +142,16 @@ intrinsics = frame.intrinsics
 camera_to_world = frame.camera_to_world
 world_to_camera = frame.world_to_camera
 
-# 房间级可视化与保存
-cloud = room.reconstruct(stride=8)
-room.visualize(stride=8)
-room.save_ply("room.ply", stride=8, progress=True)
+# Scene 级可视化与保存
+cloud = scene.reconstruct(stride=8)
+scene.visualize(stride=8)
+scene.save_ply("scene.ply", stride=8, progress=True)
 ```
 
 `Frame` 自己持有 `projection_type`，负责读取 RGB、pose、depth、global XYZ，以及单帧投影、
-反投影、point map 和点云生成；`S23Room` 持有 frames 并负责房间重建、可视化和导出，
-`S23Dataset` 只负责索引和选择 room。`mask` 可以是数组、图片路径、
+反投影、point map 和点云生成；`S23Scene` 持有 frames 并负责 scene 重建、可视化和导出，
+`S23Dataset` 通过 `scenes`、`scene_ids`、`list_scenes()`、`get_scene()` 和
+`iter_scenes()` 索引与选择 scene。`mask` 可以是数组、图片路径、
 `{frame.stem: mask}` 映射或接收 `Frame` 的回调。regular 与 pano 会自动使用各自的反投影模型。
 
 相机变换、针孔/全景投影与反投影、mask 处理、单位归一化和 ICP 等不依赖数据集目录的
@@ -296,7 +297,7 @@ from s3dis_sam3d import BIMSyncDataset, S23Dataset
 
 s23dis = S23Dataset(area="Area_1", projection_type="regular")
 bimsync = BIMSyncDataset(area="Area_1")
-frame = s23dis.room("office_11").get_frame(frame_id=0)
+frame = s23dis.get_scene("office_11").get_frame(frame_id=0)
 result = bimsync.scene("office_11").render_frame(frame)
 result.save("outputs/office_11_frame_0.png")
 
@@ -314,8 +315,8 @@ result.visualize(
 )
 ```
 
-同一个 room/frame 对应多个相机 UUID 时，默认使用按字典序排列后的第一个；可通过
-`s23dis.room(room).list_uuids(frame_id)` 查看并显式传入其他 `uuid`。该方法要求 scene 已有
+同一个 scene/frame 对应多个相机 UUID 时，默认使用按字典序排列后的第一个；可通过
+`s23dis.get_scene(scene).list_uuids(frame_id)` 查看并显式传入其他 `uuid`。该方法要求 scene 已有
 IFC→S3DIS 校准矩阵；`render_frame()` 在内存中返回 RGB-D，调用 `result.save(...)` 时才写入
 RGB 和深度文件，传入 `show=True` 可同时打开 Open3D
 窗口。`source_image` 和 `rendered_image` 是 `[0, 1]` RGB 数组，`source_depth` 和
@@ -401,7 +402,7 @@ record = parser.get_record_by_uuid_frame(uuid, frame_id)
 parser.visualize_bboxes_on_image(0, save_path="outputs/annotation_preview.png")
 ```
 
-`room + frame_id` 在 2D-3D-S 中可能对应多个 UUID；解析器遇到这种查询会明确报歧义，
+`scene + frame_id` 在 2D-3D-S 中可能对应多个 UUID；解析器遇到这种查询会明确报歧义，
 应改用 `uuid + frame_id`。
 
 ## 批量 SAM3D 预测

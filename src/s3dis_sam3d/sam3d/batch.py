@@ -152,7 +152,7 @@ class SAM3DBatchPredictor:
             frame_id = int(record["frame_id"])
             uuid = record.get("uuid")
             try:
-                frame = self.dataset.room(room).get_frame(frame_id, uuid)
+                frame = self.dataset.get_scene(room).get_frame(frame_id, uuid)
                 image_path = frame.rgb_path
                 needs_geometry = use_depth or optimize_pose
                 if needs_geometry and not frame.has_depth:

@@ -21,7 +21,7 @@ from .mp3d_bim import MP3D_BIMDataset
 from .rendering import FrameRender
 from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
 from .s23_bim import S23_BIMDataset
-from .s23dis import S23Dataset, S23Frame, S23Room, parse_stem
+from .s23dis import S23Dataset, S23Frame, S23Scene, parse_stem
 from .stanford_mesh import StanfordSemanticMesh
 
 __all__ = [
@@ -52,7 +52,7 @@ __all__ = [
     "S3DISRoom",
     "S23Dataset",
     "S23Frame",
-    "S23Room",
+    "S23Scene",
     "S23_BIMDataset",
     "StanfordSemanticMesh",
     "config",

@@ -9,13 +9,13 @@ from s3dis_sam3d.sam3d import GLBMesh, SAM3DClient
 AREA = s23dis_area("Area_1")
 MASK = Path("mask.png")
 OUTPUT = Path("outputs")
-ROOM, FRAME_ID = "office_1", 10
+SCENE, FRAME_ID = "office_1", 10
 
 dataset = S23Dataset(AREA)
-frame = dataset.get_frame(ROOM, FRAME_ID)
+frame = dataset.get_frame(SCENE, FRAME_ID)
 result = SAM3DClient("https://your-sam3d-server/infer").infer(
     frame.rgb_path,
-    request_id=f"{ROOM}_{FRAME_ID}",
+    request_id=f"{SCENE}_{FRAME_ID}",
     output_dir=OUTPUT,
     mask_path=MASK,
     depth_path=frame.depth_path,

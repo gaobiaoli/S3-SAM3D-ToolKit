@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from .pointcloud import random_downsample
 from .s3dis import S3DISDataset
-from .s23dis import S23Frame, S23Dataset
+from .s23dis import S23Dataset, S23Frame
 
 
 class RoomImageAnnotationsParser:
@@ -452,7 +452,7 @@ class RoomImageBatchAnnotator:
         progress=True,
     ):
         room = self.s3dis.room(room_name)
-        frames = list(self.s23.room(room.name).frames)
+        frames = list(self.s23.get_scene(room.name).frames)
         if max_frames is not None:
             frames = frames[:max_frames]
         instances = self._instances(room, selected_classes, max_instance_points)

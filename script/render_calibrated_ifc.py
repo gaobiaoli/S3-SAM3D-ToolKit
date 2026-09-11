@@ -5,7 +5,7 @@ from s3dis_sam3d.config import OUTPUT_ROOT
 
 AREA = "Area_1"
 REGION = "office_11"
-ROOM = "office_11"
+SCENE = "office_11"
 FRAME_ID = 0
 SHOW = False
 OUTPUT_PATH = (
@@ -13,14 +13,14 @@ OUTPUT_PATH = (
     / "bimsync_renders"
     / AREA
     / REGION
-    / f"{ROOM}_frame_{FRAME_ID}.png"
+    / f"{SCENE}_frame_{FRAME_ID}.png"
 )
 
 
 def main():
     s23dis = S23Dataset(area=AREA, projection_type="regular")
     bimsync = BIMSyncDataset()
-    frame = s23dis.room(ROOM).get_frame(FRAME_ID)
+    frame = s23dis.get_scene(SCENE).get_frame(FRAME_ID)
     result = bimsync.region(REGION).render_frame(frame, show=SHOW)
     result.save(OUTPUT_PATH)
     print(f"Selected UUID: {result.uuid}")

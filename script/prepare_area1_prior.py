@@ -417,8 +417,8 @@ def collect_frames(dataset):
     records = []
 
     available_s23 = {
-        room.name
-        for room in dataset.s23_dataset.rooms
+        scene.name
+        for scene in dataset.s23_dataset.scenes
     }
 
     available_bim = {
@@ -461,11 +461,11 @@ def collect_frames(dataset):
         "test",
     ):
         for room in ROOM_SPLITS[split]:
-            s23_room = (
-                dataset.s23_dataset.room(room)
+            s23_scene = (
+                dataset.s23_dataset.get_scene(room)
             )
 
-            for frame in s23_room.frames:
+            for frame in s23_scene.frames:
                 if not frame.has_depth:
                     continue
 
