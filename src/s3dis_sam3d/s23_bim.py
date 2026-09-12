@@ -43,23 +43,15 @@ class S23_BIMDataset:
             calibration_dir=calibration_dir,
         )
 
-        self.min_gt_valid_fraction = float(
-            min_gt_valid_fraction
-        )
-        self.min_bim_hit_fraction = float(
-            min_bim_hit_fraction
-        )
+        self.min_gt_valid_fraction = float(min_gt_valid_fraction)
+        self.min_bim_hit_fraction = float(min_bim_hit_fraction)
 
         # A paired training scene must exist in both datasets and have a
         # loaded IFC-to-S3DIS calibration.
-        matched_scenes = self.bimsync_dataset.matching_scenes(
-            self.s23_dataset
-        )
+        matched_scenes = self.bimsync_dataset.matching_scenes(self.s23_dataset)
 
         if not matched_scenes:
-            raise ValueError(
-                f"no matching S23/BIMSync scenes found for {self.area!r}"
-            )
+            raise ValueError(f"no matching S23/BIMSync scenes found for {self.area!r}")
 
         self._scenes = {
             scene.name.casefold(): scene
@@ -85,10 +77,7 @@ class S23_BIMDataset:
     @property
     def scene_ids(self):
         """Return all calibrated, paired S23/BIMSync scene IDs."""
-        return tuple(
-            scene.name
-            for scene in self._scenes.values()
-        )
+        return tuple(scene.name for scene in self._scenes.values())
 
     @property
     def indexed_scene_ids(self):
@@ -102,9 +91,7 @@ class S23_BIMDataset:
         key = name.rsplit("/", 1)[-1].removesuffix(".ifc").casefold()
 
         if key not in self._scenes:
-            raise KeyError(
-                f"unknown S23/BIM scene: {scene_id!r}"
-            )
+            raise KeyError(f"unknown S23/BIM scene: {scene_id!r}")
 
         return self._scenes[key]
 
@@ -113,10 +100,7 @@ class S23_BIMDataset:
             return bim_scene.render_depth(frame)
 
         if self._full_scene_raycaster is None:
-            meshes = iter(
-                scene.mesh()
-                for scene in self._scenes.values()
-            )
+            meshes = iter(scene.mesh() for scene in self._scenes.values())
             full_mesh = next(meshes)
             for mesh in meshes:
                 full_mesh += mesh
@@ -143,9 +127,7 @@ class S23_BIMDataset:
         if key in self._scene_samples:
             return self._scene_samples[key]
 
-        s23_scene = self.s23_dataset.get_scene(
-            f"{self.area}/{bim_scene.name}"
-        )
+        s23_scene = self.s23_dataset.get_scene(f"{self.area}/{bim_scene.name}")
 
         samples = []
 
@@ -163,19 +145,11 @@ class S23_BIMDataset:
                 dtype=np.float32,
             )
 
-            gt_valid = (
-                np.isfinite(gt_depth)
-                & (gt_depth > 0)
-            )
+            gt_valid = np.isfinite(gt_depth) & (gt_depth > 0)
 
-            gt_valid_fraction = float(
-                gt_valid.mean()
-            )
+            gt_valid_fraction = float(gt_valid.mean())
 
-            if (
-                gt_valid_fraction
-                < self.min_gt_valid_fraction
-            ):
+            if gt_valid_fraction < self.min_gt_valid_fraction:
                 continue
 
             # ----------------------------------------------------------
@@ -193,19 +167,11 @@ class S23_BIMDataset:
                     f"GT depth shape {gt_depth.shape} for {frame.stem}"
                 )
 
-            bim_mask = (
-                np.isfinite(bim_depth)
-                & (bim_depth > 0)
-            )
+            bim_mask = np.isfinite(bim_depth) & (bim_depth > 0)
 
-            bim_hit_fraction = float(
-                bim_mask.mean()
-            )
+            bim_hit_fraction = float(bim_mask.mean())
 
-            if (
-                bim_hit_fraction
-                < self.min_bim_hit_fraction
-            ):
+            if bim_hit_fraction < self.min_bim_hit_fraction:
                 continue
 
             # ----------------------------------------------------------
@@ -223,10 +189,8 @@ class S23_BIMDataset:
                     "frame_id": frame.frame_id,
                     "uuid": frame.uuid,
                     "stem": frame.stem,
-                    "gt_valid_fraction":
-                        gt_valid_fraction,
-                    "bim_hit_fraction":
-                        bim_hit_fraction,
+                    "gt_valid_fraction": gt_valid_fraction,
+                    "bim_hit_fraction": bim_hit_fraction,
                 }
             )
 
@@ -249,9 +213,7 @@ class S23_BIMDataset:
         sample = samples[index]
 
         frame = sample["frame"]
-        bim_scene = self.bimsync_dataset.scene(
-            sample["bim_scene_key"]
-        )
+        bim_scene = self.bimsync_dataset.scene(sample["bim_scene_key"])
 
         rgb = np.asarray(
             frame.rgb,
@@ -282,10 +244,7 @@ class S23_BIMDataset:
                 f"{gt_depth.shape}"
             )
 
-        bim_mask = (
-            np.isfinite(bim_depth)
-            & (bim_depth > 0)
-        )
+        bim_mask = np.isfinite(bim_depth) & (bim_depth > 0)
 
         return {
             "rgb": rgb,
@@ -304,12 +263,8 @@ class S23_BIMDataset:
             "frame_id": sample["frame_id"],
             "uuid": sample["uuid"],
             "stem": sample["stem"],
-
-            "gt_valid_fraction":
-                sample["gt_valid_fraction"],
-
-            "bim_hit_fraction":
-                sample["bim_hit_fraction"],
+            "gt_valid_fraction": sample["gt_valid_fraction"],
+            "bim_hit_fraction": sample["bim_hit_fraction"],
         }
 
     def iter_scene(self, scene_id):
@@ -339,10 +294,7 @@ class S23_BIMDataset:
         return self
 
     def __repr__(self):
-        sample_count = sum(
-            len(samples)
-            for samples in self._scene_samples.values()
-        )
+        sample_count = sum(len(samples) for samples in self._scene_samples.values())
 
         return (
             f"S23_BIMDataset("

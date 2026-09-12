@@ -602,3 +602,88 @@ class S23Dataset:
             f"S23Dataset(area={self.area!r}, projection_type={self.projection_type!r}, "
             f"scenes={len(self)})"
         )
+
+
+def decode_s23dis_instance_labels(semantic):
+    """Convert 2D-3D-S semantic RGB encoding to global instance indices."""
+
+    if isinstance(semantic, (str, Path)):
+        with Image.open(semantic) as image:
+            encoded = np.asarray(
+                image.convert("RGB"),
+                dtype=np.int32,
+            )
+    elif isinstance(semantic, Image.Image):
+        encoded = np.asarray(
+            semantic.convert("RGB"),
+            dtype=np.int32,
+        )
+    else:
+        encoded = np.asarray(semantic, dtype=np.int32)
+
+    if encoded.ndim != 3 or encoded.shape[-1] != 3:
+        raise ValueError(
+            f"semantic image must have shape (H, W, 3), got {encoded.shape}"
+        )
+
+    labels = (
+        (encoded[..., 0] << 16)
+        | (encoded[..., 1] << 8)
+        | encoded[..., 2]
+    )
+
+    labels[labels == S23DIS_INVALID_SEMANTIC] = -1
+
+    return labels
+
+
+from functools import lru_cache
+@lru_cache(maxsize=None)
+def _load_s23dis_semantic_class_lookup(path):
+    """Load and cache instance-index -> S3DIS class-ID lookup."""
+    path = Path(path).expanduser().resolve()
+
+    instance_names = json.loads(path.read_text("utf-8"))
+
+    if not isinstance(instance_names, list) or not all(
+        isinstance(name, str) for name in instance_names
+    ):
+        raise ValueError(
+            "semantic_labels.json must contain a JSON list of label names"
+        )
+
+    return np.asarray(
+        [
+            S23DIS_CLASS_TO_ID.get(
+                name.split("_", 1)[0].casefold(),
+                -1,
+            )
+            for name in instance_names
+        ],
+        dtype=np.int32,
+    )
+
+def decode_semantic_labels(
+    semantic,
+    semantic_labels_path=S23DIS_SEMANTIC_LABELS_PATH,
+):
+    instances = decode_s23dis_instance_labels(semantic)
+
+    class_lookup = _load_s23dis_semantic_class_lookup(
+        str(Path(semantic_labels_path).expanduser().resolve())
+    )
+
+    labels = np.full(
+        instances.shape,
+        -1,
+        dtype=np.int32,
+    )
+
+    valid = (
+        (instances >= 0)
+        & (instances < len(class_lookup))
+    )
+
+    labels[valid] = class_lookup[instances[valid]]
+
+    return labels

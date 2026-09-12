@@ -12,7 +12,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-
 #
 # export S3_SAM3D_TOOLKIT_ROOT=/home/bgao491/S3-SAM3D-ToolKit
 
@@ -39,7 +38,6 @@ from s3dis_sam3d.mde import (
     DA3Predictor,
 )
 from s3dis_sam3d.s23_bim import S23_BIMDataset
-
 
 # ================================================================
 # Fixed PriorBIMDA Area_1 protocol
@@ -124,6 +122,7 @@ _NEAREST = getattr(
 # CLI
 # ================================================================
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=(
@@ -136,10 +135,7 @@ def parse_args():
         "--s23-root",
         type=Path,
         required=True,
-        help=(
-            "Stanford2D3DS/no_xyz root. "
-            "It should contain area_1/."
-        ),
+        help=("Stanford2D3DS/no_xyz root. " "It should contain area_1/."),
     )
 
     parser.add_argument(
@@ -153,10 +149,7 @@ def parse_args():
         "--calibration-dir",
         type=Path,
         required=True,
-        help=(
-            "Directory containing "
-            "*_ifc_to_s3dis_transform.npy for Area_1."
-        ),
+        help=("Directory containing " "*_ifc_to_s3dis_transform.npy for Area_1."),
     )
 
     parser.add_argument(
@@ -195,6 +188,7 @@ def parse_args():
 # ================================================================
 # General I/O
 # ================================================================
+
 
 def atomic_savez(path: Path, **payload):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -250,16 +244,14 @@ def atomic_write_text(path: Path, text: str):
 
 
 def write_jsonl(path: Path, records):
-    text = "".join(
-        json.dumps(record, ensure_ascii=False) + "\n"
-        for record in records
-    )
+    text = "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records)
     atomic_write_text(path, text)
 
 
 # ================================================================
 # Stanford frame convention
 # ================================================================
+
 
 def canonical_frame_key(frame):
     """
@@ -272,11 +264,9 @@ def canonical_frame_key(frame):
     suffix = "_domain_rgb.png"
 
     if not name.endswith(suffix):
-        raise ValueError(
-            f"Unexpected Stanford RGB filename: {name}"
-        )
+        raise ValueError(f"Unexpected Stanford RGB filename: {name}")
 
-    return name[:-len(suffix)]
+    return name[: -len(suffix)]
 
 
 def relative_path(path: Path, root: Path):
@@ -292,6 +282,7 @@ def relative_path(path: Path, root: Path):
 # ================================================================
 # Official 2D-3D-S depth
 # ================================================================
+
 
 def load_gt_depth(
     depth_path: Path,
@@ -313,14 +304,11 @@ def load_gt_depth(
     )
 
     if raw is None:
-        raise RuntimeError(
-            f"Cannot read depth: {depth_path}"
-        )
+        raise RuntimeError(f"Cannot read depth: {depth_path}")
 
     if raw.ndim != 2 or raw.dtype != np.uint16:
         raise ValueError(
-            f"Expected uint16 depth PNG, got "
-            f"{raw.dtype} {raw.shape}: {depth_path}"
+            f"Expected uint16 depth PNG, got " f"{raw.dtype} {raw.shape}: {depth_path}"
         )
 
     height, width = target_shape
@@ -332,16 +320,9 @@ def load_gt_depth(
             interpolation=_NEAREST,
         )
 
-    depth = (
-        raw.astype(np.float32)
-        / 512.0
-    )
+    depth = raw.astype(np.float32) / 512.0
 
-    valid = (
-        (raw != np.uint16(65535))
-        & np.isfinite(depth)
-        & (depth > 0.0)
-    )
+    valid = (raw != np.uint16(65535)) & np.isfinite(depth) & (depth > 0.0)
 
     depth[~valid] = 0.0
 
@@ -354,6 +335,7 @@ def load_gt_depth(
 # ================================================================
 # Prepared sample validation
 # ================================================================
+
 
 def validate_sample(path: Path):
     with np.load(
@@ -375,14 +357,10 @@ def validate_sample(path: Path):
         missing = required - set(item.files)
 
         if missing:
-            raise ValueError(
-                f"{path}: missing {sorted(missing)}"
-            )
+            raise ValueError(f"{path}: missing {sorted(missing)}")
 
         if item["intrinsic"].shape != (3, 3):
-            raise ValueError(
-                f"{path}: invalid intrinsic"
-            )
+            raise ValueError(f"{path}: invalid intrinsic")
 
         for key in (
             "da3_depth_raw",
@@ -392,66 +370,40 @@ def validate_sample(path: Path):
             "gt_valid",
         ):
             if item[key].shape != TARGET_SHAPE:
-                raise ValueError(
-                    f"{path}: {key} has shape "
-                    f"{item[key].shape}"
-                )
+                raise ValueError(f"{path}: {key} has shape " f"{item[key].shape}")
 
         bim_valid = item["bim_valid"] > 0
         bim_depth = item["bim_depth"]
 
-        if np.any(
-            bim_depth[~bim_valid] != 0
-        ):
-            raise ValueError(
-                f"{path}: invalid BIM depth "
-                "pixels must be zero"
-            )
+        if np.any(bim_depth[~bim_valid] != 0):
+            raise ValueError(f"{path}: invalid BIM depth " "pixels must be zero")
 
 
 # ================================================================
 # Dataset integrity
 # ================================================================
 
+
 def collect_frames(dataset):
     records = []
 
-    available_s23 = {
-        scene.name
-        for scene in dataset.s23_dataset.scenes
-    }
+    available_s23 = {scene.name for scene in dataset.s23_dataset.scenes}
 
-    available_bim = {
-        name.casefold()
-        for name in dataset.scene_ids
-    }
+    available_bim = {name.casefold() for name in dataset.scene_ids}
 
-    required_rooms = {
-        room
-        for rooms in ROOM_SPLITS.values()
-        for room in rooms
-    }
+    required_rooms = {room for rooms in ROOM_SPLITS.values() for room in rooms}
 
-    missing_s23 = sorted(
-        required_rooms - available_s23
-    )
+    missing_s23 = sorted(required_rooms - available_s23)
 
     missing_bim = sorted(
-        room
-        for room in required_rooms
-        if room.casefold() not in available_bim
+        room for room in required_rooms if room.casefold() not in available_bim
     )
 
     if missing_s23:
-        raise ValueError(
-            f"Missing S23 rooms: {missing_s23}"
-        )
+        raise ValueError(f"Missing S23 rooms: {missing_s23}")
 
     if missing_bim:
-        raise ValueError(
-            f"Missing calibrated BIM rooms: "
-            f"{missing_bim}"
-        )
+        raise ValueError(f"Missing calibrated BIM rooms: " f"{missing_bim}")
 
     camera_owners = {}
 
@@ -461,17 +413,13 @@ def collect_frames(dataset):
         "test",
     ):
         for room in ROOM_SPLITS[split]:
-            s23_scene = (
-                dataset.s23_dataset.get_scene(room)
-            )
+            s23_scene = dataset.s23_dataset.get_scene(room)
 
             for frame in s23_scene.frames:
                 if not frame.has_depth:
                     continue
 
-                records.append(
-                    (split, room, frame)
-                )
+                records.append((split, room, frame))
 
                 camera_owners.setdefault(
                     frame.uuid,
@@ -479,24 +427,16 @@ def collect_frames(dataset):
                 ).add(split)
 
     leaked = {
-        camera: owners
-        for camera, owners
-        in camera_owners.items()
-        if len(owners) > 1
+        camera: owners for camera, owners in camera_owners.items() if len(owners) > 1
     }
 
     if leaked:
         raise ValueError(
-            "Camera UUID leakage across splits: "
-            f"{list(leaked.items())[:10]}"
+            "Camera UUID leakage across splits: " f"{list(leaked.items())[:10]}"
         )
 
     counts = {
-        split: sum(
-            record_split == split
-            for record_split, _, _
-            in records
-        )
+        split: sum(record_split == split for record_split, _, _ in records)
         for split in (
             "train",
             "val",
@@ -514,8 +454,7 @@ def collect_frames(dataset):
 
     if len(records) != EXPECTED_TOTAL_FRAMES:
         raise ValueError(
-            f"Expected {EXPECTED_TOTAL_FRAMES} "
-            f"frames, got {len(records)}"
+            f"Expected {EXPECTED_TOTAL_FRAMES} " f"frames, got {len(records)}"
         )
 
     return records
@@ -525,37 +464,20 @@ def collect_frames(dataset):
 # Main
 # ================================================================
 
+
 def main():
     args = parse_args()
 
     if args.log_every < 1:
-        raise ValueError(
-            "--log-every must be positive"
-        )
+        raise ValueError("--log-every must be positive")
 
-    s23_root = (
-        args.s23_root
-        .expanduser()
-        .resolve()
-    )
+    s23_root = args.s23_root.expanduser().resolve()
 
-    bimsync_root = (
-        args.bimsync_root
-        .expanduser()
-        .resolve()
-    )
+    bimsync_root = args.bimsync_root.expanduser().resolve()
 
-    calibration_dir = (
-        args.calibration_dir
-        .expanduser()
-        .resolve()
-    )
+    calibration_dir = args.calibration_dir.expanduser().resolve()
 
-    output_root = (
-        args.output_root
-        .expanduser()
-        .resolve()
-    )
+    output_root = args.output_root.expanduser().resolve()
 
     output_root.mkdir(
         parents=True,
@@ -602,9 +524,7 @@ def main():
 
     da3 = DA3Predictor(
         device=args.device,
-        local_files_only=(
-            args.local_files_only
-        ),
+        local_files_only=(args.local_files_only),
     )
 
     manifests = {
@@ -628,21 +548,13 @@ def main():
 
         sample_id = f"{room}/{key}"
 
-        sample_path = (
-            output_root
-            / "samples"
-            / room
-            / f"{key}.npz"
-        )
+        sample_path = output_root / "samples" / room / f"{key}.npz"
 
         # --------------------------------------------------------
         # Reuse
         # --------------------------------------------------------
 
-        if (
-            sample_path.exists()
-            and not args.overwrite
-        ):
+        if sample_path.exists() and not args.overwrite:
             validate_sample(sample_path)
 
             status = "reuse"
@@ -651,17 +563,9 @@ def main():
                 sample_path,
                 allow_pickle=False,
             ) as item:
-                gt_valid_pixels = int(
-                    (item["gt_valid"] > 0).sum()
-                )
-                bim_hit_pixels = int(
-                    (item["bim_valid"] > 0).sum()
-                )
-                focal_scale = float(
-                    item[
-                        "da3_focal_scale"
-                    ].item()
-                )
+                gt_valid_pixels = int((item["gt_valid"] > 0).sum())
+                bim_hit_pixels = int((item["bim_valid"] > 0).sum())
+                focal_scale = float(item["da3_focal_scale"].item())
 
         else:
             # ----------------------------------------------------
@@ -669,45 +573,19 @@ def main():
             # ----------------------------------------------------
 
             intrinsic = np.asarray(
-                frame.intrinsics_for_size(
-                    TARGET_SHAPE
-                ),
+                frame.intrinsics_for_size(TARGET_SHAPE),
                 dtype=np.float32,
             )
 
-            if (
-                intrinsic.shape != (3, 3)
-                or not np.isfinite(
-                    intrinsic
-                ).all()
-            ):
-                raise ValueError(
-                    f"{sample_id}: invalid K"
-                )
+            if intrinsic.shape != (3, 3) or not np.isfinite(intrinsic).all():
+                raise ValueError(f"{sample_id}: invalid K")
 
-            focal_px = float(
-                (
-                    intrinsic[0, 0]
-                    + intrinsic[1, 1]
-                )
-                / 2.0
-            )
+            focal_px = float((intrinsic[0, 0] + intrinsic[1, 1]) / 2.0)
 
-            focal_scale = (
-                focal_px
-                / DA3_REFERENCE_FOCAL
-            )
+            focal_scale = focal_px / DA3_REFERENCE_FOCAL
 
-            if (
-                not np.isfinite(
-                    focal_scale
-                )
-                or focal_scale <= 0
-            ):
-                raise ValueError(
-                    f"{sample_id}: invalid "
-                    "DA3 focal scale"
-                )
+            if not np.isfinite(focal_scale) or focal_scale <= 0:
+                raise ValueError(f"{sample_id}: invalid " "DA3 focal scale")
 
             # ----------------------------------------------------
             # DA3
@@ -723,11 +601,9 @@ def main():
             # This matches the old PriorBIMDA convention.
             # ----------------------------------------------------
 
-            da3_depth_raw = (
-                da3.predict_raw(
-                    frame.rgb_path,
-                    TARGET_SHAPE,
-                )
+            da3_depth_raw = da3.predict_raw(
+                frame.rgb_path,
+                TARGET_SHAPE,
             )
 
             # ----------------------------------------------------
@@ -742,11 +618,7 @@ def main():
             # No trust filtering.
             # ----------------------------------------------------
 
-            bim_scene = (
-                paired.bimsync_dataset.scene(
-                    room
-                )
-            )
+            bim_scene = paired.bimsync_dataset.scene(room)
 
             bim_depth = np.asarray(
                 paired._render_depth(
@@ -757,19 +629,10 @@ def main():
                 dtype=np.float32,
             )
 
-            if (
-                bim_depth.shape
-                != TARGET_SHAPE
-            ):
-                raise ValueError(
-                    f"{sample_id}: BIM shape "
-                    f"{bim_depth.shape}"
-                )
+            if bim_depth.shape != TARGET_SHAPE:
+                raise ValueError(f"{sample_id}: BIM shape " f"{bim_depth.shape}")
 
-            bim_valid = (
-                np.isfinite(bim_depth)
-                & (bim_depth > 0.0)
-            )
+            bim_valid = np.isfinite(bim_depth) & (bim_depth > 0.0)
 
             bim_depth = np.where(
                 bim_valid,
@@ -781,20 +644,14 @@ def main():
             # Official GT
             # ----------------------------------------------------
 
-            gt_depth, gt_valid = (
-                load_gt_depth(
-                    frame.depth_path,
-                    TARGET_SHAPE,
-                )
+            gt_depth, gt_valid = load_gt_depth(
+                frame.depth_path,
+                TARGET_SHAPE,
             )
 
-            gt_valid_pixels = int(
-                gt_valid.sum()
-            )
+            gt_valid_pixels = int(gt_valid.sum())
 
-            bim_hit_pixels = int(
-                bim_valid.sum()
-            )
+            bim_hit_pixels = int(bim_valid.sum())
 
             # ----------------------------------------------------
             # Store
@@ -806,42 +663,20 @@ def main():
 
             atomic_savez(
                 sample_path,
-
                 sample_schema_version=np.asarray(
                     1,
                     dtype=np.uint16,
                 ),
-
-                intrinsic=intrinsic.astype(
-                    np.float32
-                ),
-
-                da3_depth_raw=(
-                    da3_depth_raw.astype(
-                        np.float16
-                    )
-                ),
-
+                intrinsic=intrinsic.astype(np.float32),
+                da3_depth_raw=(da3_depth_raw.astype(np.float16)),
                 da3_focal_scale=np.asarray(
                     focal_scale,
                     dtype=np.float32,
                 ),
-
-                bim_depth=bim_depth.astype(
-                    np.float16
-                ),
-
-                bim_valid=bim_valid.astype(
-                    np.uint8
-                ),
-
-                gt_depth=gt_depth.astype(
-                    np.float32
-                ),
-
-                gt_valid=gt_valid.astype(
-                    np.uint8
-                ),
+                bim_depth=bim_depth.astype(np.float16),
+                bim_valid=bim_valid.astype(np.uint8),
+                gt_depth=gt_depth.astype(np.float32),
+                gt_valid=gt_valid.astype(np.uint8),
             )
 
             status = "write"
@@ -854,50 +689,27 @@ def main():
             "id": sample_id,
             "split": split,
             "region": room,
-
             "rgb": relative_path(
                 frame.rgb_path,
                 s23_root,
             ),
-
-            "sample": str(
-                sample_path.relative_to(
-                    output_root
-                )
-            ),
-
+            "sample": str(sample_path.relative_to(output_root)),
             "pose": relative_path(
                 frame.pose_path,
                 s23_root,
             ),
-
-            "camera_uuid": str(
-                frame.uuid
-            ),
-
-            "frame_number": int(
-                frame.frame_id
-            ),
-
-            "gt_valid_pixels": (
-                gt_valid_pixels
-            ),
-
-            "bim_hit_pixels": (
-                bim_hit_pixels
-            ),
-
-            "da3_focal_scale": (
-                focal_scale
-            ),
+            "camera_uuid": str(frame.uuid),
+            "frame_number": int(frame.frame_id),
+            "gt_valid_pixels": (gt_valid_pixels),
+            "bim_hit_pixels": (bim_hit_pixels),
+            "da3_focal_scale": (focal_scale),
         }
 
         manifests[split].append(record)
 
         if (
             global_index == 1
-            or global_index
-            % args.log_every == 0
+            or global_index % args.log_every == 0
             or global_index == total
         ):
             print(
@@ -916,17 +728,10 @@ def main():
     # ------------------------------------------------------------
 
     for split in manifests:
-        manifests[split].sort(
-            key=lambda record: record["id"]
-        )
+        manifests[split].sort(key=lambda record: record["id"])
 
     all_records = sorted(
-        [
-            record
-            for split_records
-            in manifests.values()
-            for record in split_records
-        ],
+        [record for split_records in manifests.values() for record in split_records],
         key=lambda record: record["id"],
     )
 
@@ -934,26 +739,17 @@ def main():
     # Final exact-count guard
     # ------------------------------------------------------------
 
-    for split, expected in (
-        EXPECTED_FRAME_COUNTS.items()
-    ):
-        actual = len(
-            manifests[split]
-        )
+    for split, expected in EXPECTED_FRAME_COUNTS.items():
+        actual = len(manifests[split])
 
         if actual != expected:
-            raise RuntimeError(
-                f"{split}: expected "
-                f"{expected}, got {actual}"
-            )
+            raise RuntimeError(f"{split}: expected " f"{expected}, got {actual}")
 
     # ------------------------------------------------------------
     # Manifests
     # ------------------------------------------------------------
 
-    manifest_dir = (
-        output_root / "manifests"
-    )
+    manifest_dir = output_root / "manifests"
 
     for split in (
         "train",
@@ -961,8 +757,7 @@ def main():
         "test",
     ):
         write_jsonl(
-            manifest_dir
-            / f"{split}.jsonl",
+            manifest_dir / f"{split}.jsonl",
             manifests[split],
         )
 
@@ -970,9 +765,6 @@ def main():
         manifest_dir / "all.jsonl",
         all_records,
     )
-
-    
-
 
 
 if __name__ == "__main__":
