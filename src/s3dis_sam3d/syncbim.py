@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import cv2
 import numpy as np
 import open3d as o3d
 
@@ -215,6 +214,46 @@ class SyncBIMScene:
             return None
         return np.linalg.solve(matrix, values)
 
+    @staticmethod
+    def _project_to_plane(points, plane):
+        normal = plane["normal"]
+        distance = points @ normal + plane["offset"]
+        return points - distance[..., None] * normal
+
+    def _slab_triangles(self, class_name, plane, reference_normal):
+        room = self.scene.dataset.semantic_mesh.room(self.scene.name)
+        class_id = room.dataset.semantic_classes.index(class_name)
+        triangles = room.vertices[room.triangles[room.face_labels == class_id]].astype(
+            np.float64
+        )
+        if not len(triangles):
+            return triangles
+
+        cross = np.cross(
+            triangles[:, 1] - triangles[:, 0],
+            triangles[:, 2] - triangles[:, 0],
+        )
+        double_area = np.linalg.norm(cross, axis=1)
+        alignment = np.abs(cross @ reference_normal) / np.maximum(double_area, 1e-12)
+        triangles = triangles[(double_area > 1e-8) & (alignment > 0.75)]
+        if not len(triangles):
+            return triangles
+
+        triangles = self._project_to_plane(triangles, plane)
+        projected_cross = np.cross(
+            triangles[:, 1] - triangles[:, 0],
+            triangles[:, 2] - triangles[:, 0],
+        )
+        return triangles[np.linalg.norm(projected_cross, axis=1) > 1e-8]
+
+    @staticmethod
+    def _append_triangles(vertices, triangles, points):
+        offset = len(vertices)
+        vertices.extend(points.reshape(-1, 3))
+        triangles.extend(
+            np.arange(offset, offset + 3 * len(points), dtype=np.int32).reshape(-1, 3)
+        )
+
     def _build_mesh(self, planes):
         floor = next(plane for plane in planes if plane["class_name"] == "floor")
         ceiling = next(
@@ -298,26 +337,18 @@ class SyncBIMScene:
                 ((offset, offset + 1, offset + 2), (offset, offset + 2, offset + 3))
             )
 
-        floor_points = floor["_points"]
-        center = np.mean(floor_points, axis=0)
-        centered = floor_points - center
-        _, eigenvectors = np.linalg.eigh(centered.T @ centered)
-        basis = eigenvectors[:, 1:3]
-        coordinates = centered @ basis
-        hull = cv2.convexHull(coordinates.astype(np.float32)).reshape(-1, 2)
-        hull = cv2.approxPolyDP(hull[:, None, :], 0.03, True).reshape(-1, 2)
-        hull_center = np.mean(hull, axis=0)
-        offset = len(vertices)
-        vertices.append(center + hull_center @ basis.T)
-        vertices.extend(center + hull @ basis.T)
-        for index in range(len(hull)):
-            triangles.append(
-                (
-                    offset,
-                    offset + 1 + index,
-                    offset + 1 + ((index + 1) % len(hull)),
-                )
+        floor_triangles = self._slab_triangles("floor", floor, floor_normal)
+        self._append_triangles(vertices, triangles, floor_triangles)
+
+        if ceiling is None:
+            ceiling_triangles = floor_triangles + ceiling_height * floor_normal
+        else:
+            ceiling_triangles = self._slab_triangles(
+                "ceiling", ceiling, floor_normal
             )
+            if not len(ceiling_triangles):
+                ceiling_triangles = floor_triangles + ceiling_height * floor_normal
+        self._append_triangles(vertices, triangles, ceiling_triangles)
 
         mesh = o3d.geometry.TriangleMesh(
             o3d.utility.Vector3dVector(np.asarray(vertices)),
@@ -326,6 +357,8 @@ class SyncBIMScene:
         return mesh, {
             "planes": len(planes),
             "walls": len(segments),
+            "floor_triangles": len(floor_triangles),
+            "ceiling_triangles": len(ceiling_triangles),
             "ceiling_height_m": ceiling_height,
             "vertices": len(vertices),
             "triangles": len(triangles),
