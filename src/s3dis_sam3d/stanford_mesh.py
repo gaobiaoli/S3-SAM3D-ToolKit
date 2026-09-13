@@ -116,7 +116,7 @@ class StanfordSemanticMesh:
         self.area = str(area)
         self.sample_points = int(sample_points)
         self.seed = int(seed)
-        expected_area = int(self.area.rsplit("_", 1)[-1])
+        expected_area = int(self.area.rsplit("_", 1)[-1].casefold().rstrip("ab"))
         self.rooms = self._read(expected_area)
 
     def _read(self, expected_area):

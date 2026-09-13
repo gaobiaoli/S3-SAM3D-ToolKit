@@ -62,3 +62,21 @@ f 1 2 3
         assert "not in Area_1" in str(error)
     else:
         raise AssertionError("expected an Area mismatch error")
+
+
+def test_semantic_obj_accepts_area_5_subsets(tmp_path: Path):
+    obj = tmp_path / "semantic.obj"
+    obj.write_text(
+        """\
+v 0 0 0
+v 1 0 0
+v 0 1 0
+usemtl floor_1_office_1_5
+f 1 2 3
+""",
+        encoding="utf-8",
+    )
+
+    dataset = StanfordSemanticMesh(obj, area="Area_5a")
+
+    assert dataset.room("office_1").area == "Area_5a"
