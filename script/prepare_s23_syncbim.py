@@ -27,6 +27,16 @@ from s3dis_sam3d.syncbim import SyncBIMScene
 DEFAULT_AREAS = ("Area_2", "Area_3", "Area_4", "Area_5")
 AVAILABLE_AREAS = {"2", "3", "4", "5", "5a", "5b"}
 
+"""
+python script/prepare_s23_syncbim.py \
+  --s23-root /mnt/priorbimda-data/PriorBIMDA-Datasets/Stanford2D3DS/no_xyz \
+  --output-root /mnt/priorbimda-data/s23_syncbim_area2_5_504 \
+  --areas 2 3 4 5 \
+  --device cuda \
+  --local-files-only
+
+"""
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
