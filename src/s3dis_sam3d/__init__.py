@@ -23,6 +23,7 @@ from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
 from .s23_bim import S23_BIMDataset
 from .s23dis import S23Dataset, S23Frame, S23Scene, parse_stem, decode_semantic_labels
 from .stanford_mesh import StanfordSemanticMesh
+from .syncbim import SyncBIMScene
 
 __all__ = [
     "decode_semantic_labels",
@@ -56,6 +57,7 @@ __all__ = [
     "S23Scene",
     "S23_BIMDataset",
     "StanfordSemanticMesh",
+    "SyncBIMScene",
     "config",
     "configure",
     "mde",

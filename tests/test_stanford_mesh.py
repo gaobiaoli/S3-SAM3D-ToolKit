@@ -30,13 +30,17 @@ f 1 3 4
     assert room.key == "Area_1/office_1"
     assert room.triangles.shape == (2, 3)
     np.testing.assert_array_equal(room.face_labels, [1, 1])
+    np.testing.assert_array_equal(room.face_instances, [0, 0])
+    assert room.instance_names == ("floor_1",)
     np.testing.assert_allclose(room.vertices.min(axis=0), [0, -1, 0])
     np.testing.assert_allclose(room.vertices.max(axis=0), [1, 0, 0])
 
     cloud = room.point_cloud(include_classes=("floor",))
     assert cloud.xyz.shape == (200, 3)
     np.testing.assert_array_equal(np.unique(cloud.semantic_labels), [1])
+    np.testing.assert_array_equal(np.unique(cloud.instance_labels), [0])
     assert cloud.metadata["label_names"][1] == "floor"
+    assert cloud.metadata["instances"][0]["class_name"] == "floor"
 
 
 def test_semantic_obj_rejects_a_different_area(tmp_path: Path):

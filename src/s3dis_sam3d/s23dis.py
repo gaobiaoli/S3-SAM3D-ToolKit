@@ -325,6 +325,17 @@ class S23Scene:
                 f"UUID {uuid!r} is unavailable for frame {frame_id!r} in {self.key}"
             ) from error
 
+    def structural_point_cloud(
+        self,
+        include_classes=("floor", "wall", "ceiling"),
+        sample_points=None,
+    ):
+        """Sample this room's labeled structural mesh in world coordinates."""
+        return self.dataset.semantic_mesh.room(self.name).point_cloud(
+            include_classes=include_classes,
+            sample_points=sample_points,
+        )
+
     def reconstruct(
         self,
         frame_id=None,
@@ -481,6 +492,15 @@ class S23Dataset:
             S23Scene(self, self.area, name, tuple(frames))
             for name, frames in sorted(grouped.items())
         )
+
+    @cached_property
+    def semantic_mesh(self):
+        from .stanford_mesh import StanfordSemanticMesh
+
+        path = self.area_path / "3d" / "semantic.obj"
+        if not path.is_file():
+            raise FileNotFoundError(f"semantic mesh is unavailable: {path}")
+        return StanfordSemanticMesh(path, area=self.area)
 
     def _index_frames(self, projection_type):
         frames = []
