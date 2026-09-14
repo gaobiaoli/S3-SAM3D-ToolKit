@@ -1,4 +1,4 @@
-"""Room-level BIM-like depth generated from 2D-3D-S structural meshes."""
+"""Room-level BIM-like depth generated from labeled structural meshes."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from .rendering import MeshRaycaster
 
 
 class SyncBIMScene:
-    """Fit a simple wall/floor shell once and render it from S23 frames."""
+    """Fit a simple wall/floor shell once and render calibrated RGB-D frames."""
 
     def __init__(
         self,

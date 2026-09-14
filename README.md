@@ -1,6 +1,6 @@
 # S3DIS + SAM3D Toolkit
 
-一个自用的 Python 工具库，用于处理 S3DIS、Stanford 2D-3D-S 数据，以及 SAM3D 输出的 GLB 和位姿。
+一个自用的 Python 工具库，用于处理 S3DIS、Stanford 2D-3D-S、ScanNet 数据，以及 SAM3D 输出的 GLB 和位姿。
 
 仓库内的 `dataset/` 提供最小真实数据，可直接运行示例；完整数据集、SAM3D 权重和推理服务不包含在项目中。
 
@@ -33,6 +33,7 @@ s3dis-sam3d-toolkit/
 │   ├── config.py         # S3DIS、2D-3D-S、BIMSync 默认路径
 │   ├── s3dis.py          # S3DISDataset、S3DISRoom、S3DISInstance
 │   ├── s23dis.py         # 2D-3D-S
+│   ├── scannet.py        # ScanNet 25k RGB-D、标签与 scene mesh
 │   ├── annotations.py    # S3DIS instance 到图像 bbox 的批量标注
 │   ├── bimsync.py        # BIMSyncDataset、BIMSyncScene 与 IFC/S3DIS 配准
 │   ├── utils_ifc.py      # IFC 类型筛选、语义映射与 mesh 加载
@@ -167,6 +168,42 @@ from s3dis_sam3d.utils import (
 ```
 
 这些数学函数不再作为 `S23Dataset` 的别名重复暴露。
+
+## ScanNet
+
+`ScanNetDataset` 与 `S23Dataset` 使用相同的 Frame/Scene/Dataset 接口，并把
+frame pose 与 labeled mesh 同时变换到 `axisAlignment` 坐标系：
+
+```python
+from s3dis_sam3d import ScanNetDataset, SyncBIMScene
+
+dataset = ScanNetDataset("/home/bgao491/ScanNet")
+scene = dataset["scene0000_00"]
+frame = scene.get_frame(0)
+
+print(frame.rgb.shape, frame.depth.shape, frame.semantic_labels.shape)
+cloud = scene.reconstruct(stride=4, max_frames=10)
+structural = scene.structural_point_cloud(sample_points=100_000)
+fake_bim = SyncBIMScene(scene).render_depth(frame, (504, 504))
+```
+
+25k 的 RGB/semantic/instance 图是 1296×968，depth 是 640×480；解析器在生成点云时
+把 RGB 双线性缩放到 depth 网格，把离散标签以最近邻缩放。`instance_labels` 保留官方
+`nyu40id * 1000 + instance_index` 编码。3D mesh、segmentation 和 aggregation 按 scene
+惰性加载，避免一次占用全部 1513 个场景的内存。
+
+生成与 `prepare_s23_syncbim.py` 完全相同字段的 MyDepth train-only 数据：
+
+```bash
+python script/prepare_scannet_syncbim.py \
+  --scannet-root /home/bgao491/ScanNet \
+  --output-root /mnt/priorbimda-data/scannet_syncbim_504 \
+  --device cuda \
+  --local-files-only
+```
+
+如需严格只使用官方训练场景，增加 `--scene-list path/to/scannetv2_train.txt`。脚本可中断
+后续跑，已有且通过 schema 校验的 `.npz` 会直接复用；加 `--overwrite` 可强制重算。
 
 ## BIMNet
 

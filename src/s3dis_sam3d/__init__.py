@@ -21,12 +21,18 @@ from .mp3d_bim import MP3D_BIMDataset
 from .rendering import FrameRender
 from .s3dis import S3DISDataset, S3DISInstance, S3DISRoom
 from .s23_bim import S23_BIMDataset
-from .s23dis import S23Dataset, S23Frame, S23Scene, parse_stem, decode_semantic_labels
+from .s23dis import S23Dataset, S23Frame, S23Scene, decode_semantic_labels, parse_stem
+from .scannet import (
+    ScanNetDataset,
+    ScanNetFrame,
+    ScanNetMeshScene,
+    ScanNetScene,
+    ScanNetSemanticMesh,
+)
 from .stanford_mesh import StanfordSemanticMesh
 from .syncbim import SyncBIMScene
 
 __all__ = [
-    "decode_semantic_labels",
     "CONFIG",
     "BIMNetDataset",
     "BIMNetElement",
@@ -56,10 +62,16 @@ __all__ = [
     "S23Frame",
     "S23Scene",
     "S23_BIMDataset",
+    "ScanNetDataset",
+    "ScanNetFrame",
+    "ScanNetMeshScene",
+    "ScanNetScene",
+    "ScanNetSemanticMesh",
     "StanfordSemanticMesh",
     "SyncBIMScene",
     "config",
     "configure",
+    "decode_semantic_labels",
     "mde",
     "parse_stem",
     "utils",
