@@ -26,13 +26,13 @@ class SyncBIMScene:
         self.mesh, self.statistics = self._build_mesh(self.planes)
         self.raycaster = MeshRaycaster(self.mesh)
 
-    def render_depth(self, frame, size=None):
+    def render_depth(self, frame, size=None, *, intrinsics=None):
         if size is None:
             height, width = frame.image_shape
-            intrinsics = frame.intrinsics
         else:
             height, width = size
-            intrinsics = frame.intrinsics_for_size(size)
+        if intrinsics is None:
+            intrinsics = frame.intrinsics if size is None else frame.intrinsics_for_size(size)
         return self.raycaster.depth(
             intrinsics,
             frame.world_to_camera,

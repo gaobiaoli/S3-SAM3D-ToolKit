@@ -24,8 +24,9 @@ from s3dis_sam3d.mde import DA3Predictor
 from s3dis_sam3d.s23dis import S23Dataset
 from s3dis_sam3d.syncbim import SyncBIMScene
 
-DEFAULT_AREAS = ("Area_2", "Area_3", "Area_4", "Area_5")
-AVAILABLE_AREAS = {"2", "3", "4", "5", "5a", "5b"}
+
+DEFAULT_AREAS = ("Area_2", "Area_3", "Area_4", "Area_5", "Area_6")
+AVAILABLE_AREAS = {"2", "3", "4", "5", "5a", "5b" , "6"}
 
 """
 python script/prepare_s23_syncbim.py \

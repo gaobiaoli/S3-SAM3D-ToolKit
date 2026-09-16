@@ -4,8 +4,11 @@
 
 The fake BIM is a simplified wall/floor/ceiling shell fitted from the labeled
 scan mesh, not a ground-truth CAD model.  It is rendered in the same aligned
-world coordinates as the frame poses.  Optional --scene-list can restrict the
-run to an official ScanNet training split (one scene ID per line).
+world coordinates as the frame poses. RGB/labels are sampled on the registered
+depth grid, then all modalities use 640x480 -> 672x504 -> a centered 504x504 crop.
+Processed RGB and labels are saved with the same camera grid as the cached
+depths. Do not apply raw sensor extrinsics again to the official 25k release.
+Optional --scene-list restricts the run to selected ScanNet scenes.
 
 Example:
     python script/prepare_scannet_syncbim.py \
@@ -20,10 +23,10 @@ import argparse
 import json
 from pathlib import Path
 
+import cv2
 import numpy as np
 from PIL import Image
 from prepare_area1_prior import (
-    DA3_REFERENCE_FOCAL,
     TARGET_SHAPE,
     atomic_savez,
     atomic_write_text,
@@ -31,8 +34,8 @@ from prepare_area1_prior import (
     write_jsonl,
 )
 
-from s3dis_sam3d.mde import DA3Predictor
-from s3dis_sam3d.scannet import SCANNET_DEPTH_SCALE, ScanNetDataset
+from s3dis_sam3d.mde import DA3Predictor, da3_processed_geometry
+from s3dis_sam3d.scannet import ScanNetDataset
 from s3dis_sam3d.syncbim import SyncBIMScene
 
 
@@ -57,19 +60,58 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def load_gt_depth(depth_path, target_shape=TARGET_SHAPE):
-    """Decode uint16 millimeter depth; zero is invalid; resize with nearest."""
-    with Image.open(depth_path) as image:
-        raw = np.asarray(image)
-        if raw.ndim != 2 or raw.dtype != np.uint16:
-            raise ValueError(f"expected uint16 ScanNet depth PNG: {depth_path}")
-        if raw.shape != tuple(target_shape):
-            image = image.resize(tuple(target_shape)[::-1], Image.Resampling.NEAREST)
-            raw = np.asarray(image, dtype=np.uint16)
-    depth = raw.astype(np.float32) / SCANNET_DEPTH_SCALE
+def resize_crop_geometry(source_shape, target_shape=TARGET_SHAPE):
+    height, width = source_shape
+    target_height, target_width = target_shape
+    scale = max(target_height / height, target_width / width)
+    resized = (round(height * scale), round(width * scale))
+    top = (resized[0] - target_height) // 2
+    left = (resized[1] - target_width) // 2
+    return resized, top, left
+
+
+def resize_crop(image, interpolation, target_shape=TARGET_SHAPE):
+    resized, top, left = resize_crop_geometry(image.shape[:2], target_shape)
+    image = cv2.resize(image, resized[::-1], interpolation=interpolation)
+    height, width = target_shape
+    return np.ascontiguousarray(image[top:top + height, left:left + width])
+
+
+def training_intrinsics(frame, target_shape=TARGET_SHAPE):
+    """Depth-grid intrinsics after uniform resize and center crop."""
+    height, width = frame.image_shape
+    resized, top, left = resize_crop_geometry((height, width), target_shape)
+    scale_x, scale_y = resized[1] / width, resized[0] / height
+    intrinsic = frame.intrinsics.copy()
+    intrinsic[0] *= scale_x
+    intrinsic[1] *= scale_y
+    intrinsic[0, 2] = (frame.intrinsics[0, 2] + 0.5) * scale_x - 0.5 - left
+    intrinsic[1, 2] = (frame.intrinsics[1, 2] + 0.5) * scale_y - 0.5 - top
+    return intrinsic
+
+
+def load_gt_depth(frame, target_shape=TARGET_SHAPE):
+    """Resize/crop released depth without filling holes or averaging boundaries."""
+    depth = resize_crop(frame.depth, cv2.INTER_NEAREST_EXACT, target_shape)
     valid = np.isfinite(depth) & (depth > 0)
     depth[~valid] = 0
     return depth, valid
+
+
+def da3_focal_scale(intrinsic):
+    """DA3 sees the final cropped RGB, whose intrinsics are saved in the NPZ."""
+    _, _, _, focal_scale = da3_processed_geometry(TARGET_SHAPE, intrinsic)
+    return focal_scale
+
+
+def prepare_images(frame, rgb_path, label_path):
+    rgb = resize_crop(frame.rgb, cv2.INTER_CUBIC)
+    rgb = np.rint(rgb.clip(0, 255)).astype(np.uint8)
+    labels = resize_crop(frame.semantic_labels.astype(np.float32), cv2.INTER_NEAREST_EXACT)
+    rgb_path.parent.mkdir(parents=True, exist_ok=True)
+    label_path.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(rgb).save(rgb_path)
+    Image.fromarray(labels.astype(np.uint8)).save(label_path)
 
 
 def collect_frames(scene, frame_stride=1, max_frames=None):
@@ -81,7 +123,7 @@ def collect_frames(scene, frame_stride=1, max_frames=None):
     return frames if max_frames is None else frames[:max_frames]
 
 
-def sample_record(scene, frame, sample_path, output_root, values):
+def sample_record(scene, frame, sample_path, output_root, values, rgb_path):
     key = f"{frame.frame_id:06d}"
     return {
         "id": f"scannet/{scene}/{key}",
@@ -90,9 +132,9 @@ def sample_record(scene, frame, sample_path, output_root, values):
         "area": "scannet",
         "dataset": "scannet",
         "training_source": "syncbim",
-        # MyDepth resolves relative RGB paths against its Stanford root.  A
-        # ScanNet extra dataset therefore needs an absolute source image path.
-        "rgb": str(frame.rgb_path),
+        # MyDepth resolves relative RGB paths against its Stanford root, so
+        # keep an absolute path to the processed crop, not the source RGB.
+        "rgb": str(rgb_path),
         "sample": str(sample_path.relative_to(output_root)),
         "pose": str(frame.pose_path),
         "frame_number": int(frame.frame_id),
@@ -167,14 +209,35 @@ def main(argv=None):
             processed += 1
             key = f"{frame.frame_id:06d}"
             sample_path = output_root / "samples" / "scannet" / scene.name / f"{key}.npz"
+            image_dir = output_root / "images" / "scannet" / scene.name
+            rgb_path = image_dir / "color" / f"{key}.png"
+            label_path = image_dir / "label" / f"{key}.png"
+            intrinsic = training_intrinsics(frame)
+            focal_scale = da3_focal_scale(intrinsic)
             if sample_path.is_file() and not args.overwrite:
                 validate_sample(sample_path)
+                for path in (rgb_path, label_path):
+                    if not path.is_file():
+                        raise ValueError(f"{path}: missing processed image; reprepare with --overwrite")
+                    with Image.open(path) as image:
+                        if (image.height, image.width) != TARGET_SHAPE:
+                            raise ValueError(f"{path}: invalid crop size; reprepare with --overwrite")
                 with np.load(sample_path, allow_pickle=False) as item:
+                    if not np.allclose(item["intrinsic"], intrinsic, rtol=1e-6, atol=1e-5):
+                        raise ValueError(
+                            f"{sample_path}: sample does not use the cropped camera grid; "
+                            "reprepare with --overwrite"
+                        )
                     values = {
                         "gt_valid_pixels": int((item["gt_valid"] > 0).sum()),
                         "bim_hit_pixels": int((item["bim_valid"] > 0).sum()),
                         "da3_focal_scale": float(item["da3_focal_scale"].item()),
                     }
+                if not np.isclose(values["da3_focal_scale"], focal_scale, rtol=1e-5):
+                    raise ValueError(
+                        f"{sample_path}: DA3 focal scale does not match the RGB input; "
+                        "reprepare with --overwrite"
+                    )
                 status = "reuse"
             else:
                 if syncbim is None and failure is None:
@@ -191,29 +254,31 @@ def main(argv=None):
                 if failure is not None:
                     continue
 
-                intrinsic = np.asarray(frame.intrinsics_for_size(TARGET_SHAPE), dtype=np.float32)
-                focal_px = float((intrinsic[0, 0] + intrinsic[1, 1]) / 2)
-                focal_scale = focal_px / DA3_REFERENCE_FOCAL
-                if not np.isfinite(focal_scale) or focal_scale <= 0:
-                    raise ValueError(f"{scene.name}/{key}: invalid DA3 focal scale")
-                bim_depth = np.asarray(syncbim.render_depth(frame, TARGET_SHAPE), dtype=np.float32)
+                # Open3D samples (u + 0.5, v + 0.5); our image centers are (u, v).
+                render_intrinsic = intrinsic.copy()
+                render_intrinsic[:2, 2] += 0.5
+                bim_depth = np.asarray(
+                    syncbim.render_depth(frame, TARGET_SHAPE, intrinsics=render_intrinsic),
+                    dtype=np.float32,
+                )
                 bim_valid = np.isfinite(bim_depth) & (bim_depth > 0)
                 bim_depth = np.where(bim_valid, bim_depth, 0).astype(np.float32)
                 if float(bim_valid.mean()) < args.min_bim_hit_fraction:
                     statistics["skipped_low_coverage"] += 1
                     continue
 
+                prepare_images(frame, rgb_path, label_path)
                 if da3 is None:
                     da3 = DA3Predictor(
                         device=args.device,
                         local_files_only=args.local_files_only,
                     )
                 da3_depth_raw = np.asarray(
-                    da3.predict_raw(frame.rgb_path, TARGET_SHAPE), dtype=np.float32
+                    da3.predict_raw(rgb_path, TARGET_SHAPE), dtype=np.float32
                 )
                 if da3_depth_raw.shape != TARGET_SHAPE:
                     raise ValueError(f"{scene.name}/{key}: unexpected DA3 depth shape")
-                gt_depth, gt_valid = load_gt_depth(frame.depth_path, TARGET_SHAPE)
+                gt_depth, gt_valid = load_gt_depth(frame, TARGET_SHAPE)
                 atomic_savez(
                     sample_path,
                     sample_schema_version=np.asarray(1, dtype=np.uint16),
@@ -235,7 +300,7 @@ def main(argv=None):
             if values["bim_hit_pixels"] / np.prod(TARGET_SHAPE) < args.min_bim_hit_fraction:
                 statistics["skipped_low_coverage"] += 1
                 continue
-            records.append(sample_record(scene.name, frame, sample_path, output_root, values))
+            records.append(sample_record(scene.name, frame, sample_path, output_root, values, rgb_path))
             statistics["samples"] += 1
             if processed == 1 or processed % args.log_every == 0 or processed == total_frames:
                 print(
@@ -261,6 +326,7 @@ def main(argv=None):
         "scannet_root": str(dataset.root),
         "scenes": [scene.name for scene in scenes],
         "target_shape": list(TARGET_SHAPE),
+        "preprocessing": "registered depth grid -> aspect-preserving resize -> center crop",
         "samples": len(records),
         "frame_stride": args.frame_stride,
         "minimum_bim_hit_fraction": args.min_bim_hit_fraction,

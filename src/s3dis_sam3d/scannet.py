@@ -75,6 +75,21 @@ SCANNET_SEMANTIC_CLASSES = (
 SCANNET_CLASS_TO_ID = {name: class_id for class_id, name in enumerate(SCANNET_SEMANTIC_CLASSES)}
 
 
+def _remap_registered_image(image, source_intrinsics, target_intrinsics, target_shape, interpolation):
+    """Resample between two grids of the same already-registered camera."""
+    import cv2
+
+    rows, cols = np.indices(target_shape, dtype=np.float32)
+    source = source_intrinsics
+    target = target_intrinsics
+    map_x = (cols - target[0, 2]) * source[0, 0] / target[0, 0] + source[0, 2]
+    map_y = (rows - target[1, 2]) * source[1, 1] / target[1, 1] + source[1, 2]
+    return cv2.remap(
+        image, map_x.astype(np.float32), map_y.astype(np.float32), interpolation,
+        borderMode=cv2.BORDER_CONSTANT, borderValue=0,
+    )
+
+
 def _read_matrix(path, shape=(4, 4)):
     matrix = np.loadtxt(path, dtype=np.float64)
     if matrix.shape != shape or not np.isfinite(matrix).all():
@@ -128,7 +143,11 @@ def _concatenate_optional_labels(clouds, attribute):
 
 @dataclass(frozen=True)
 class ScanNetFrame(RGBDFrame):
-    """One calibrated frame from ``scannet_frames_25k``."""
+    """One calibrated, depth-color registered frame from ``scannet_frames_25k``.
+
+    The release is already registered; the raw sensor extrinsics in scene
+    metadata must not be applied again. RGB and depth still have separate grids.
+    """
 
     depth_scale = SCANNET_DEPTH_SCALE
     invalid_depth_value = SCANNET_INVALID_DEPTH
@@ -170,6 +189,37 @@ class ScanNetFrame(RGBDFrame):
         path = self.color_intrinsics_path or self.depth_intrinsics_path
         return _read_matrix(path)[:3, :3].astype(np.float32)
 
+    @cached_property
+    def color_image_shape(self):
+        with Image.open(self.rgb_path) as image:
+            return image.height, image.width
+
+    def color_intrinsics_for_size(self, size=None):
+        """RGB intrinsics with the half-pixel convention used by image resize."""
+        if self.color_intrinsics_path is None:
+            raise ValueError(f"RGB alignment requires color intrinsics: {self.rgb_path}")
+        if size is None:
+            return self.color_intrinsics.copy()
+        height, width = self.color_image_shape
+        scale_x, scale_y = size[1] / width, size[0] / height
+        intrinsic = self.color_intrinsics.copy()
+        intrinsic[0] *= scale_x
+        intrinsic[1] *= scale_y
+        intrinsic[0, 2] = (self.color_intrinsics[0, 2] + 0.5) * scale_x - 0.5
+        intrinsic[1, 2] = (self.color_intrinsics[1, 2] + 0.5) * scale_y - 0.5
+        return intrinsic
+
+    def depth_on_color_grid(self, size=None):
+        """Align released depth to RGB rays; keep holes and out-of-view pixels zero."""
+        import cv2
+
+        if size is None:
+            size = self.color_image_shape
+        return _remap_registered_image(
+            self.depth, self.intrinsics, self.color_intrinsics_for_size(size), size,
+            cv2.INTER_NEAREST,
+        )
+
     @property
     def has_semantic(self):
         return self.semantic_path is not None
@@ -179,13 +229,15 @@ class ScanNetFrame(RGBDFrame):
         return self.instance_path is not None
 
     def _read_rgb(self):
-        """Return color resized to the depth grid for point-cloud association."""
+        """Return color sampled on depth rays for point-cloud association."""
+        import cv2
+
         with Image.open(self.rgb_path) as image:
-            image = image.convert("RGB")
-            height, width = self.image_shape
-            if image.size != (width, height):
-                image = image.resize((width, height), Image.Resampling.BILINEAR)
-            return np.asarray(image, dtype=np.float32)
+            rgb = np.asarray(image.convert("RGB"), dtype=np.float32)
+        return _remap_registered_image(
+            rgb, self.color_intrinsics_for_size(), self.intrinsics, self.image_shape,
+            cv2.INTER_LINEAR,
+        )
 
     @property
     def semantic_labels(self):
@@ -215,11 +267,16 @@ class ScanNetFrame(RGBDFrame):
     def _read_label_image(self, path):
         # Released 25k label/instance images use the color grid (1296x968),
         # whereas depth uses 640x480.  Never bilinearly interpolate label IDs.
+        import cv2
+
         with Image.open(path) as image:
-            height, width = self.image_shape
-            if image.size != (width, height):
-                image = image.resize((width, height), Image.Resampling.NEAREST)
-            return np.asarray(image, dtype=np.int32)
+            if (image.height, image.width) != self.color_image_shape:
+                raise ValueError(f"ScanNet labels must use the RGB grid: {path}")
+            labels = np.asarray(image, dtype=np.float32)
+        return _remap_registered_image(
+            labels, self.color_intrinsics_for_size(), self.intrinsics, self.image_shape,
+            cv2.INTER_NEAREST,
+        ).astype(np.int32)
 
     @property
     def semantic_categories(self):
