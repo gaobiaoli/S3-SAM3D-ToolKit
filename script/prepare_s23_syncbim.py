@@ -24,7 +24,6 @@ from s3dis_sam3d.mde import DA3Predictor
 from s3dis_sam3d.s23dis import S23Dataset
 from s3dis_sam3d.syncbim import SyncBIMScene
 
-
 DEFAULT_AREAS = ("Area_2", "Area_3", "Area_4", "Area_5", "Area_6")
 AVAILABLE_AREAS = {"2", "3", "4", "5", "5a", "5b" , "6"}
 
@@ -54,6 +53,11 @@ def parse_args():
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--log-every", type=int, default=100)
     parser.add_argument("--syncbim-sample-points", type=int, default=100_000)
+    parser.add_argument(
+        "--fill-plane",
+        action="store_true",
+        help="rebuild complete floor/ceiling planes from semantic instances",
+    )
     return parser.parse_args()
 
 
@@ -121,6 +125,14 @@ def main():
     s23_root = args.s23_root.expanduser().resolve()
     output_root = args.output_root.expanduser().resolve()
     output_root.mkdir(parents=True, exist_ok=True)
+    metadata_path = output_root / "syncbim.json"
+    if metadata_path.is_file() and not args.overwrite:
+        previous = json.loads(metadata_path.read_text("utf-8"))
+        if bool(previous.get("fill_plane", False)) != args.fill_plane:
+            raise ValueError(
+                "--fill-plane differs from the cached dataset; use --overwrite "
+                "or a new --output-root"
+            )
     da3 = DA3Predictor(
         device=args.device,
         local_files_only=args.local_files_only,
@@ -161,6 +173,7 @@ def main():
                         syncbim_scenes[room] = SyncBIMScene(
                             dataset.get_scene(room),
                             sample_points=args.syncbim_sample_points,
+                            fill_plane=args.fill_plane,
                         )
                     except ValueError as error:
                         room_failures[room] = str(error)
@@ -266,10 +279,11 @@ def main():
         "frame_stride": args.frame_stride,
         "minimum_bim_hit_fraction": args.min_bim_hit_fraction,
         "syncbim_sample_points": args.syncbim_sample_points,
+        "fill_plane": args.fill_plane,
         "area_statistics": area_statistics,
     }
     atomic_write_text(
-        output_root / "syncbim.json",
+        metadata_path,
         json.dumps(metadata, indent=2, ensure_ascii=False) + "\n",
     )
     print(f"Wrote {len(records)} train-only samples to {manifest_dir / 'train.jsonl'}")

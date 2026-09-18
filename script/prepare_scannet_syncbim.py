@@ -52,6 +52,11 @@ def parse_args(argv=None):
     parser.add_argument("--max-frames-per-scene", type=int)
     parser.add_argument("--min-bim-hit-fraction", type=float, default=0.2)
     parser.add_argument("--syncbim-sample-points", type=int, default=100_000)
+    parser.add_argument(
+        "--fill-plane",
+        action="store_true",
+        help="rebuild complete floor/ceiling planes from semantic instances",
+    )
     parser.add_argument("--no-axis-align", action="store_true")
     parser.add_argument("--device", default=None)
     parser.add_argument("--local-files-only", action="store_true")
@@ -184,6 +189,14 @@ def main(argv=None):
 
     output_root = args.output_root.expanduser().resolve()
     output_root.mkdir(parents=True, exist_ok=True)
+    metadata_path = output_root / "syncbim.json"
+    if metadata_path.is_file() and not args.overwrite:
+        previous = json.loads(metadata_path.read_text("utf-8"))
+        if bool(previous.get("fill_plane", False)) != args.fill_plane:
+            raise ValueError(
+                "--fill-plane differs from the cached dataset; use --overwrite "
+                "or a new --output-root"
+            )
     records = []
     scene_statistics = {}
     da3 = None  # Reusing prepared samples does not need to load the DA3 model.
@@ -245,6 +258,7 @@ def main(argv=None):
                         syncbim = SyncBIMScene(
                             scene,
                             sample_points=args.syncbim_sample_points,
+                            fill_plane=args.fill_plane,
                         )
                         statistics["fake_bim"] = dict(syncbim.statistics)
                     except (ValueError, FileNotFoundError) as error:
@@ -331,12 +345,13 @@ def main(argv=None):
         "frame_stride": args.frame_stride,
         "minimum_bim_hit_fraction": args.min_bim_hit_fraction,
         "syncbim_sample_points": args.syncbim_sample_points,
+        "fill_plane": args.fill_plane,
         "axis_aligned": dataset.axis_align,
         "invalid_poses_skipped": dataset.invalid_pose_count,
         "scene_statistics": scene_statistics,
     }
     atomic_write_text(
-        output_root / "syncbim.json",
+        metadata_path,
         json.dumps(metadata, indent=2, ensure_ascii=False) + "\n",
     )
     print(f"Wrote {len(records)} train-only samples to {manifest_dir / 'train.jsonl'}")

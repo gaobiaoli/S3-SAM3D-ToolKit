@@ -1,3 +1,4 @@
+from inspect import signature
 from types import SimpleNamespace
 
 import numpy as np
@@ -67,3 +68,46 @@ def test_syncbim_keeps_floor_and_ceiling_triangles():
     np.testing.assert_allclose(vertices[-6:, 2], 3)
     assert statistics["floor_triangles"] == 2
     assert statistics["ceiling_triangles"] == 2
+
+
+def test_syncbim_rebuilds_one_complete_slab_per_instance():
+    first = np.asarray(
+        (
+            (0, 0, 0),
+            (2, 0, 0),
+            (2, 2, 0),
+            (0, 2, 0),
+            (0, 1, 0),
+            (2, 1, 0),
+        ),
+        dtype=np.float64,
+    )
+    second = np.asarray(
+        ((4, 0, 0), (5, 0, 0), (5, 1, 0), (4, 1, 0)),
+        dtype=np.float64,
+    )
+    plane = {
+        "normal": np.asarray((0.0, 0.0, 1.0)),
+        "offset": 0.0,
+        "_points": np.concatenate((first, second)),
+        "_instance_points": {1: first, 2: second},
+    }
+
+    syncbim = object.__new__(SyncBIMScene)
+    triangles = syncbim._filled_slab_triangles(plane)
+    double_areas = np.linalg.norm(
+        np.cross(
+            triangles[:, 1] - triangles[:, 0],
+            triangles[:, 2] - triangles[:, 0],
+        ),
+        axis=1,
+    )
+
+    assert len(triangles) == 4
+    np.testing.assert_allclose(double_areas.sum() / 2, 5.0)
+    assert np.all(np.ptp(triangles[..., 0], axis=1) <= 2.0)
+
+
+def test_syncbim_fill_plane_is_opt_in():
+    parameter = signature(SyncBIMScene).parameters["fill_plane"]
+    assert parameter.default is False

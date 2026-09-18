@@ -18,9 +18,13 @@ class SyncBIMScene:
         sample_points=100_000,
         distance_threshold=0.03,
         seed=20260906,
+        fill_plane=False,
     ):
         self.scene = scene
         self.distance_threshold = float(distance_threshold)
+        if not isinstance(fill_plane, bool):
+            raise TypeError("fill_plane must be a bool")
+        self.fill_plane = fill_plane
         rng = np.random.default_rng(stable_seed(seed, scene.key, "syncbim"))
         self.planes = self._fit_planes(scene, int(sample_points), rng)
         self.mesh, self.statistics = self._build_mesh(self.planes)
@@ -102,13 +106,14 @@ class SyncBIMScene:
         camera_positions = np.stack(
             [frame.camera_to_world[:3, 3] for frame in scene.frames]
         ).astype(np.float64)
-        floor_points = np.concatenate(
-            [
-                points
-                for (class_name, _), points in point_groups.items()
-                if class_name == "floor"
-            ]
-        )
+        floor_groups = {
+            instance_id: points
+            for (class_name, instance_id), points in point_groups.items()
+            if class_name == "floor"
+        }
+        if not floor_groups:
+            raise ValueError("no floor instances for " + scene.key)
+        floor_points = np.concatenate(list(floor_groups.values()))
         floor_fit = self._fit_plane(floor_points, rng)
         if floor_fit is None:
             raise ValueError("could not fit floor for " + scene.key)
@@ -128,6 +133,10 @@ class SyncBIMScene:
                 "inlier_ratio": float(np.mean(floor_inliers)),
                 "median_residual_m": floor_residual,
                 "_points": floor_points[floor_inliers],
+                # The plane fit uses inliers, while its extent uses every point
+                # from each instance.  Projecting all instance points preserves
+                # partially occluded boundaries without preserving mesh holes.
+                "_instance_points": floor_groups,
             }
         ]
 
@@ -171,13 +180,13 @@ class SyncBIMScene:
             if not duplicate:
                 planes.append(candidate)
 
-        ceiling_groups = [
-            points
-            for (class_name, _), points in point_groups.items()
+        ceiling_groups = {
+            instance_id: points
+            for (class_name, instance_id), points in point_groups.items()
             if class_name == "ceiling"
-        ]
+        }
         if ceiling_groups:
-            ceiling_points = np.concatenate(ceiling_groups)
+            ceiling_points = np.concatenate(list(ceiling_groups.values()))
             ceiling_fit = self._fit_plane(ceiling_points, rng)
             if ceiling_fit is not None:
                 _, _, ceiling_inliers, ceiling_residual = ceiling_fit
@@ -199,6 +208,7 @@ class SyncBIMScene:
                         "inlier_ratio": float(np.mean(ceiling_inliers)),
                         "median_residual_m": ceiling_residual,
                         "_points": ceiling_points[ceiling_inliers],
+                        "_instance_points": ceiling_groups,
                     }
                 )
 
@@ -220,7 +230,51 @@ class SyncBIMScene:
         distance = points @ normal + plane["offset"]
         return points - distance[..., None] * normal
 
-    def _slab_triangles(self, class_name, plane, reference_normal):
+    @staticmethod
+    def _plane_basis(normal):
+        axis = np.zeros(3, dtype=np.float64)
+        axis[int(np.argmin(np.abs(normal)))] = 1.0
+        first = np.cross(normal, axis)
+        first /= np.linalg.norm(first)
+        return first, np.cross(normal, first)
+
+    @staticmethod
+    def _convex_hull_indices(points):
+        """Return a counter-clockwise 2D convex hull without extra dependencies."""
+        if len(points) < 3:
+            return np.empty(0, dtype=np.int64)
+        order = np.lexsort((points[:, 1], points[:, 0]))
+        ordered = points[order]
+        keep = np.ones(len(ordered), dtype=bool)
+        keep[1:] = np.linalg.norm(np.diff(ordered, axis=0), axis=1) > 1e-6
+        order = order[keep]
+        ordered = points[order]
+        if len(ordered) < 3:
+            return np.empty(0, dtype=np.int64)
+
+        def cross(a, b, c):
+            ab = b - a
+            ac = c - a
+            return ab[0] * ac[1] - ab[1] * ac[0]
+
+        lower = []
+        for index in range(len(ordered)):
+            while len(lower) >= 2 and cross(
+                ordered[lower[-2]], ordered[lower[-1]], ordered[index]
+            ) <= 1e-9:
+                lower.pop()
+            lower.append(index)
+        upper = []
+        for index in range(len(ordered) - 1, -1, -1):
+            while len(upper) >= 2 and cross(
+                ordered[upper[-2]], ordered[upper[-1]], ordered[index]
+            ) <= 1e-9:
+                upper.pop()
+            upper.append(index)
+        hull = lower[:-1] + upper[:-1]
+        return order[np.asarray(hull, dtype=np.int64)]
+
+    def _source_slab_triangles(self, class_name, plane, reference_normal):
         room = self.scene.dataset.semantic_mesh.room(self.scene.name)
         class_id = room.dataset.semantic_classes.index(class_name)
         triangles = room.vertices[room.triangles[room.face_labels == class_id]].astype(
@@ -245,6 +299,36 @@ class SyncBIMScene:
             triangles[:, 2] - triangles[:, 0],
         )
         return triangles[np.linalg.norm(projected_cross, axis=1) > 1e-8]
+
+    def _filled_slab_triangles(self, plane):
+        """Build one complete planar slab per semantic instance.
+
+        Convex instance outlines deliberately fill holes left by furniture and
+        incomplete scans.  Keeping instances separate avoids connecting floors
+        from different rooms across an unobserved gap.
+        """
+        groups = plane.get("_instance_points")
+        if not groups:
+            groups = {-1: plane["_points"]}
+        first, second = self._plane_basis(plane["normal"])
+        triangles = []
+        for points in groups.values():
+            projected = self._project_to_plane(np.asarray(points), plane)
+            origin = projected.mean(axis=0)
+            coordinates = np.column_stack(
+                ((projected - origin) @ first, (projected - origin) @ second)
+            )
+            hull = self._convex_hull_indices(coordinates)
+            if len(hull) < 3:
+                continue
+            polygon = projected[hull]
+            triangles.extend(
+                np.stack((polygon[0], polygon[index], polygon[index + 1]))
+                for index in range(1, len(polygon) - 1)
+            )
+        if not triangles:
+            return np.empty((0, 3, 3), dtype=np.float64)
+        return np.asarray(triangles, dtype=np.float64)
 
     @staticmethod
     def _append_triangles(vertices, triangles, points):
@@ -337,13 +421,23 @@ class SyncBIMScene:
                 ((offset, offset + 1, offset + 2), (offset, offset + 2, offset + 3))
             )
 
-        floor_triangles = self._slab_triangles("floor", floor, floor_normal)
+        fill_plane = getattr(self, "fill_plane", False)
+        if fill_plane:
+            floor_triangles = self._filled_slab_triangles(floor)
+        else:
+            floor_triangles = self._source_slab_triangles(
+                "floor", floor, floor_normal
+            )
         self._append_triangles(vertices, triangles, floor_triangles)
 
         if ceiling is None:
             ceiling_triangles = floor_triangles + ceiling_height * floor_normal
+        elif fill_plane:
+            ceiling_triangles = self._filled_slab_triangles(ceiling)
+            if not len(ceiling_triangles):
+                ceiling_triangles = floor_triangles + ceiling_height * floor_normal
         else:
-            ceiling_triangles = self._slab_triangles(
+            ceiling_triangles = self._source_slab_triangles(
                 "ceiling", ceiling, floor_normal
             )
             if not len(ceiling_triangles):
@@ -357,6 +451,13 @@ class SyncBIMScene:
         return mesh, {
             "planes": len(planes),
             "walls": len(segments),
+            "fill_plane": fill_plane,
+            "floor_instances": len(floor.get("_instance_points", {-1: None})),
+            "ceiling_instances": (
+                len(ceiling.get("_instance_points", {-1: None}))
+                if ceiling is not None
+                else len(floor.get("_instance_points", {-1: None}))
+            ),
             "floor_triangles": len(floor_triangles),
             "ceiling_triangles": len(ceiling_triangles),
             "ceiling_height_m": ceiling_height,
