@@ -119,6 +119,24 @@ raw_depth = predictor.predict_raw(frame.rgb_path, intrinsics=frame.intrinsics)
 `focal_correct`，但 UniDepthV2 已利用内参直接输出米制深度，此参数不会再次缩放结果。
 同一 `cache_id` 下，不同内参分别缓存。
 
+MoGe 3 和 MoGe 2 分别使用独立的 ViT-L predictor，调用方式与上面一致：
+
+```python
+from s3dis_sam3d.mde import MoGe2Predictor, MoGe3Predictor
+
+moge3 = MoGe3Predictor(device="cuda", cache_root="outputs/moge3_cache")
+depth3 = moge3.predict_frame(frame)
+
+moge2 = MoGe2Predictor(device="cuda", cache_root="outputs/moge2_cache")
+depth2 = moge2.predict_frame(frame)
+```
+
+`MoGe3Predictor` 默认加载 `Ruicheng/moge-3-vitl` 并执行 3 次 refinement；
+`MoGe2Predictor` 默认加载仅深度版 `Ruicheng/moge-2-vitl`。二者默认长边输出 504 像素，
+也支持 `predict_raw(..., intrinsics=...)`。传入内参时，predictor 按原图焦距计算水平 FoV；
+未传入时由 MoGe 推断相机。MoGe 的 `resolution_level` 默认是 9，MoGe 3 可用
+`refine_steps` 调整 refinement 次数。
+
 ## S3DIS
 
 ```python

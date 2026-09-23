@@ -7,13 +7,19 @@ import pytest
 from PIL import Image
 
 from s3dis_sam3d.mde import (
+    MOGE2_MODEL,
+    MOGE3_MODEL,
+    MOGE_OUTPUT_SIZE,
     UNIDEPTHV2_MODEL,
     UNIDEPTHV2_OUTPUT_SIZE,
     DA3Predictor,
     DepthMetricAccumulator,
+    MoGe2Predictor,
+    MoGe3Predictor,
     UniDepthV2Predictor,
     da3_processed_geometry,
     depth_metrics,
+    moge_fov_x,
 )
 
 
@@ -224,3 +230,132 @@ def test_unidepthv2_loads_pinned_vitl_model(monkeypatch):
     assert calls["device"] == "cpu"
     assert calls["eval"] is True
     assert predictor.model.resolution_level == 4
+
+
+def test_moge_fov_x_uses_pixel_space_focal_length():
+    intrinsics = np.array([[500, 0, 320], [0, 500, 240], [0, 0, 1]])
+    assert moge_fov_x((480, 640), intrinsics) == pytest.approx(
+        np.degrees(2 * np.arctan(640 / 1000))
+    )
+
+
+@pytest.mark.parametrize(
+    ("predictor_class", "model_name", "extra_kwargs"),
+    [
+        (MoGe3Predictor, MOGE3_MODEL, {"refine_steps": 2}),
+        (MoGe2Predictor, MOGE2_MODEL, {}),
+    ],
+)
+def test_moge_predictors_share_metric_interface(
+    tmp_path, predictor_class, model_name, extra_kwargs
+):
+    torch = pytest.importorskip("torch")
+    image_path = tmp_path / "frame.png"
+    Image.new("RGB", (4, 3), color=(64, 128, 255)).save(image_path)
+
+    class Model:
+        def __init__(self):
+            self.calls = []
+
+        def infer(self, image, **kwargs):
+            self.calls.append((image.clone(), kwargs))
+            return {"depth": torch.full((3, 4), 2.0)}
+
+    predictor = predictor_class(
+        cache_root=tmp_path / "cache",
+        output_size=56,
+        resolution_level=7,
+        num_tokens=1234,
+        use_fp16=True,
+        **extra_kwargs,
+    )
+    predictor.model = Model()
+    assert predictor.model_name == model_name
+    assert MOGE_OUTPUT_SIZE == 504
+    intrinsics = np.array([[200, 0, 2], [0, 200, 1.5], [0, 0, 1]])
+    frame = SimpleNamespace(
+        rgb_path=image_path,
+        image_shape=(3, 4),
+        intrinsics=intrinsics,
+        scene_id="scene",
+        frame_id="frame",
+    )
+
+    first = predictor.predict_frame(frame)
+    second = predictor.predict_frame(frame, focal_correct=False)
+    np.testing.assert_array_equal(first, np.full((42, 56), 2, dtype=np.float32))
+    np.testing.assert_array_equal(second, first)
+    assert len(predictor.model.calls) == 1
+    image, kwargs = predictor.model.calls[0]
+    assert tuple(image.shape) == (3, 3, 4)
+    torch.testing.assert_close(image[:, 0, 0], torch.tensor([64, 128, 255]) / 255)
+    assert kwargs["resolution_level"] == 7
+    assert kwargs["num_tokens"] == 1234
+    assert kwargs["use_fp16"] is True
+    assert kwargs["apply_mask"] is False
+    assert kwargs["fov_x"] == pytest.approx(moge_fov_x((3, 4), intrinsics))
+    if predictor_class is MoGe3Predictor:
+        assert kwargs["refine_steps"] == 2
+    else:
+        assert "refine_steps" not in kwargs
+
+    predictor.predict_raw(image_path, cache_id="scene/frame")
+    assert predictor.model.calls[-1][1].get("fov_x") is None
+    assert len(predictor.model.calls) == 2
+    assert len(list((tmp_path / "cache").rglob("*.npz"))) == 2
+
+
+def test_moge_predictor_validates_options():
+    with pytest.raises(ValueError, match="output_size"):
+        MoGe3Predictor(output_size=0)
+    with pytest.raises(ValueError, match="resolution_level"):
+        MoGe2Predictor(resolution_level=10)
+    with pytest.raises(ValueError, match="num_tokens"):
+        MoGe2Predictor(num_tokens=0)
+    with pytest.raises(ValueError, match="refine_steps"):
+        MoGe3Predictor(refine_steps=-1)
+
+
+@pytest.mark.parametrize(
+    ("predictor_class", "module_name", "model_name"),
+    [
+        (MoGe3Predictor, "moge.model.v3", MOGE3_MODEL),
+        (MoGe2Predictor, "moge.model.v2", MOGE2_MODEL),
+    ],
+)
+def test_moge_predictors_load_their_matching_versions(
+    monkeypatch, predictor_class, module_name, model_name
+):
+    calls = {}
+
+    class Model:
+        @classmethod
+        def from_pretrained(cls, name, **kwargs):
+            calls["name"] = name
+            calls["kwargs"] = kwargs
+            return cls()
+
+        def to(self, device):
+            calls["device"] = str(device)
+            return self
+
+        def eval(self):
+            return self
+
+    moge = ModuleType("moge")
+    model_package = ModuleType("moge.model")
+    version_module = ModuleType(module_name)
+    version_module.MoGeModel = Model
+    moge.model = model_package
+    monkeypatch.setitem(sys.modules, "moge", moge)
+    monkeypatch.setitem(sys.modules, "moge.model", model_package)
+    monkeypatch.setitem(sys.modules, module_name, version_module)
+
+    predictor = predictor_class(device="cpu", local_files_only=True)
+    assert predictor._load() is predictor._load()
+    assert calls["name"] == model_name
+    assert calls["kwargs"] == {
+        "revision": predictor.revision,
+        "local_files_only": True,
+    }
+    assert calls["device"] == "cpu"
