@@ -1,13 +1,17 @@
 import json
-from types import SimpleNamespace
+import sys
+from types import ModuleType, SimpleNamespace
 
 import numpy as np
 import pytest
 from PIL import Image
 
 from s3dis_sam3d.mde import (
+    UNIDEPTHV2_MODEL,
+    UNIDEPTHV2_OUTPUT_SIZE,
     DA3Predictor,
     DepthMetricAccumulator,
+    UniDepthV2Predictor,
     da3_processed_geometry,
     depth_metrics,
 )
@@ -104,3 +108,119 @@ def test_da3_predictor_reuses_compatible_cache(tmp_path):
     assert metadata["scene_id"] == "scene"
     assert metadata["frame_id"] == "frame"
     assert metadata["signature"] == predictor.cache_signature
+
+
+def test_unidepthv2_predictor_uses_intrinsics_and_separate_caches(tmp_path):
+    torch = pytest.importorskip("torch")
+    image_path = tmp_path / "frame.png"
+    Image.new("RGB", (4, 3), color=(10, 20, 30)).save(image_path)
+
+    class Model:
+        def __init__(self):
+            self.calls = []
+
+        def infer(self, rgb, camera):
+            self.calls.append((rgb.clone(), None if camera is None else camera.clone()))
+            value = 2.0 if camera is None else camera[0, 0].item() / 100.0
+            return {"depth": torch.full((1, 1, 3, 4), value)}
+
+    predictor = UniDepthV2Predictor(cache_root=tmp_path / "cache", output_size=56)
+    predictor.model = Model()
+    assert predictor.model_name == UNIDEPTHV2_MODEL
+    intrinsics = np.array([[200, 0, 2], [0, 200, 1.5], [0, 0, 1]])
+    frame = SimpleNamespace(
+        rgb_path=image_path,
+        image_shape=(3, 4),
+        intrinsics=intrinsics,
+        scene_id="scene",
+        frame_id="frame",
+    )
+
+    first = predictor.predict_frame(frame)
+    second = predictor.predict_frame(frame, focal_correct=False)
+    np.testing.assert_array_equal(first, np.full((42, 56), 2, dtype=np.float32))
+    np.testing.assert_array_equal(second, first)
+    assert len(predictor.model.calls) == 1
+    rgb, camera = predictor.model.calls[0]
+    assert tuple(rgb.shape) == (3, 3, 4)
+    assert rgb[:, 0, 0].tolist() == [10, 20, 30]
+    np.testing.assert_array_equal(camera.numpy(), intrinsics.astype(np.float32))
+
+    frame.intrinsics = intrinsics * np.array([[1.5, 1, 1], [1, 1, 1], [1, 1, 1]])
+    changed_camera = predictor.predict_frame(frame)
+    np.testing.assert_array_equal(changed_camera, np.full((42, 56), 3, dtype=np.float32))
+    assert len(predictor.model.calls) == 2
+
+    inferred_camera = predictor.predict_raw(image_path, cache_id="scene/frame")
+    np.testing.assert_array_equal(inferred_camera, np.full((56, 56), 2, dtype=np.float32))
+    assert predictor.model.calls[-1][1] is None
+    assert len(predictor.model.calls) == 3
+    assert len(list((tmp_path / "cache").rglob("*.npz"))) == 3
+
+
+def test_unidepthv2_rejects_invalid_intrinsics_before_inference(tmp_path):
+    image_path = tmp_path / "frame.png"
+    Image.new("RGB", (4, 3)).save(image_path)
+    predictor = UniDepthV2Predictor()
+
+    with pytest.raises(ValueError, match="shape"):
+        predictor.predict_raw(image_path, intrinsics=np.eye(4))
+    with pytest.raises(ValueError, match="positive focal"):
+        predictor.predict_raw(image_path, intrinsics=np.diag([0, 1, 1]))
+    with pytest.raises(ValueError, match="resolution_level"):
+        UniDepthV2Predictor(resolution_level=10)
+    with pytest.raises(ValueError, match="output_size"):
+        UniDepthV2Predictor(output_size=0)
+
+
+def test_unidepthv2_default_output_size_matches_da3_geometry(monkeypatch):
+    predictor = UniDepthV2Predictor()
+    assert UNIDEPTHV2_OUTPUT_SIZE == 504
+    assert predictor._default_target_shape("unused") == (504, 504)
+
+    frame = SimpleNamespace(
+        rgb_path="unused.png",
+        image_shape=(1024, 1280),
+        intrinsics=np.array([[1000, 0, 640], [0, 1000, 512], [0, 0, 1]]),
+        scene_id="scene",
+        frame_id="frame",
+    )
+    monkeypatch.setattr(predictor, "predict_raw", lambda _path, shape, **_kwargs: shape)
+    assert predictor.predict_frame(frame) == (406, 504)
+
+
+def test_unidepthv2_loads_pinned_vitl_model(monkeypatch):
+    calls = {}
+
+    class Model:
+        @classmethod
+        def from_pretrained(cls, name, **kwargs):
+            calls["name"] = name
+            calls["kwargs"] = kwargs
+            return cls()
+
+        def to(self, device):
+            calls["device"] = str(device)
+            return self
+
+        def eval(self):
+            calls["eval"] = True
+            return self
+
+    unidepth = ModuleType("unidepth")
+    models = ModuleType("unidepth.models")
+    models.UniDepthV2 = Model
+    unidepth.models = models
+    monkeypatch.setitem(sys.modules, "unidepth", unidepth)
+    monkeypatch.setitem(sys.modules, "unidepth.models", models)
+
+    predictor = UniDepthV2Predictor(device="cpu", local_files_only=True, resolution_level=4)
+    assert predictor._load() is predictor._load()
+    assert calls["name"] == UNIDEPTHV2_MODEL
+    assert calls["kwargs"] == {
+        "revision": predictor.revision,
+        "local_files_only": True,
+    }
+    assert calls["device"] == "cpu"
+    assert calls["eval"] is True
+    assert predictor.model.resolution_level == 4

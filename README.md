@@ -99,6 +99,26 @@ print(result["pixel_micro"], result["frame_macro"])
 `DepthMetricAccumulator.update()` 每次按一帧累计；处理 batch 时逐帧调用即可同时得到
 pixel-micro 和 frame-macro 结果。
 
+UniDepthV2 也使用相同的缓存和指标接口，默认加载官方 ViT-L 权重：
+
+```python
+from s3dis_sam3d.mde import UniDepthV2Predictor, depth_metrics
+
+predictor = UniDepthV2Predictor(device="cuda", cache_root="outputs/unidepthv2_cache")
+metric_depth = predictor.predict_frame(frame)  # 使用 frame.intrinsics，长边默认输出 504 像素
+scores = depth_metrics(metric_depth, gt_depth, gt_valid)
+
+# 不提供内参时，模型自行推断相机；也可传入原图的 3×3 内参
+raw_depth = predictor.predict_raw(frame.rgb_path, intrinsics=frame.intrinsics)
+```
+
+需在 Python 3.10+ 环境中按[UniDepth 官方说明](https://github.com/lpiccinelli-eth/UniDepth#installation)安装
+`unidepth` 和 PyTorch。`predict_raw(image_path, target_shape=None, *, cache_id=None, intrinsics=None)`
+默认返回 `504×504`；`predict_frame` 按 DA3 的比例和 14 像素对齐规则输出，默认长边 504。
+可通过 `output_size` 修改默认尺寸；指定 `target_shape` 时只缩放输出深度。`predict_frame` 与 DA3 一样接受
+`focal_correct`，但 UniDepthV2 已利用内参直接输出米制深度，此参数不会再次缩放结果。
+同一 `cache_id` 下，不同内参分别缓存。
+
 ## S3DIS
 
 ```python
