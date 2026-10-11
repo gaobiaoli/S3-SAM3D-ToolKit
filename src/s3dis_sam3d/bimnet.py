@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -16,6 +17,7 @@ from .config import CONFIG
 from .matterport import MATTERPORT_DEPTH_SCALE, MatterportFrame
 from .models import PointCloud
 from .pointcloud import transform_points, visualize_point_clouds, voxel_downsample
+from .registration import _metrics, _refine, downsample_points, sample_labeled_mesh, stable_seed
 from .rendering import FrameRender, MeshRaycaster, render_geometries
 
 BIMNET_LABELS = (
@@ -126,6 +128,61 @@ def _raycaster_mesh_options(include_types):
         normalized_types = tuple(include_types)
         type_key = frozenset(str(value).casefold() for value in normalized_types)
     return normalized_types, type_key
+
+
+# Glass, openings and loose objects are not part of the opaque envelope that
+# the Matterport sensor sees; they are left out of the registration source.
+BIMNET_REGISTRATION_EXCLUDED_TYPES = (
+    "IFCPLATE",
+    "IFCWINDOW",
+    "IFCDOOR",
+    "IFCFURNISHINGELEMENT",
+    "IFCBUILDINGELEMENTPROXY",
+)
+
+
+@dataclass(frozen=True)
+class BIMNetRegistration:
+    """Refined BIMNet OBJ → Matterport point-cloud registration of one scene."""
+
+    scene: str
+    matterport_scan_id: str
+    original_obj_to_point_cloud: np.ndarray
+    refinement: np.ndarray
+    obj_to_point_cloud: np.ndarray
+    translation_m: float
+    yaw_deg: float
+    metrics_before: dict
+    metrics_after: dict
+    frames_used: int
+    iterations: int
+    ifc_types: list
+    quality_checks: dict
+
+    @property
+    def accepted(self):
+        return all(self.quality_checks.values())
+
+    def as_dict(self):
+        return {
+            "source": "BIMNet OBJ",
+            "target": "Matterport3D point cloud",
+            "transform_direction": "obj_to_point_cloud",
+            "scene": self.scene,
+            "matterport_scan_id": self.matterport_scan_id,
+            "obj_to_point_cloud": self.obj_to_point_cloud.tolist(),
+            "refinement": self.refinement.tolist(),
+            "original_obj_to_point_cloud": self.original_obj_to_point_cloud.tolist(),
+            "translation_m": self.translation_m,
+            "yaw_deg": self.yaw_deg,
+            "metrics_before": self.metrics_before,
+            "metrics_after": self.metrics_after,
+            "frames_used": self.frames_used,
+            "iterations": self.iterations,
+            "ifc_types": list(self.ifc_types),
+            "accepted": self.accepted,
+            "quality_checks": self.quality_checks,
+        }
 
 
 @dataclass(frozen=True)
@@ -326,6 +383,9 @@ class BIMNetScene:
 
     @cached_property
     def point_cloud_to_obj(self):
+        refined = self.dataset._registrations.get(self.key.casefold())
+        if refined is not None:
+            return np.linalg.inv(refined)
         if not self.matrix_path.is_file():
             raise FileNotFoundError(f"BIMNet pc-to-OBJ matrix is unavailable: {self.matrix_path}")
         matrix = np.loadtxt(self.matrix_path, dtype=np.float64)
@@ -611,6 +671,104 @@ class BIMNetScene:
         if not o3d.io.write_triangle_mesh(str(output_path), self.mesh(**mesh_options)):
             raise RuntimeError(f"failed to export BIMNet mesh: {output_path}")
         return output_path
+
+    def register_to_matterport(
+        self,
+        frames,
+        *,
+        exclude_types=BIMNET_REGISTRATION_EXCLUDED_TYPES,
+        max_frames=300,
+        pixel_stride=8,
+        samples=60_000,
+        thresholds=(0.5, 0.25, 0.12, 0.06),
+        max_iterations=25,
+        trim_fraction=0.85,
+        huber_delta=0.12,
+        metric_threshold=0.05,
+        max_translation=0.5,
+        max_yaw_deg=3.0,
+        seed=20261010,
+    ):
+        """Refine the BIMNet registration against Matterport sensor depth.
+
+        Same upright model as the BIMSync → S3DIS calibration (unit scale,
+        Z-up, yaw + XYZ translation, symmetric trimmed Huber ICP), started
+        from BIMNet's own registration instead of a global yaw search since
+        that registration is already within centimetres. Source: opaque BIM
+        surfaces (glass, doors and furniture excluded). Target: back-projected
+        depth of up to ``max_frames`` evenly spaced frames.
+        """
+        frames = list(frames)
+        if not frames:
+            raise ValueError(f"no Matterport frames to register {self.key}")
+        for frame in frames:
+            self._validate_matterport_frame(frame)
+        chosen = sorted(set(np.linspace(0, len(frames) - 1, min(max_frames, len(frames))).astype(int)))
+        target = []
+        for index in chosen:
+            points, *_ = frames[index]._backproject(stride=pixel_stride)
+            target.append(transform_points(points, frames[index].camera_to_world))
+        target, _ = downsample_points(
+            np.concatenate(target), None, samples, stable_seed(seed, self.key, "matterport")
+        )
+
+        excluded = {value.casefold() for value in exclude_types}
+        types = sorted({e.ifc_type for e in self.elements() if e.ifc_type.casefold() not in excluded})
+        mesh = self.mesh(include_types=types, coordinates="point_cloud")
+        triangles = np.asarray(mesh.triangles)
+        source, _ = sample_labeled_mesh(
+            np.asarray(mesh.vertices),
+            triangles,
+            np.zeros(len(triangles), dtype=np.int32),
+            samples,
+            stable_seed(seed, self.key, "bimnet"),
+        )
+
+        identity = np.eye(4)
+        before = _metrics(source, target, identity, metric_threshold, trim_fraction)
+        refinement, iterations = _refine(
+            source, target, identity, thresholds, max_iterations, trim_fraction, huber_delta
+        )
+        after = _metrics(source, target, refinement, metric_threshold, trim_fraction)
+        yaw_deg = math.degrees(math.atan2(refinement[1, 0], refinement[0, 0]))
+        translation = float(np.linalg.norm(refinement[:3, 3]))
+        checks = {
+            "fitness_improved": after["fitness"] >= before["fitness"],
+            "bounded_translation": translation <= max_translation,
+            "bounded_yaw": abs(yaw_deg) <= max_yaw_deg,
+        }
+        return BIMNetRegistration(
+            scene=self.key,
+            matterport_scan_id=self.matterport_scan_id,
+            original_obj_to_point_cloud=self.obj_to_point_cloud.copy(),
+            refinement=refinement,
+            obj_to_point_cloud=refinement @ self.obj_to_point_cloud,
+            translation_m=translation,
+            yaw_deg=yaw_deg,
+            metrics_before=before,
+            metrics_after=after,
+            frames_used=len(chosen),
+            iterations=iterations,
+            ifc_types=types,
+            quality_checks=checks,
+        )
+
+    def save_matterport_registration(self, registration, output_dir):
+        """Write ``<scene>_obj_to_point_cloud_transform.{json,npy}``.
+
+        The ``.npy`` (the refined OBJ → point-cloud transform that
+        :class:`BIMNetDataset` loads) is written only for accepted results.
+        """
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        json_path = output_dir / f"{self.scene_id}_obj_to_point_cloud_transform.json"
+        npy_path = output_dir / f"{self.scene_id}_obj_to_point_cloud_transform.npy"
+        json_path.write_text(json.dumps(registration.as_dict(), indent=2), "utf-8")
+        if registration.accepted:
+            np.save(npy_path, registration.obj_to_point_cloud)
+        elif npy_path.exists():
+            npy_path.unlink()
+        return json_path, npy_path if registration.accepted else None
 
     def is_contained_in(self, frame: MatterportFrame, margin=0.0):
         camera_position = frame.camera_to_world[:3, 3]
@@ -993,11 +1151,13 @@ class BIMNetScanScene:
 class BIMNetDataset:
     """Discover BIMNet scenes with one mesh source shared by every scene."""
 
-    def __init__(self, root=None, split=None, default_mesh_source="obj"):
+    def __init__(self, root=None, split=None, default_mesh_source="obj", registration_dir=None):
         if root is None:
             root = CONFIG.require("bimnet_root")
         self.root = Path(root).expanduser().resolve()
         self._default_mesh_source = _normalize_mesh_source(default_mesh_source)
+        self.registration_dir = None
+        self._registrations = {}
 
         if not self.root.is_dir():
             raise FileNotFoundError(f"BIMNet root directory not found: {self.root}")
@@ -1010,10 +1170,32 @@ class BIMNetDataset:
         self._scan_scene_cache = {}
         if not self._scene_index:
             raise ValueError(f"no BIMNet scenes found below {self.root}")
+        if registration_dir is not None:
+            self.load_registrations(registration_dir)
 
     @property
     def default_mesh_source(self):
         return self._default_mesh_source
+
+    def load_registrations(self, registration_dir):
+        """Load refined ``<split>/<scene>/<scene>_obj_to_point_cloud_transform.npy`` files."""
+        self.registration_dir = Path(registration_dir).expanduser().resolve()
+        if not self.registration_dir.is_dir():
+            raise FileNotFoundError(
+                f"BIMNet registration directory not found: {self.registration_dir}"
+            )
+        paths = sorted(self.registration_dir.rglob("*_obj_to_point_cloud_transform.npy"))
+        if not paths:
+            raise FileNotFoundError(
+                f"no *_obj_to_point_cloud_transform.npy files found under {self.registration_dir}"
+            )
+        self._registrations = {
+            f"{path.parent.parent.name}/{path.name.removesuffix('_obj_to_point_cloud_transform.npy')}".casefold(): np.load(path)
+            for path in paths
+        }
+        self._scene_cache.clear()
+        self._scan_scene_cache.clear()
+        return self._registrations
 
     def _discover_scenes(self):
         index = {}

@@ -1,0 +1,116 @@
+{
+  "source": "BIMNet OBJ",
+  "target": "Matterport3D point cloud",
+  "transform_direction": "obj_to_point_cloud",
+  "scene": "train/i5n",
+  "matterport_scan_id": "i5noydFURQK",
+  "obj_to_point_cloud": [
+    [
+      0.999999293507105,
+      0.0,
+      -0.0011886905782686143,
+      1.3336344963721967
+    ],
+    [
+      -0.0011886905782686143,
+      0.0,
+      -0.999999293507105,
+      -4.530624456099116
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -3.3440783250818233
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "refinement": [
+    [
+      0.999999293507105,
+      0.0011886905782686143,
+      0.0,
+      0.009032091233086237
+    ],
+    [
+      -0.0011886905782686143,
+      0.999999293507105,
+      0.0,
+      0.010953294892237508
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -0.024078325081823282
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "original_obj_to_point_cloud": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      1.33
+    ],
+    [
+      -0.0,
+      -0.0,
+      -1.0,
+      -4.54
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -3.32
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "translation_m": 0.027952085428194256,
+  "yaw_deg": -0.06810696932078758,
+  "metrics_before": {
+    "fitness": 0.21232499999999999,
+    "rmse": 0.036283152291380925,
+    "symmetric_trimmed_rmse": 0.16019090531929367,
+    "symmetric_median": 0.10250057087493926,
+    "symmetric_p90": 0.44875941172127176
+  },
+  "metrics_after": {
+    "fitness": 0.22646666666666665,
+    "rmse": 0.035535426848166234,
+    "symmetric_trimmed_rmse": 0.16024640438910978,
+    "symmetric_median": 0.10363033138308479,
+    "symmetric_p90": 0.46225852863740324
+  },
+  "frames_used": 300,
+  "iterations": 100,
+  "ifc_types": [
+    "IFCCOVERING",
+    "IFCMEMBER",
+    "IFCSLAB",
+    "IFCSTAIRFLIGHT",
+    "IFCWALLSTANDARDCASE"
+  ],
+  "accepted": true,
+  "quality_checks": {
+    "fitness_improved": true,
+    "bounded_translation": true,
+    "bounded_yaw": true
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "source": "BIMNet OBJ",
+  "target": "Matterport3D point cloud",
+  "transform_direction": "obj_to_point_cloud",
+  "scene": "train/1px",
+  "matterport_scan_id": "1pXnuDYAj8r",
+  "obj_to_point_cloud": [
+    [
+      0.999999914015982,
+      0.0,
+      -0.0004146902804332174,
+      8.936376938826946
+    ],
+    [
+      -0.0004146902804332174,
+      0.0,
+      -0.999999914015982,
+      -1.1542702230753843
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      3.479100992405295
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "refinement": [
+    [
+      0.999999914015982,
+      0.0004146902804332174,
+      0.0,
+      -0.023141250030951355
+    ],
+    [
+      -0.0004146902804332174,
+      0.999999914015982,
+      0.0,
+      0.009445302095836272
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.03910099240529519
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "original_obj_to_point_cloud": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      8.96
+    ],
+    [
+      -0.0,
+      -0.0,
+      -1.0,
+      -1.16
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      3.44
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "translation_m": 0.04640709850610752,
+  "yaw_deg": -0.02376000355491343,
+  "metrics_before": {
+    "fitness": 0.08465833333333334,
+    "rmse": 0.037246477663645895,
+    "symmetric_trimmed_rmse": 0.16771761878032157,
+    "symmetric_median": 0.13880397600589656,
+    "symmetric_p90": 0.44831440084111907
+  },
+  "metrics_after": {
+    "fitness": 0.10075833333333334,
+    "rmse": 0.03681029820608026,
+    "symmetric_trimmed_rmse": 0.16654348828440754,
+    "symmetric_median": 0.13496591541968614,
+    "symmetric_p90": 0.4382526162628965
+  },
+  "frames_used": 300,
+  "iterations": 100,
+  "ifc_types": [
+    "IFCBEAM",
+    "IFCCOLUMN",
+    "IFCCOVERING",
+    "IFCRAILING",
+    "IFCSLAB",
+    "IFCWALLSTANDARDCASE"
+  ],
+  "accepted": true,
+  "quality_checks": {
+    "fitness_improved": true,
+    "bounded_translation": true,
+    "bounded_yaw": true
+  }
+}

@@ -1,0 +1,355 @@
+{
+  "success": {
+    "train/1px": {
+      "translation_m": 0.04640709850610752,
+      "yaw_deg": -0.02376000355491343,
+      "fitness_before": 0.08465833333333334,
+      "fitness_after": 0.10075833333333334,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/1px/1px_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/1px/1px_obj_to_point_cloud_transform.npy"
+    },
+    "train/759": {
+      "translation_m": 0.036256020021034376,
+      "yaw_deg": 0.05982648905506022,
+      "fitness_before": 0.10828333333333334,
+      "fitness_after": 0.117825,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/759/759_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/759/759_obj_to_point_cloud_transform.npy"
+    },
+    "train/7y3_1": {
+      "translation_m": 0.04941151632188175,
+      "yaw_deg": 0.018910228065131925,
+      "fitness_before": 0.11561666666666666,
+      "fitness_after": 0.1347833333333333,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/7y3_1/7y3_1_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/7y3_1/7y3_1_obj_to_point_cloud_transform.npy"
+    },
+    "train/ac2": {
+      "translation_m": 0.05243321191115931,
+      "yaw_deg": 0.4519880394959561,
+      "fitness_before": 0.041091666666666665,
+      "fitness_after": 0.07914166666666667,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/ac2/ac2_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/ac2/ac2_obj_to_point_cloud_transform.npy"
+    },
+    "train/b6b": {
+      "translation_m": 0.1121036585333947,
+      "yaw_deg": 0.0039041815541215556,
+      "fitness_before": 0.0049499999999999995,
+      "fitness_after": 0.012916666666666667,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/b6b/b6b_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/b6b/b6b_obj_to_point_cloud_transform.npy"
+    },
+    "train/e9z": {
+      "translation_m": 0.037518837590454525,
+      "yaw_deg": 0.01872101006342001,
+      "fitness_before": 0.10425000000000001,
+      "fitness_after": 0.11664166666666666,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/e9z/e9z_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/e9z/e9z_obj_to_point_cloud_transform.npy"
+    },
+    "train/hxp": {
+      "translation_m": 0.02845630203256145,
+      "yaw_deg": 0.09897071700347321,
+      "fitness_before": 0.31808333333333333,
+      "fitness_after": 0.34206666666666663,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/hxp/hxp_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/hxp/hxp_obj_to_point_cloud_transform.npy"
+    },
+    "train/i5n": {
+      "translation_m": 0.027952085428194256,
+      "yaw_deg": -0.06810696932078758,
+      "fitness_before": 0.21232499999999999,
+      "fitness_after": 0.22646666666666665,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/i5n/i5n_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/i5n/i5n_obj_to_point_cloud_transform.npy"
+    },
+    "train/i5n_1": {
+      "translation_m": 0.050366523142456605,
+      "yaw_deg": -0.10926026145757828,
+      "fitness_before": 0.15339166666666665,
+      "fitness_after": 0.18080833333333335,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/i5n_1/i5n_1_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/i5n_1/i5n_1_obj_to_point_cloud_transform.npy"
+    },
+    "train/px4_1": {
+      "translation_m": 0.03501153266533494,
+      "yaw_deg": 0.02869532719292036,
+      "fitness_before": 0.09456666666666666,
+      "fitness_after": 0.10425833333333334,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/px4_1/px4_1_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/px4_1/px4_1_obj_to_point_cloud_transform.npy"
+    },
+    "train/s9h": {
+      "translation_m": 0.026961223639786345,
+      "yaw_deg": -0.016946739818167855,
+      "fitness_before": 0.11584166666666668,
+      "fitness_after": 0.130175,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/s9h/s9h_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/s9h/s9h_obj_to_point_cloud_transform.npy"
+    },
+    "train/skl": {
+      "translation_m": 0.101990787453703,
+      "yaw_deg": -0.08366364815993414,
+      "fitness_before": 0.09476666666666667,
+      "fitness_after": 0.1101,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/skl/skl_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/skl/skl_obj_to_point_cloud_transform.npy"
+    },
+    "train/sn8": {
+      "translation_m": 0.030325529349995915,
+      "yaw_deg": -0.04077583476697733,
+      "fitness_before": 0.065025,
+      "fitness_after": 0.07336666666666666,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/sn8/sn8_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/sn8/sn8_obj_to_point_cloud_transform.npy"
+    },
+    "train/st4": {
+      "translation_m": 0.07453249350315262,
+      "yaw_deg": 0.014699425959586253,
+      "fitness_before": 0.041216666666666665,
+      "fitness_after": 0.087475,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/st4/st4_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/st4/st4_obj_to_point_cloud_transform.npy"
+    },
+    "train/ur6": {
+      "translation_m": 0.03622446656348522,
+      "yaw_deg": 0.02836151657653017,
+      "fitness_before": 0.03386666666666667,
+      "fitness_after": 0.037816666666666665,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/ur6/ur6_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/ur6/ur6_obj_to_point_cloud_transform.npy"
+    },
+    "train/vt2": {
+      "translation_m": 0.016473726615850136,
+      "yaw_deg": -0.03544765284542531,
+      "fitness_before": 0.1323,
+      "fitness_after": 0.13606666666666667,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/vt2/vt2_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/vt2/vt2_obj_to_point_cloud_transform.npy"
+    },
+    "train/vt2_1": {
+      "translation_m": 0.03926395088945916,
+      "yaw_deg": -0.03518175288186742,
+      "fitness_before": 0.15353333333333335,
+      "fitness_after": 0.19080000000000003,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/vt2_1/vt2_1_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/vt2_1/vt2_1_obj_to_point_cloud_transform.npy"
+    },
+    "train/vvo": {
+      "translation_m": 0.04340655066704408,
+      "yaw_deg": 0.019159559498823427,
+      "fitness_before": 0.046775,
+      "fitness_after": 0.0562,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/vvo/vvo_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/train/vvo/vvo_obj_to_point_cloud_transform.npy"
+    },
+    "test/7y3": {
+      "translation_m": 0.03345396354698845,
+      "yaw_deg": -0.0649955966060548,
+      "fitness_before": 0.1147,
+      "fitness_after": 0.14100000000000001,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/7y3/7y3_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/7y3/7y3_obj_to_point_cloud_transform.npy"
+    },
+    "test/d7n": {
+      "translation_m": 0.02095344398699932,
+      "yaw_deg": -0.010849703232955844,
+      "fitness_before": 0.0933,
+      "fitness_after": 0.09662499999999999,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/d7n/d7n_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/d7n/d7n_obj_to_point_cloud_transform.npy"
+    },
+    "test/e9z_1": {
+      "translation_m": 0.013821867868717162,
+      "yaw_deg": 0.1039603049663779,
+      "fitness_before": 0.20663333333333334,
+      "fitness_after": 0.20982499999999998,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/e9z_1/e9z_1_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/e9z_1/e9z_1_obj_to_point_cloud_transform.npy"
+    },
+    "test/px4": {
+      "translation_m": 0.05877969674630159,
+      "yaw_deg": -0.051557932419659946,
+      "fitness_before": 0.11473333333333334,
+      "fitness_after": 0.148125,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/px4/px4_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/px4/px4_obj_to_point_cloud_transform.npy"
+    },
+    "test/px4_2": {
+      "translation_m": 0.0376580610050165,
+      "yaw_deg": 0.08727576926301596,
+      "fitness_before": 0.1734,
+      "fitness_after": 0.19573333333333331,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/px4_2/px4_2_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/px4_2/px4_2_obj_to_point_cloud_transform.npy"
+    },
+    "test/q9v": {
+      "translation_m": 0.11947696374523903,
+      "yaw_deg": 0.01753901215233055,
+      "fitness_before": 0.035925,
+      "fitness_after": 0.06734166666666667,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/q9v/q9v_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/q9v/q9v_obj_to_point_cloud_transform.npy"
+    },
+    "test/zsn": {
+      "translation_m": 0.024671030396794698,
+      "yaw_deg": 0.013775929015056306,
+      "fitness_before": 0.12109166666666665,
+      "fitness_after": 0.13140000000000002,
+      "accepted": true,
+      "quality_checks": {
+        "fitness_improved": true,
+        "bounded_translation": true,
+        "bounded_yaw": true
+      },
+      "json": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/zsn/zsn_obj_to_point_cloud_transform.json",
+      "npy": "/home/bgao491/S3-SAM3D-ToolKit/dataset/bimnet_to_mp3d/test/zsn/zsn_obj_to_point_cloud_transform.npy"
+    }
+  },
+  "errors": {}
+}

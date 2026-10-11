@@ -1,0 +1,117 @@
+{
+  "source": "BIMNet OBJ",
+  "target": "Matterport3D point cloud",
+  "transform_direction": "obj_to_point_cloud",
+  "scene": "train/7y3_1",
+  "matterport_scan_id": "7y3sRwLe3Va",
+  "obj_to_point_cloud": [
+    [
+      0.9999999455349046,
+      0.0,
+      0.0003300457360475978,
+      -13.390498647980417
+    ],
+    [
+      0.0003300457360475978,
+      0.0,
+      -0.9999999455349046,
+      -7.758090364680142
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.3552132028898545
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "refinement": [
+    [
+      0.9999999455349046,
+      -0.0003300457360475978,
+      0.0,
+      -0.04305062862908926
+    ],
+    [
+      0.0003300457360475978,
+      0.9999999455349046,
+      0.0,
+      -0.023684675119094223
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.005213202889854385
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "original_obj_to_point_cloud": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -13.35
+    ],
+    [
+      -0.0,
+      -0.0,
+      -1.0,
+      -7.73
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.35
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "translation_m": 0.04941151632188175,
+  "yaw_deg": 0.018910228065131925,
+  "metrics_before": {
+    "fitness": 0.11561666666666666,
+    "rmse": 0.035995824384987905,
+    "symmetric_trimmed_rmse": 0.19346787727523204,
+    "symmetric_median": 0.13580284343960736,
+    "symmetric_p90": 0.5913116025191512
+  },
+  "metrics_after": {
+    "fitness": 0.1347833333333333,
+    "rmse": 0.035436048066468634,
+    "symmetric_trimmed_rmse": 0.19172515832891038,
+    "symmetric_median": 0.1348673848013575,
+    "symmetric_p90": 0.5930549462473111
+  },
+  "frames_used": 300,
+  "iterations": 100,
+  "ifc_types": [
+    "IFCCOVERING",
+    "IFCMEMBER",
+    "IFCRAILING",
+    "IFCSLAB",
+    "IFCSTAIRFLIGHT",
+    "IFCWALLSTANDARDCASE"
+  ],
+  "accepted": true,
+  "quality_checks": {
+    "fitness_improved": true,
+    "bounded_translation": true,
+    "bounded_yaw": true
+  }
+}

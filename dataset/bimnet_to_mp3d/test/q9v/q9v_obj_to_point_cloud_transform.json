@@ -1,0 +1,116 @@
+{
+  "source": "BIMNet OBJ",
+  "target": "Matterport3D point cloud",
+  "transform_direction": "obj_to_point_cloud",
+  "scene": "test/q9v",
+  "matterport_scan_id": "q9vSo1VnCiC",
+  "obj_to_point_cloud": [
+    [
+      0.99999995314726,
+      0.0,
+      0.0003061135048247131,
+      0.03975473020389875
+    ],
+    [
+      0.0003061135048247131,
+      0.0,
+      -0.99999995314726,
+      -0.1070830692190976
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.03503601830708414
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "refinement": [
+    [
+      0.99999995314726,
+      -0.0003061135048247131,
+      0.0,
+      0.03975473020389875
+    ],
+    [
+      0.0003061135048247131,
+      0.99999995314726,
+      0.0,
+      -0.1070830692190976
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.03503601830708414
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "original_obj_to_point_cloud": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      -0.0,
+      -0.0,
+      -1.0,
+      -0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "translation_m": 0.11947696374523903,
+  "yaw_deg": 0.01753901215233055,
+  "metrics_before": {
+    "fitness": 0.035925,
+    "rmse": 0.03874793837907273,
+    "symmetric_trimmed_rmse": 0.22626044829467087,
+    "symmetric_median": 0.1912509946219997,
+    "symmetric_p90": 0.6267662761290347
+  },
+  "metrics_after": {
+    "fitness": 0.06734166666666667,
+    "rmse": 0.036774659356064776,
+    "symmetric_trimmed_rmse": 0.21883015046707405,
+    "symmetric_median": 0.1897102329851244,
+    "symmetric_p90": 0.615308043886542
+  },
+  "frames_used": 300,
+  "iterations": 100,
+  "ifc_types": [
+    "IFCBEAM",
+    "IFCCOLUMN",
+    "IFCCOVERING",
+    "IFCSLAB",
+    "IFCWALLSTANDARDCASE"
+  ],
+  "accepted": true,
+  "quality_checks": {
+    "fitness_improved": true,
+    "bounded_translation": true,
+    "bounded_yaw": true
+  }
+}

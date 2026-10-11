@@ -1,0 +1,116 @@
+{
+  "source": "BIMNet OBJ",
+  "target": "Matterport3D point cloud",
+  "transform_direction": "obj_to_point_cloud",
+  "scene": "train/vvo",
+  "matterport_scan_id": "Vvot9Ly1tCj",
+  "obj_to_point_cloud": [
+    [
+      0.9999999440891911,
+      0.0,
+      0.0003343973902540804,
+      -0.6976618456850852
+    ],
+    [
+      0.0003343973902540804,
+      0.0,
+      -0.9999999440891911,
+      -2.1810201429895555
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      2.238587299905233
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "refinement": [
+    [
+      0.9999999440891911,
+      -0.0003343973902540804,
+      0.0,
+      -0.02838083753437326
+    ],
+    [
+      0.0003343973902540804,
+      0.9999999440891911,
+      0.0,
+      -0.030796216946324506
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -0.011412700094766803
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "original_obj_to_point_cloud": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -0.67
+    ],
+    [
+      -0.0,
+      -0.0,
+      -1.0,
+      -2.15
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      2.25
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "translation_m": 0.04340655066704408,
+  "yaw_deg": 0.019159559498823427,
+  "metrics_before": {
+    "fitness": 0.046775,
+    "rmse": 0.03849974658968127,
+    "symmetric_trimmed_rmse": 0.2218750653180205,
+    "symmetric_median": 0.19231541518731549,
+    "symmetric_p90": 0.6805740010567883
+  },
+  "metrics_after": {
+    "fitness": 0.0562,
+    "rmse": 0.03643892228249239,
+    "symmetric_trimmed_rmse": 0.2208156022302046,
+    "symmetric_median": 0.18966719208194285,
+    "symmetric_p90": 0.6837641443938692
+  },
+  "frames_used": 300,
+  "iterations": 99,
+  "ifc_types": [
+    "IFCBEAM",
+    "IFCCOLUMN",
+    "IFCCOVERING",
+    "IFCSLAB",
+    "IFCWALLSTANDARDCASE"
+  ],
+  "accepted": true,
+  "quality_checks": {
+    "fitness_improved": true,
+    "bounded_translation": true,
+    "bounded_yaw": true
+  }
+}

@@ -176,3 +176,8 @@ def s23dis_area(area="Area_1", root=None):
 def bimsync_calibration_dir(area="Area_1"):
     """Return the project-bundled BIMSync calibration directory for one Area."""
     return BUNDLED_DATASET_ROOT / "ifc_to_s3dis" / f"{area}_upright_v2"
+
+
+def bimnet_registration_dir():
+    """Return the project-bundled BIMNet → Matterport3D refined registrations."""
+    return BUNDLED_DATASET_ROOT / "bimnet_to_mp3d"

@@ -1,0 +1,116 @@
+{
+  "source": "BIMNet OBJ",
+  "target": "Matterport3D point cloud",
+  "transform_direction": "obj_to_point_cloud",
+  "scene": "train/px4_1",
+  "matterport_scan_id": "PX4nDJXEHrG",
+  "obj_to_point_cloud": [
+    [
+      0.9999998745856902,
+      0.0,
+      0.0005008279185165254,
+      -10.211577744911049
+    ],
+    [
+      0.0005008279185165254,
+      0.0,
+      -0.9999998745856902,
+      -0.1865428963039512
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.5703972971133575
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "refinement": [
+    [
+      0.9999998745856902,
+      -0.0005008279185165254,
+      0.0,
+      -0.03166416237487013
+    ],
+    [
+      0.0005008279185165254,
+      0.9999998745856902,
+      0.0,
+      -0.01144448941388565
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -0.009602702886642556
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "original_obj_to_point_cloud": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -10.18
+    ],
+    [
+      -0.0,
+      -0.0,
+      -1.0,
+      -0.17
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.58
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "translation_m": 0.03501153266533494,
+  "yaw_deg": 0.02869532719292036,
+  "metrics_before": {
+    "fitness": 0.09456666666666666,
+    "rmse": 0.0369916970601603,
+    "symmetric_trimmed_rmse": 0.18781268819084027,
+    "symmetric_median": 0.148910375836497,
+    "symmetric_p90": 0.5338499071775444
+  },
+  "metrics_after": {
+    "fitness": 0.10425833333333334,
+    "rmse": 0.036178100632152335,
+    "symmetric_trimmed_rmse": 0.1878658212186101,
+    "symmetric_median": 0.14856469566654268,
+    "symmetric_p90": 0.5361698679682134
+  },
+  "frames_used": 300,
+  "iterations": 100,
+  "ifc_types": [
+    "IFCCOVERING",
+    "IFCMEMBER",
+    "IFCSLAB",
+    "IFCSTAIRFLIGHT",
+    "IFCWALLSTANDARDCASE"
+  ],
+  "accepted": true,
+  "quality_checks": {
+    "fitness_improved": true,
+    "bounded_translation": true,
+    "bounded_yaw": true
+  }
+}

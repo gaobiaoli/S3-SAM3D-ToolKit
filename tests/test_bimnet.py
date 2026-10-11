@@ -489,3 +489,21 @@ def test_render_rejects_frame_from_another_matterport_scan(tmp_path):
     ):
         scene.show(frame)
     load_mesh.assert_not_called()
+
+
+def test_refined_registration_overrides_matrix_only_when_loaded(tmp_path):
+    _write_scene(tmp_path)
+    original = BIMNetDataset(tmp_path)["1px"].obj_to_point_cloud.copy()
+    refined = original.copy()
+    refined[:3, 3] += [0.05, -0.02, 0.01]
+    registration_dir = tmp_path / "registrations"
+    (registration_dir / "train" / "1px").mkdir(parents=True)
+    np.save(registration_dir / "train" / "1px" / "1px_obj_to_point_cloud_transform.npy", refined)
+
+    scene = BIMNetDataset(tmp_path, registration_dir=registration_dir)["1px"]
+    np.testing.assert_allclose(scene.obj_to_point_cloud, refined)
+    np.testing.assert_allclose(scene.point_cloud_to_obj @ refined, np.eye(4), atol=1e-12)
+    np.testing.assert_allclose(BIMNetDataset(tmp_path)["1px"].obj_to_point_cloud, original)
+
+    with pytest.raises(FileNotFoundError):
+        BIMNetDataset(tmp_path, registration_dir=tmp_path / "missing")

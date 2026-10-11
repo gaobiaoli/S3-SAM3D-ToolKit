@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 
 from .bimnet import BIMNetDataset
+from .config import bimnet_registration_dir
 from .matterport import Matterport3DDataset
+
+# Whether MP3D_BIMDataset loads the refined BIMNet → Matterport registrations
+# (dataset/bimnet_to_mp3d) by default. False keeps BIMNet's mat_pc2obj.
+DEFAULT_REFINED_REGISTRATION = False
 
 
 class MP3D_BIMDataset:
@@ -18,12 +26,17 @@ class MP3D_BIMDataset:
         min_gt_valid_fraction=0.1,
         min_bim_hit_fraction=0.2,
         containment_margin=0.0,
+        refined_registration=None,
     ):
+        if refined_registration is None:
+            refined_registration = DEFAULT_REFINED_REGISTRATION
+        self.refined_registration = bool(refined_registration)
         self.mp3d_dataset = Matterport3DDataset(mp3d_root)
         self.bimnet_dataset = BIMNetDataset(
             bimnet_root,
             split=split,
             default_mesh_source=default_mesh_source,
+            registration_dir=bimnet_registration_dir() if self.refined_registration else None,
         )
 
         self.min_gt_valid_fraction = float(min_gt_valid_fraction)
@@ -185,6 +198,54 @@ class MP3D_BIMDataset:
 
         return self
 
+    def register_scenes(self, output_dir=None, scenes=None, *, progress=True, **registration_options):
+        """Refine BIMNet → Matterport registrations and write one folder per scene.
+
+        Mirrors :meth:`BIMSyncDataset.calibrate_scenes`. Frames are those whose
+        camera lies inside the scene's BIM bounding box.
+        """
+        output_dir = Path(output_dir or bimnet_registration_dir())
+        output_dir.mkdir(parents=True, exist_ok=True)
+        mp3d_scans = set(self.mp3d_dataset.scene_ids)
+        if scenes is None:
+            scenes = [
+                scene.key
+                for scene in self.bimnet_dataset.scenes
+                if scene.matterport_scan_id in mp3d_scans
+            ]
+        iterator = scenes
+        if progress:
+            from tqdm.auto import tqdm
+
+            iterator = tqdm(scenes, desc="BIMNet → Matterport3D")
+        summary = {"success": {}, "errors": {}}
+        summary_path = output_dir / "registration_summary.json"
+        for key in iterator:
+            try:
+                bim_scene, mp3d_scene = self._scenes(key)
+                frames = [frame for frame in mp3d_scene.frames if bim_scene.is_contained_in(frame)]
+                registration = bim_scene.register_to_matterport(frames, **registration_options)
+                json_path, npy_path = bim_scene.save_matterport_registration(
+                    registration, output_dir / bim_scene.split / bim_scene.scene_id
+                )
+                result = {
+                    "translation_m": registration.translation_m,
+                    "yaw_deg": registration.yaw_deg,
+                    "fitness_before": registration.metrics_before["fitness"],
+                    "fitness_after": registration.metrics_after["fitness"],
+                    "accepted": registration.accepted,
+                    "quality_checks": registration.quality_checks,
+                    "json": str(json_path),
+                    "npy": None if npy_path is None else str(npy_path),
+                }
+                summary["success" if registration.accepted else "errors"][bim_scene.key] = result
+            except Exception as error:  # noqa: BLE001 - keep the batch running
+                summary["errors"][str(key)] = f"{type(error).__name__}: {error}"
+            temporary = summary_path.with_suffix(".json.tmp")
+            temporary.write_text(json.dumps(summary, indent=2), "utf-8")
+            temporary.replace(summary_path)
+        return summary
+
     @property
     def indexed_scene_ids(self):
         return tuple(self._scene_samples)
@@ -195,6 +256,7 @@ class MP3D_BIMDataset:
         return (
             f"MP3D_BIMDataset("
             f"default_mesh_source={self.default_mesh_source!r}, "
+            f"refined_registration={self.refined_registration!r}, "
             f"indexed_scenes={len(self._scene_samples)}, "
             f"indexed_samples={sample_count})"
         )
