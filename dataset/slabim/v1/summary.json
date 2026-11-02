@@ -1,0 +1,279 @@
+{
+  "version": "v1",
+  "method_parameters": {
+    "voxel_m": 0.2,
+    "first_frame_schedule": [
+      [
+        1.0,
+        60
+      ],
+      [
+        0.5,
+        60
+      ],
+      [
+        0.2,
+        80
+      ],
+      [
+        0.1,
+        80
+      ]
+    ],
+    "later_schedule": [
+      [
+        0.35,
+        25
+      ]
+    ],
+    "max_time_difference_s": 0.01,
+    "smoothing_window": 5
+  },
+  "regions": {
+    "1F_Region1": {
+      "lidar_frames": 22471,
+      "camera_frames": 537,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "08bf0acef239101c734d41013b051a9c0c87065d3b9242ddf67c415f8a815595",
+        "map_to_bim": "b23fb61d7d94f6339fbe2ea77ba4cd19fe227014e7426c80250e46ceb78b0ea3",
+        "camera_timestamps": "ed255f9dab0bdb6f1dbfad12dc79609432855339309ddce2a71294d36a1f8174",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9419398907103825,
+      "median_icp_rmse_m": 0.12576302556998123,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "bc3d03d9995248ef0bced7e60913a08bb5d4ad85ba8d8536c1495835319f545c",
+        "camera_pose_to_bim.txt": "86e0ccff9f46c61cf660382debf118087638142df6121578a39594717b67f96a",
+        "camera_frames.txt": "13658f63c84e36112047052939cbf855e3c8e02ef429225bdb4a4efdb8445d47"
+      }
+    },
+    "1F_Region2": {
+      "lidar_frames": 15667,
+      "camera_frames": 374,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "b445f31e83da8ad91b81a002ff363f123b3018dc73f5d1ca84dfd56bd6f2b706",
+        "map_to_bim": "de9f957eb9c58c1dc22f5eeac956e41999b4d905b34dcb7463df2ae0d9114750",
+        "camera_timestamps": "c52fc61598f9b93045cb7a57bcd2221f1b9b2edc70256bfe70ca067d6ffeb7e7",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9363636363636364,
+      "median_icp_rmse_m": 0.12470639831602472,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "9a83cd0e7087544e0eb17fd28ff93f324e1a2e8969357e1bee0f600587313085",
+        "camera_pose_to_bim.txt": "05459d90fd75a9774fea055501505beecaab37a0df02ceb4b949f0659dfa0fa7",
+        "camera_frames.txt": "5b4072ead66f4179e65170d5875ec268ed8878c94a6b9831715c9028f706d85a"
+      }
+    },
+    "1F_Region3": {
+      "lidar_frames": 10051,
+      "camera_frames": 240,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "4e1357c7c0860cdd5fa9a9b3ab83b4b3b244669e8fbf8f7a0e21841fa1412452",
+        "map_to_bim": "9454c2935d77aae39df6b6ed9c074c52352ee59b5f87d86febc2be6b0756782d",
+        "camera_timestamps": "f381a22f6c0f9ee22c3b6f96226bcc88c5b999972cf17d8bcbe73f3aab596955",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.929923177815252,
+      "median_icp_rmse_m": 0.13180802223543853,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "54a328335e5251b71cd6fe76aa420f647f1af4579cd1eed42801232ae265999f",
+        "camera_pose_to_bim.txt": "1b049b95409ae3651db315817da4bb2dd7fea5a82bcb6b8ad99a4051c5587d18",
+        "camera_frames.txt": "eb0f4a3d3375177b5e96b5dbb10ecfb56986e0bece60d56f9510a109a6f4c57c"
+      }
+    },
+    "3F_Region1": {
+      "lidar_frames": 24006,
+      "camera_frames": 576,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "3b152d247a4a4dbb3f37eef15e1bf1586a92521da4da1ced2cd6d4b911b2aac0",
+        "map_to_bim": "88f6e4bd51d15344f544c68d381e38bdd7cec6e8ec1b855817f19ad3558e4ed3",
+        "camera_timestamps": "b1f41621a56c95cf670741b9bb49b1c01718949252da5b5ae6555c3651b72743",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9695810843149246,
+      "median_icp_rmse_m": 0.11520180816196808,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "0a65278074824c02520b638a5aabb4bd0bf0fe9f239ff2528cab3be0f8095499",
+        "camera_pose_to_bim.txt": "90d5c4130aabd50aceeedd17e6a6962970a8094061b2842f6aaf080e28fda89e",
+        "camera_frames.txt": "4348ef4a0c63bc243ee63df33bce68b33a9a02d17654c96d27e1f4ec5f354b6e"
+      }
+    },
+    "3F_Region2": {
+      "lidar_frames": 14704,
+      "camera_frames": 347,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "fdc4885090738d3291f1c8bd2d83937c55d1cb828845e481c5be63e81e48dda6",
+        "map_to_bim": "574ce2db8f2682f098a646fda7bbe0601375e9fbba41ae8ce8c3eaaeddd0ece7",
+        "camera_timestamps": "7e5c962eea46ab778f3487284eae414016e992b33cb9a02ff1e5a97fe9e4fbe9",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.965993311021498,
+      "median_icp_rmse_m": 0.115600515932188,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "4e3de6e0c69609a4d80c1250e81f4a2ee853870cfee70079d39a3e9233417e4b",
+        "camera_pose_to_bim.txt": "2c2347992979ac8f66dfcef14c5645b3c0831c3d4142cb6b7636dc45d50e0f61",
+        "camera_frames.txt": "9b4e7157604d75474e382561c2f9f91f7e5d5dff0c17ca5e2454ccf89d83b543"
+      }
+    },
+    "3F_Region3": {
+      "lidar_frames": 14503,
+      "camera_frames": 347,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "f14c5cf5b787fdf4d35aa5dc4bd4b25b360e2e82ecd9aa76c9c5cdff57fe751e",
+        "map_to_bim": "6cb978dd6b9aeb202589baddeb34f92c511065a4ee1454c90abf26b65d7c1e28",
+        "camera_timestamps": "3de8fd6df802071eca6757de6dcb9aff3b074ef884fccb14d8fb609261f4d8cb",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9585172109443955,
+      "median_icp_rmse_m": 0.11626079436223337,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "8fef1cd5bbac7eca3057e8901c91c51220dca8defc860cefae2f6bb8e3956ac4",
+        "camera_pose_to_bim.txt": "8e93fb557e53bfae88576de3cec935904220a55acad7ba7ff4c4dab46c30e48d",
+        "camera_frames.txt": "9b4e7157604d75474e382561c2f9f91f7e5d5dff0c17ca5e2454ccf89d83b543"
+      }
+    },
+    "4F_Region1": {
+      "lidar_frames": 17640,
+      "camera_frames": 419,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "8b1ec711fd8d628b6764e306b3f4718cf4c49965cb4378c07e6a1387cd96a5b0",
+        "map_to_bim": "113ac4c67adfd95ed416c173e5e8c98fa1e0003b657ad506ca454bd5815ffd52",
+        "camera_timestamps": "f44f4153f9d5b5e376650004d58d85af6e3ee577183602ba3029869f059235c7",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9700088608789963,
+      "median_icp_rmse_m": 0.11570459964830329,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "f0f8c817cfd55f40404aacc6c390a5f5696c3fc41d531e614e11460c8f1a836a",
+        "camera_pose_to_bim.txt": "60a1e8683a7b5558e26d3688c93d72d8c1243f5655b9879af3160fb15ca98c89",
+        "camera_frames.txt": "dd82447491085cb3a6748375f20c5ac631f17559aef056d3d1b1bd5570692dda"
+      }
+    },
+    "4F_Region2": {
+      "lidar_frames": 12935,
+      "camera_frames": 312,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "24a48a7fe3b3a148eac5e6ed837508829b940794880d6aa2eff4d27df9d2a4a9",
+        "map_to_bim": "67b4d4214ed3655bc7c77811e971d149283865d53c7cd8af9f1c8156a102ce1b",
+        "camera_timestamps": "5194e896e90d0d71d66d8464fc63537d51c3bffc66b68a03c241bdcf523caa99",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9626576139670223,
+      "median_icp_rmse_m": 0.11722867279892472,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "d0b451e8c8b651f241e7a53a9ad65292be29133e1b15b49299891c7e8554f436",
+        "camera_pose_to_bim.txt": "ee66718c7f0ef8d2ef95c5284bed3d93a9d970e688cbbad89b0392d55aeaf76e",
+        "camera_frames.txt": "a8055e0b5a88f05129e0bb517faa5dd7630a669ecc232675a1c7d7bdc0a3e37d"
+      }
+    },
+    "4F_Region3": {
+      "lidar_frames": 5023,
+      "camera_frames": 114,
+      "excluded_images": [
+        {
+          "file": "000040.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000042.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000044.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000046.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000048.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000050.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000054.png",
+          "reason": "historical v1 exclusion"
+        }
+      ],
+      "source_sha256": {
+        "lidar_timestamps": "a12db7c0d5252be9296a36f13f74a17be0743710809a6bcb83b7774db4b01477",
+        "map_to_bim": "41db84941815291e3e67742ede1e46d86f7593f4b1afa7453a789084d9941456",
+        "camera_timestamps": "b804b2fe7ce2883c619b12020a0c67a4f7841f1e31a4529579e625fc3dd39725",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9594383775351014,
+      "median_icp_rmse_m": 0.11771740050011618,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "5c554cd20c36e429bbbea950d6405e2325f00c218e329ed967d1e69c7cf2990e",
+        "camera_pose_to_bim.txt": "168c7ee252e5d6ca6eaa6e2c47b85aeda45fb0c8081e1b453fda39f7585aa000",
+        "camera_frames.txt": "1b05d00752fa7953050e1725a6b87452e3b9301541918cf985a4131ba50e81b5"
+      }
+    },
+    "5F_Region1": {
+      "lidar_frames": 14058,
+      "camera_frames": 336,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "2f60db4bf5798ba1ddf90c2ce78be216a171c9a0e39d3cc90e57fa6fe4c9d42e",
+        "map_to_bim": "193840702216baa54576ea53df36c0c67d879e1d71685af7492c4bd8259244e0",
+        "camera_timestamps": "4706b4d40756b89faed78702b6d54c6f94332dc7b9d9920b6927998c7d78288f",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9610761878835691,
+      "median_icp_rmse_m": 0.11855588343745121,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "21af00249f83c399edb80b2a76d172314fe21acd07053b6c5d7d5fd87b22a5b1",
+        "camera_pose_to_bim.txt": "2ae03c7ff634ae21a04dd6474065a439bb21a7484ad420b9888df4ac2b409253",
+        "camera_frames.txt": "0849988651c6143ebc448dd2ff2d0c7366b818f4b414fa99c9e7d8031119ff4d"
+      }
+    },
+    "5F_Region2": {
+      "lidar_frames": 6965,
+      "camera_frames": 164,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "1ad588113070a0a4a1ed19104393b47f2b88c9151822e3539c61f0a60a4fdf06",
+        "map_to_bim": "7edd171f0c35c551c7c6964b4456d8843df058c96995576995df2c4cef468517",
+        "camera_timestamps": "4fc39fbee4223470a89b43b22337d9a0444bd337c693a56d1efec7a1b06691d1",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9485199485199485,
+      "median_icp_rmse_m": 0.12032613099806509,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "9e2d4b288d0696e9b991fc4c7e30ddbb28501d969e9581264502edacf93b301f",
+        "camera_pose_to_bim.txt": "ca2748838af218e4158788e247c0a667a23482045ca52cf3c8540c0132b771c7",
+        "camera_frames.txt": "40b8c6ecb961c015318b95a1a597e032de4dbcbbeaa2087f2ba7bd2ff0cbfa9f"
+      }
+    },
+    "5F_Region3": {
+      "lidar_frames": 6820,
+      "camera_frames": 163,
+      "excluded_images": [],
+      "source_sha256": {
+        "lidar_timestamps": "829f0949b363c8093cb3c4f11c0422b4453783d9a714b130db56a46de703e65d",
+        "map_to_bim": "a48952b36bbbcfd03015a47b0a0d32275886a92b37474e1e820d5231f38d0991",
+        "camera_timestamps": "6a6e80ec4a7148e02691265757fc135f59eb5d22fe8393c301c7e54328d51421",
+        "camera_to_lidar": "3730b1b364a8642e5d431c864e4498e0f75c59f4b619ffd69a1dc10699549429"
+      },
+      "median_icp_fitness": 0.9579758337276343,
+      "median_icp_rmse_m": 0.120005996570728,
+      "sha256": {
+        "lidar_pose_to_bim.txt": "4e9777bd8d08e0b511891202ab7cd5a8c29348c255bb6a91c12259cab67e44c6",
+        "camera_pose_to_bim.txt": "c1e8f8e9afad390ff279ed8463ec54e92ffcae9d6db9ac97b36bbec7181af521",
+        "camera_frames.txt": "e60d74388127fe62d7f0879775b069f4db6579891573c4a4fc7bba7f7278dd92"
+      }
+    }
+  }
+}

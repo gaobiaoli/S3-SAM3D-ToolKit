@@ -1,0 +1,1532 @@
+{
+  "version": "v2",
+  "reference_version": "v1",
+  "method_parameters": {
+    "voxel_m": 0.05,
+    "fit_classes": [
+      "walls",
+      "floors",
+      "columns"
+    ],
+    "distance_gates_m": [
+      0.3,
+      0.15,
+      0.08
+    ],
+    "iterations_per_gate": 6,
+    "huber_m": 0.03,
+    "dof": 6,
+    "max_points": 3000000,
+    "seed": 0,
+    "bootstrap_tile_m": 10.0,
+    "bootstrap_resamples": 200,
+    "remove_zero_area_triangles": true
+  },
+  "regions": {
+    "1F_Region1": {
+      "lidar_frames": 22471,
+      "camera_frames": 537,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999998236697786,
+          -0.00027003166553464525,
+          -0.0005289076580498485,
+          -0.0011221805451876185
+        ],
+        [
+          0.0002694777189385397,
+          0.9999994154477347,
+          -0.0010471322491182103,
+          0.004538040313070333
+        ],
+        [
+          0.0005291901077409438,
+          0.001046989535647929,
+          0.999999311885134,
+          -0.0023565594677287783
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          0.9755837737725446,
+          -0.21769503340325705,
+          0.02906326778219885,
+          172.97451070366748
+        ],
+        [
+          0.21747963209940502,
+          0.9760097782854539,
+          0.0103873629724009,
+          22.76139206160534
+        ],
+        [
+          -0.030627297409783517,
+          -0.003813131879861717,
+          0.9995239365149287,
+          1.2375598663598457
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.0689694010543726,
+        "tilt_deg": 0.06721529752421761,
+        "yaw_deg": 0.015439938316778234,
+        "camera_shift_cm_median": 9.013041081775173,
+        "camera_shift_cm_max": 12.493471466979958
+      },
+      "map_points_downsampled": 4939186,
+      "map_points_used": 3000000,
+      "bim_triangles_used": 783514,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 10
+      },
+      "before": {
+        "points_within_30cm": 1066449,
+        "share_within_30cm": 0.355483,
+        "median_cm": 5.108128294870085,
+        "p90_cm": 17.591775314411393
+      },
+      "after": {
+        "points_within_30cm": 1061372,
+        "share_within_30cm": 0.35379066666666664,
+        "median_cm": 4.042667446669345,
+        "p90_cm": 17.189338550964948
+      },
+      "floor_slope": {
+        "points": 326047,
+        "before_deg": 0.06824787436246905,
+        "after_deg": 0.0024505874055050034
+      },
+      "bootstrap": {
+        "tiles": 76,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.04687396073863049,
+          0.08859730670723352
+        ],
+        "tilt_deg_95": [
+          0.04257638363039951,
+          0.08682667739865443
+        ],
+        "camera_shift_cm_median_95": [
+          8.343130343095318,
+          9.884752324787918
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/1F_Region1/map/data/uncolorized.ply": "11583f102ea3cdd9ab999e9bf21e93f47c9b7feed4285bb623967f48525084bd",
+        "sensor_data/1F_Region1/map/pose_map_to_bim.txt": "3d47ae6910d9dd32b67ad8c388e3a199fe1bb5443c0a90b3ebe5985561a2f9c2",
+        "BIM/1F/mesh/walls.ply": "6456a87e54ae9e062f8f9e393e45fee122f258983c778705b03fa41862b65b4b",
+        "BIM/1F/mesh/floors.ply": "46dedf1daccae69edf7124cc9ee51044e42acb396b5d904d9f78432ecb6796c1",
+        "BIM/1F/mesh/columns.ply": "3ad5bf1881a57b70957c1330e8d5b4e04a34141750bcd417317c7a2b55a30b53"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "bc3d03d9995248ef0bced7e60913a08bb5d4ad85ba8d8536c1495835319f545c",
+        "camera_pose_to_bim.txt": "86e0ccff9f46c61cf660382debf118087638142df6121578a39594717b67f96a",
+        "camera_frames.txt": "13658f63c84e36112047052939cbf855e3c8e02ef429225bdb4a4efdb8445d47"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "429a7db71c1b5efbe7cb75e20a8d2e25d290d916c9337a47b41d3ca57f40bff8",
+        "camera_pose_to_bim.txt": "b2030d2a514825cb632566e3e6b086b9ac603cdca9779fe304919fe57fb033c3",
+        "camera_frames.txt": "13658f63c84e36112047052939cbf855e3c8e02ef429225bdb4a4efdb8445d47"
+      }
+    },
+    "1F_Region2": {
+      "lidar_frames": 15667,
+      "camera_frames": 374,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999985400718431,
+          0.0011980578323231535,
+          0.0012184053564602336,
+          0.09262990370131031
+        ],
+        [
+          -0.0012000740562162142,
+          0.9999979096963922,
+          0.0016554229387372166,
+          0.17702675262536083
+        ],
+        [
+          -0.0012164195172055588,
+          -0.001656882698596899,
+          0.999997887529409,
+          0.1400253116253576
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          -0.5769725643983233,
+          -0.8167351415667469,
+          0.006837947722221779,
+          110.5924739044283
+        ],
+        [
+          0.8160707066293352,
+          -0.576807232486381,
+          -0.03637152056716417,
+          -7.173963765082391
+        ],
+        [
+          0.03365011538048693,
+          -0.015404058145438087,
+          0.9993149898808582,
+          1.335675233907602
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.13634355145283117,
+        "tilt_deg": 0.1177695572886648,
+        "yaw_deg": -0.06875924589934639,
+        "camera_shift_cm_median": 8.027767071011858,
+        "camera_shift_cm_max": 13.558989951332403
+      },
+      "map_points_downsampled": 4052440,
+      "map_points_used": 3000000,
+      "bim_triangles_used": 783514,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 10
+      },
+      "before": {
+        "points_within_30cm": 1281256,
+        "share_within_30cm": 0.4270853333333333,
+        "median_cm": 6.227852612472329,
+        "p90_cm": 20.015898176539327
+      },
+      "after": {
+        "points_within_30cm": 1279597,
+        "share_within_30cm": 0.42653233333333335,
+        "median_cm": 4.967470605341262,
+        "p90_cm": 19.686530938922512
+      },
+      "floor_slope": {
+        "points": 400738,
+        "before_deg": 0.11176310733919302,
+        "after_deg": 0.007873110026393881
+      },
+      "bootstrap": {
+        "tiles": 75,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.1222949561582448,
+          0.1550971047146518
+        ],
+        "tilt_deg_95": [
+          0.09957953555041049,
+          0.13825858569453853
+        ],
+        "camera_shift_cm_median_95": [
+          7.408080364480823,
+          8.405156176257355
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/1F_Region2/map/data/uncolorized.ply": "8502cc00d6f30cf9ed8f5b7ee3bd1952332ee9aeb2139f9f8cb5322b10a5cebc",
+        "sensor_data/1F_Region2/map/pose_map_to_bim.txt": "94a181e85b91ddbbe0c1560a8c0a18f339cd3ea5bb587cd59bb08168083556dc",
+        "BIM/1F/mesh/walls.ply": "6456a87e54ae9e062f8f9e393e45fee122f258983c778705b03fa41862b65b4b",
+        "BIM/1F/mesh/floors.ply": "46dedf1daccae69edf7124cc9ee51044e42acb396b5d904d9f78432ecb6796c1",
+        "BIM/1F/mesh/columns.ply": "3ad5bf1881a57b70957c1330e8d5b4e04a34141750bcd417317c7a2b55a30b53"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "9a83cd0e7087544e0eb17fd28ff93f324e1a2e8969357e1bee0f600587313085",
+        "camera_pose_to_bim.txt": "05459d90fd75a9774fea055501505beecaab37a0df02ceb4b949f0659dfa0fa7",
+        "camera_frames.txt": "5b4072ead66f4179e65170d5875ec268ed8878c94a6b9831715c9028f706d85a"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "819c51295567db149ce8e493305a9bda7d2da53e69c6e429dac77903c28dc7ba",
+        "camera_pose_to_bim.txt": "592d10ce7dd6e1b49422b92a5276c97a7937cbadb0449ecd0ce8eb98f55aaa44",
+        "camera_frames.txt": "5b4072ead66f4179e65170d5875ec268ed8878c94a6b9831715c9028f706d85a"
+      }
+    },
+    "1F_Region3": {
+      "lidar_frames": 10051,
+      "camera_frames": 240,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999901601207278,
+          -0.0018392214985194332,
+          0.00403694513213117,
+          -0.0957720937706898
+        ],
+        [
+          0.0018169945000632744,
+          0.9999832094100977,
+          0.00550267470121129,
+          -0.12835221354686238
+        ],
+        [
+          -0.0040469979870508275,
+          -0.00549528544845442,
+          0.9999767115513908,
+          0.30185640804179553
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          0.8981637280281817,
+          -0.43939217674607667,
+          -0.015374975766162823,
+          61.41851952190796
+        ],
+        [
+          0.4386287786708078,
+          0.8979010814710314,
+          -0.03711905272765554,
+          -41.98521903232765
+        ],
+        [
+          0.030115232163701402,
+          0.02659456388994514,
+          0.9991925916512752,
+          0.4033206730083799
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.40481455259407256,
+        "tilt_deg": 0.3910288064003496,
+        "yaw_deg": 0.10410702608294327,
+        "camera_shift_cm_median": 15.800679685111085,
+        "camera_shift_cm_max": 28.591396065917323
+      },
+      "map_points_downsampled": 3251475,
+      "map_points_used": 3000000,
+      "bim_triangles_used": 783514,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 10
+      },
+      "before": {
+        "points_within_30cm": 1093828,
+        "share_within_30cm": 0.36460933333333334,
+        "median_cm": 5.8294391914074595,
+        "p90_cm": 19.077973099815924
+      },
+      "after": {
+        "points_within_30cm": 1094211,
+        "share_within_30cm": 0.364737,
+        "median_cm": 4.798592166703308,
+        "p90_cm": 14.96312976764211
+      },
+      "floor_slope": {
+        "points": 378721,
+        "before_deg": 0.39580295841873525,
+        "after_deg": 0.005000150020829262
+      },
+      "bootstrap": {
+        "tiles": 57,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.38569077811956015,
+          0.5006058886452434
+        ],
+        "tilt_deg_95": [
+          0.3689446241588874,
+          0.48915233400043345
+        ],
+        "camera_shift_cm_median_95": [
+          15.031913356267085,
+          16.822755292228475
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/1F_Region3/map/data/uncolorized.ply": "a2bdb408e2d1fc7e2130971b8bd1f6423102cb52ca9f8674ae63e7a80249ae8e",
+        "sensor_data/1F_Region3/map/pose_map_to_bim.txt": "449c4ea67da88b244c8e4844de13b0d4826aca9718df1695cf69e6716b3b537c",
+        "BIM/1F/mesh/walls.ply": "6456a87e54ae9e062f8f9e393e45fee122f258983c778705b03fa41862b65b4b",
+        "BIM/1F/mesh/floors.ply": "46dedf1daccae69edf7124cc9ee51044e42acb396b5d904d9f78432ecb6796c1",
+        "BIM/1F/mesh/columns.ply": "3ad5bf1881a57b70957c1330e8d5b4e04a34141750bcd417317c7a2b55a30b53"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "54a328335e5251b71cd6fe76aa420f647f1af4579cd1eed42801232ae265999f",
+        "camera_pose_to_bim.txt": "1b049b95409ae3651db315817da4bb2dd7fea5a82bcb6b8ad99a4051c5587d18",
+        "camera_frames.txt": "eb0f4a3d3375177b5e96b5dbb10ecfb56986e0bece60d56f9510a109a6f4c57c"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "1de13b1a13556c7da7aba94ee2b4a55075f46a2cbc89d0d27bd0fd260a13168a",
+        "camera_pose_to_bim.txt": "5114ed4293aa1c46ac586560f284cac2b6d14a3ca8c59e5786062a872f306455",
+        "camera_frames.txt": "eb0f4a3d3375177b5e96b5dbb10ecfb56986e0bece60d56f9510a109a6f4c57c"
+      }
+    },
+    "3F_Region1": {
+      "lidar_frames": 24006,
+      "camera_frames": 576,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999986786917143,
+          -0.00017994727942849682,
+          0.0016156218000334167,
+          0.02780814053320624
+        ],
+        [
+          0.00018183276343684197,
+          0.9999993025680209,
+          -0.0011669620032091787,
+          -0.022591470071882225
+        ],
+        [
+          -0.0016154106816094337,
+          0.0011672542342691845,
+          0.9999980139809682,
+          0.2955149761813048
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          -0.1893785381323999,
+          -0.9818090862683415,
+          0.013666989180661072,
+          193.12558506183265
+        ],
+        [
+          0.9815885610793883,
+          -0.18965244675514675,
+          -0.022704400335979483,
+          -11.004049641041137
+        ],
+        [
+          0.0248834900673144,
+          0.009115933068483668,
+          0.9996484094626058,
+          1.2618269729379261
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.1146597297657687,
+        "tilt_deg": 0.11419035026513823,
+        "yaw_deg": 0.010418263573049369,
+        "camera_shift_cm_median": 4.885772719481038,
+        "camera_shift_cm_max": 9.787803691951034
+      },
+      "map_points_downsampled": 997876,
+      "map_points_used": 997876,
+      "bim_triangles_used": 967870,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 123
+      },
+      "before": {
+        "points_within_30cm": 694490,
+        "share_within_30cm": 0.6959682365343991,
+        "median_cm": 3.8832591886680423,
+        "p90_cm": 18.041601914281934
+      },
+      "after": {
+        "points_within_30cm": 693094,
+        "share_within_30cm": 0.694569265119113,
+        "median_cm": 2.83696153999621,
+        "p90_cm": 18.165229310329092
+      },
+      "floor_slope": {
+        "points": 198082,
+        "before_deg": 0.11382451510232416,
+        "after_deg": 0.0019249174594835193
+      },
+      "bootstrap": {
+        "tiles": 33,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.09178034479974706,
+          0.15870144571356046
+        ],
+        "tilt_deg_95": [
+          0.090942077355912,
+          0.1585925920064153
+        ],
+        "camera_shift_cm_median_95": [
+          4.4673765197754784,
+          5.900147361913045
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/3F_Region1/map/data/uncolorized.ply": "f069c9c2838d9cb1b722bd8fd2205d6af16ac65a487d4b4c963963ed78833662",
+        "sensor_data/3F_Region1/map/pose_map_to_bim.txt": "b5dbbddb53ab5b5f96f24eeb683b897ee4ddc6446bbb35ee9ba34688e2f3a622",
+        "BIM/3F/mesh/walls.ply": "493496f8f2a2137706a368d7c27e9fcd1dd74483f66594794c342c56dc50646b",
+        "BIM/3F/mesh/floors.ply": "6ae14b9e40a13c9eb21944bde998c7c73b4672012be97f94fa4b48f5e9f9151b",
+        "BIM/3F/mesh/columns.ply": "a5a3c24e618fb6228a0a47b9dc74ad3c4e13c405ff865e8d5f2cfef296648cba"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "0a65278074824c02520b638a5aabb4bd0bf0fe9f239ff2528cab3be0f8095499",
+        "camera_pose_to_bim.txt": "90d5c4130aabd50aceeedd17e6a6962970a8094061b2842f6aaf080e28fda89e",
+        "camera_frames.txt": "4348ef4a0c63bc243ee63df33bce68b33a9a02d17654c96d27e1f4ec5f354b6e"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "07e6053d8bb9186e05705d83d7c1f3c7fb03fb12d749d83a493dcb90a5c1092f",
+        "camera_pose_to_bim.txt": "844ff58ed57b1253c690ff50cc6ae2472d1be9df0ec43ab53f95ec3cfa8a62e5",
+        "camera_frames.txt": "4348ef4a0c63bc243ee63df33bce68b33a9a02d17654c96d27e1f4ec5f354b6e"
+      }
+    },
+    "3F_Region2": {
+      "lidar_frames": 14704,
+      "camera_frames": 347,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999972713099073,
+          0.0022612240913241523,
+          0.0005867182877486715,
+          -0.03222373698584605
+        ],
+        [
+          -0.00225961098966543,
+          0.9999937052724952,
+          -0.002735612100176787,
+          0.30369177544394294
+        ],
+        [
+          -0.0005929004265023652,
+          0.0027342788804483164,
+          0.9999960860863851,
+          0.053341656448604724
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          0.9406901091460722,
+          0.33926799106723904,
+          5.298947862084264e-05,
+          155.83081776102557
+        ],
+        [
+          -0.3392679657847136,
+          0.940689187639773,
+          0.0009246087258563727,
+          25.775998465767497
+        ],
+        [
+          0.00026297538671962706,
+          -0.0008876974849653426,
+          0.9999994121922373,
+          1.0917823743863195
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.2060844459170793,
+        "tilt_deg": 0.16030364219011348,
+        "yaw_deg": -0.1294663059775068,
+        "camera_shift_cm_median": 5.600219672785865,
+        "camera_shift_cm_max": 9.103336612414626
+      },
+      "map_points_downsampled": 761314,
+      "map_points_used": 761314,
+      "bim_triangles_used": 967870,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 123
+      },
+      "before": {
+        "points_within_30cm": 582569,
+        "share_within_30cm": 0.7652151411901003,
+        "median_cm": 4.29535023028933,
+        "p90_cm": 17.517673497627303
+      },
+      "after": {
+        "points_within_30cm": 575932,
+        "share_within_30cm": 0.756497319108804,
+        "median_cm": 2.966079944670348,
+        "p90_cm": 17.70130000000336
+      },
+      "floor_slope": {
+        "points": 125333,
+        "before_deg": 0.157444550502252,
+        "after_deg": 0.0030176152857863694
+      },
+      "bootstrap": {
+        "tiles": 30,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.19770878875234807,
+          0.2446297297484892
+        ],
+        "tilt_deg_95": [
+          0.1291570763749506,
+          0.19106726902268956
+        ],
+        "camera_shift_cm_median_95": [
+          4.939301058665636,
+          6.512327395260935
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/3F_Region2/map/data/uncolorized.ply": "060ff2936730cd18dd9abc91bc9307179e7cd9c68513a76867f72704aac9c204",
+        "sensor_data/3F_Region2/map/pose_map_to_bim.txt": "0837bb5832e65f54b1bbfb99240faab53886feb1ff7572f11231adb24499c136",
+        "BIM/3F/mesh/walls.ply": "493496f8f2a2137706a368d7c27e9fcd1dd74483f66594794c342c56dc50646b",
+        "BIM/3F/mesh/floors.ply": "6ae14b9e40a13c9eb21944bde998c7c73b4672012be97f94fa4b48f5e9f9151b",
+        "BIM/3F/mesh/columns.ply": "a5a3c24e618fb6228a0a47b9dc74ad3c4e13c405ff865e8d5f2cfef296648cba"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "4e3de6e0c69609a4d80c1250e81f4a2ee853870cfee70079d39a3e9233417e4b",
+        "camera_pose_to_bim.txt": "2c2347992979ac8f66dfcef14c5645b3c0831c3d4142cb6b7636dc45d50e0f61",
+        "camera_frames.txt": "9b4e7157604d75474e382561c2f9f91f7e5d5dff0c17ca5e2454ccf89d83b543"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "fabc59364faa7519cceaf95975d739ea0024f571a03fbd4c4823377718ee7cad",
+        "camera_pose_to_bim.txt": "366773523f2faa9399d12c67226672ef762c184b45c05cd15c04d95cae112d1b",
+        "camera_frames.txt": "9b4e7157604d75474e382561c2f9f91f7e5d5dff0c17ca5e2454ccf89d83b543"
+      }
+    },
+    "3F_Region3": {
+      "lidar_frames": 14503,
+      "camera_frames": 347,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999970001609559,
+          7.786392644621474e-05,
+          -0.0024481842856900952,
+          0.018523327315847764
+        ],
+        [
+          -5.922125804784953e-05,
+          0.9999710109746182,
+          0.007614046443408547,
+          -0.015287085221744101
+        ],
+        [
+          0.002448706174765926,
+          -0.007613878617941416,
+          0.9999680158337368,
+          -0.018172293668157403
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          0.945710833759605,
+          0.32492942649859874,
+          -0.0072458698126729535,
+          94.48396776742389
+        ],
+        [
+          -0.3249612767841898,
+          0.9457193715330553,
+          -0.003795924989013134,
+          39.46204996329992
+        ],
+        [
+          0.005618724365975612,
+          0.0059439260101461,
+          0.999966146208028,
+          1.4143550633944735
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.4582708707400944,
+        "tilt_deg": 0.45825404269815345,
+        "yaw_deg": -0.0033931383184989798,
+        "camera_shift_cm_median": 5.571092113097629,
+        "camera_shift_cm_max": 9.292383684804618
+      },
+      "map_points_downsampled": 751858,
+      "map_points_used": 751858,
+      "bim_triangles_used": 967870,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 123
+      },
+      "before": {
+        "points_within_30cm": 561261,
+        "share_within_30cm": 0.7464986739517302,
+        "median_cm": 3.8722789737711594,
+        "p90_cm": 14.571484731429507
+      },
+      "after": {
+        "points_within_30cm": 561158,
+        "share_within_30cm": 0.7463616799980848,
+        "median_cm": 2.490985695393345,
+        "p90_cm": 14.981033598058387
+      },
+      "floor_slope": {
+        "points": 141416,
+        "before_deg": 0.4628297936401382,
+        "after_deg": 0.004609418457250273
+      },
+      "bootstrap": {
+        "tiles": 31,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.4112822406760699,
+          0.5279183176900147
+        ],
+        "tilt_deg_95": [
+          0.41114884201941476,
+          0.5277739619110352
+        ],
+        "camera_shift_cm_median_95": [
+          4.75071074811235,
+          6.449577998216963
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/3F_Region3/map/data/uncolorized.ply": "8a83b1ef26a63a03c8de401d05c1a69fad89d8d2e13cd23916d6eaef57ea24b3",
+        "sensor_data/3F_Region3/map/pose_map_to_bim.txt": "95443c5e24d347a1e469a672e230e56efd8e6caf18acf06c1c31533d20d4522f",
+        "BIM/3F/mesh/walls.ply": "493496f8f2a2137706a368d7c27e9fcd1dd74483f66594794c342c56dc50646b",
+        "BIM/3F/mesh/floors.ply": "6ae14b9e40a13c9eb21944bde998c7c73b4672012be97f94fa4b48f5e9f9151b",
+        "BIM/3F/mesh/columns.ply": "a5a3c24e618fb6228a0a47b9dc74ad3c4e13c405ff865e8d5f2cfef296648cba"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "8fef1cd5bbac7eca3057e8901c91c51220dca8defc860cefae2f6bb8e3956ac4",
+        "camera_pose_to_bim.txt": "8e93fb557e53bfae88576de3cec935904220a55acad7ba7ff4c4dab46c30e48d",
+        "camera_frames.txt": "9b4e7157604d75474e382561c2f9f91f7e5d5dff0c17ca5e2454ccf89d83b543"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "43dd907a83dd701f8b001ad4e9ce862ff298c6589170c11120f7be3dec7f6c29",
+        "camera_pose_to_bim.txt": "73538385b793da36bcdf2ee25797697e41c77c0bb11cbd5e644ff506cbe167f0",
+        "camera_frames.txt": "9b4e7157604d75474e382561c2f9f91f7e5d5dff0c17ca5e2454ccf89d83b543"
+      }
+    },
+    "4F_Region1": {
+      "lidar_frames": 17640,
+      "camera_frames": 419,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999998440377066,
+          0.0005312464782343963,
+          0.00017234193215117646,
+          0.03751761748108408
+        ],
+        [
+          -0.0005310090808730315,
+          0.9999989142343626,
+          -0.0013746124731875595,
+          0.14667264289081372
+        ],
+        [
+          -0.0001730720030635469,
+          0.0013745207436688584,
+          0.9999990403689425,
+          0.02501670904996941
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          -0.9998062799132623,
+          -0.01774883618863723,
+          0.00848501777098207,
+          218.95925909756278
+        ],
+        [
+          0.017651225594201916,
+          -0.9997792367868986,
+          -0.01137090171569179,
+          25.159637378394383
+        ],
+        [
+          0.008684580474919107,
+          -0.01121826090599059,
+          0.9998988666263189,
+          1.395689761790645
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.08500962644378515,
+        "tilt_deg": 0.07937611017306058,
+        "yaw_deg": -0.03042458110262002,
+        "camera_shift_cm_median": 6.843922468521005,
+        "camera_shift_cm_max": 11.134430927383608
+      },
+      "map_points_downsampled": 1682991,
+      "map_points_used": 1682991,
+      "bim_triangles_used": 914606,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 116
+      },
+      "before": {
+        "points_within_30cm": 1171989,
+        "share_within_30cm": 0.6963727078754431,
+        "median_cm": 4.828925368863213,
+        "p90_cm": 17.217172834136125
+      },
+      "after": {
+        "points_within_30cm": 1172127,
+        "share_within_30cm": 0.6964547047488667,
+        "median_cm": 3.8244535544522176,
+        "p90_cm": 17.549623583508698
+      },
+      "floor_slope": {
+        "points": 302016,
+        "before_deg": 0.07894436409386946,
+        "after_deg": 0.010925847983435908
+      },
+      "bootstrap": {
+        "tiles": 56,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.05896887681013843,
+          0.12182835506856543
+        ],
+        "tilt_deg_95": [
+          0.053382954091105723,
+          0.11609722289678777
+        ],
+        "camera_shift_cm_median_95": [
+          6.150638268352602,
+          7.770513011279146
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/4F_Region1/map/data/uncolorized.ply": "ec822bed002aa5dbc9ea7aa7d796a72c5ecc57e250c3e7c78a145d577c26e96b",
+        "sensor_data/4F_Region1/map/pose_map_to_bim.txt": "65981b59f9ce7e7948f4b52913e597139c51de8d4639fb0e892300d074c9c5f5",
+        "BIM/4F/mesh/walls.ply": "72accd99d9e39bbfbb8dc0c2bd82ae53890f784685ebfbc0253f4c66362cb8f9",
+        "BIM/4F/mesh/floors.ply": "94f3f0585e27544eae24c42e3e0fd5f715106006cafbf341dc1f18a618c6a6da",
+        "BIM/4F/mesh/columns.ply": "a1d54e34ac0993799c1dee96f15f88d821ae0951c12b3df297ba8c9a3f4c05ef"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "f0f8c817cfd55f40404aacc6c390a5f5696c3fc41d531e614e11460c8f1a836a",
+        "camera_pose_to_bim.txt": "60a1e8683a7b5558e26d3688c93d72d8c1243f5655b9879af3160fb15ca98c89",
+        "camera_frames.txt": "dd82447491085cb3a6748375f20c5ac631f17559aef056d3d1b1bd5570692dda"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "d000dad9cb292b172bdef9877012484c41db6bb05b4b8d4ec5a39cd0943fa87a",
+        "camera_pose_to_bim.txt": "0e96b2331e78c2d757f9437817224f30882078fb50b2e7c2783d734b27c6d1b1",
+        "camera_frames.txt": "dd82447491085cb3a6748375f20c5ac631f17559aef056d3d1b1bd5570692dda"
+      }
+    },
+    "4F_Region2": {
+      "lidar_frames": 12935,
+      "camera_frames": 312,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999992831466591,
+          0.000586119575129531,
+          -0.001044112068511513,
+          -0.010020608422371423
+        ],
+        [
+          -0.0005842955033470621,
+          0.9999983042421042,
+          0.0017464568936120923,
+          0.11349159097148272
+        ],
+        [
+          0.001045133930522693,
+          -0.0017458455716720122,
+          0.9999979298570111,
+          -0.1743469882681476
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          0.12879484174409198,
+          0.9916707504678508,
+          -0.0007164357639031682,
+          166.3096244711517
+        ],
+        [
+          -0.991606360073142,
+          0.12879466872691694,
+          0.011349172129079836,
+          39.463354580225264
+        ],
+        [
+          0.011347297502454744,
+          -0.0007515204942601421,
+          0.9999355011303386,
+          1.3346416447319531
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.12130960199605625,
+        "tilt_deg": 0.11658371150548844,
+        "yaw_deg": -0.033477686519073256,
+        "camera_shift_cm_median": 7.719071943794997,
+        "camera_shift_cm_max": 12.779243716164599
+      },
+      "map_points_downsampled": 938485,
+      "map_points_used": 938485,
+      "bim_triangles_used": 914606,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 116
+      },
+      "before": {
+        "points_within_30cm": 656510,
+        "share_within_30cm": 0.6995423475068862,
+        "median_cm": 4.660207975679853,
+        "p90_cm": 17.092282540963595
+      },
+      "after": {
+        "points_within_30cm": 658890,
+        "share_within_30cm": 0.7020783496806022,
+        "median_cm": 2.4717644122356552,
+        "p90_cm": 16.58774638039583
+      },
+      "floor_slope": {
+        "points": 194872,
+        "before_deg": 0.11118767718171295,
+        "after_deg": 0.0071790539362004
+      },
+      "bootstrap": {
+        "tiles": 41,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.08901609060056051,
+          0.15691833067231517
+        ],
+        "tilt_deg_95": [
+          0.08481625658170629,
+          0.1523422473245144
+        ],
+        "camera_shift_cm_median_95": [
+          6.729184136511665,
+          8.490464650145784
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/4F_Region2/map/data/uncolorized.ply": "a3bab4c0eff1ae1852ef8f8384a9891e3dd56f4e17c2104b2cd136b2a82b591a",
+        "sensor_data/4F_Region2/map/pose_map_to_bim.txt": "b7a814e0e4faf35e3b68e898d3e60c019adf897b107bec0b779d8226c9d8a64b",
+        "BIM/4F/mesh/walls.ply": "72accd99d9e39bbfbb8dc0c2bd82ae53890f784685ebfbc0253f4c66362cb8f9",
+        "BIM/4F/mesh/floors.ply": "94f3f0585e27544eae24c42e3e0fd5f715106006cafbf341dc1f18a618c6a6da",
+        "BIM/4F/mesh/columns.ply": "a1d54e34ac0993799c1dee96f15f88d821ae0951c12b3df297ba8c9a3f4c05ef"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "d0b451e8c8b651f241e7a53a9ad65292be29133e1b15b49299891c7e8554f436",
+        "camera_pose_to_bim.txt": "ee66718c7f0ef8d2ef95c5284bed3d93a9d970e688cbbad89b0392d55aeaf76e",
+        "camera_frames.txt": "a8055e0b5a88f05129e0bb517faa5dd7630a669ecc232675a1c7d7bdc0a3e37d"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "01dd33c3b49a8b71edba4bfdce6e1fedf645f60cd3bd4f52bd0bd2fd6eac30b7",
+        "camera_pose_to_bim.txt": "1ef5f112292959385d6eede73c4ace98be609e10e6b147c5b6b4142076fb96e0",
+        "camera_frames.txt": "a8055e0b5a88f05129e0bb517faa5dd7630a669ecc232675a1c7d7bdc0a3e37d"
+      }
+    },
+    "4F_Region3": {
+      "lidar_frames": 5023,
+      "camera_frames": 114,
+      "excluded_images": [
+        {
+          "file": "000040.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000042.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000044.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000046.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000048.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000050.png",
+          "reason": "historical v1 exclusion"
+        },
+        {
+          "file": "000054.png",
+          "reason": "historical v1 exclusion"
+        }
+      ],
+      "correction_to_bim": [
+        [
+          0.9999936536884517,
+          -9.528134195493432e-05,
+          -0.0035613907795916805,
+          0.023421390494231684
+        ],
+        [
+          6.987394331452205e-05,
+          0.9999745533504808,
+          -0.007133566368761161,
+          0.022294036191948387
+        ],
+        [
+          0.0035619798499052537,
+          0.007133272248509084,
+          0.9999682138581087,
+          -0.4535619756967714
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          0.16837279225939292,
+          0.9857226476314597,
+          -0.0009022287793454293,
+          94.46845127699628
+        ],
+        [
+          -0.9857153815829454,
+          0.16837551734503525,
+          0.0038767958765644492,
+          38.87764540764044
+        ],
+        [
+          0.0039731015042241856,
+          0.00023666899915907966,
+          0.9999922280862787,
+          1.4994289887569474
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.45685773361644716,
+        "tilt_deg": 0.45683323270035214,
+        "yaw_deg": 0.0040035074508484635,
+        "camera_shift_cm_median": 4.997008201046935,
+        "camera_shift_cm_max": 17.1507991405387
+      },
+      "map_points_downsampled": 494399,
+      "map_points_used": 494399,
+      "bim_triangles_used": 914606,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 116
+      },
+      "before": {
+        "points_within_30cm": 365972,
+        "share_within_30cm": 0.7402361250730685,
+        "median_cm": 2.893385679909366,
+        "p90_cm": 16.800516916168675
+      },
+      "after": {
+        "points_within_30cm": 365314,
+        "share_within_30cm": 0.7389052162322335,
+        "median_cm": 1.4411292724268776,
+        "p90_cm": 16.947201950610346
+      },
+      "floor_slope": {
+        "points": 86517,
+        "before_deg": 0.4559841735637024,
+        "after_deg": 0.0009191884515878182
+      },
+      "bootstrap": {
+        "tiles": 23,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.4451154863572223,
+          0.48463659382772833
+        ],
+        "tilt_deg_95": [
+          0.4448574885541052,
+          0.48454809638879587
+        ],
+        "camera_shift_cm_median_95": [
+          4.704292578144114,
+          5.827299909918233
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/4F_Region3/map/data/uncolorized.ply": "60d751ab7bdcc92b511ab6aacc39ccc7c17543287bb1347ab84169e40fd1d025",
+        "sensor_data/4F_Region3/map/pose_map_to_bim.txt": "b6138165455a2502dd7824a29241f4b6f0f42d0362ac528832c00ef8d8eed70a",
+        "BIM/4F/mesh/walls.ply": "72accd99d9e39bbfbb8dc0c2bd82ae53890f784685ebfbc0253f4c66362cb8f9",
+        "BIM/4F/mesh/floors.ply": "94f3f0585e27544eae24c42e3e0fd5f715106006cafbf341dc1f18a618c6a6da",
+        "BIM/4F/mesh/columns.ply": "a1d54e34ac0993799c1dee96f15f88d821ae0951c12b3df297ba8c9a3f4c05ef"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "5c554cd20c36e429bbbea950d6405e2325f00c218e329ed967d1e69c7cf2990e",
+        "camera_pose_to_bim.txt": "168c7ee252e5d6ca6eaa6e2c47b85aeda45fb0c8081e1b453fda39f7585aa000",
+        "camera_frames.txt": "1b05d00752fa7953050e1725a6b87452e3b9301541918cf985a4131ba50e81b5"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "3c729a0d7d8b48dd95067630ed5885b566665d1482443436a4a73e7d3cce718d",
+        "camera_pose_to_bim.txt": "9da628d1b83b750f62e8f7bc97ca73abd70e8f980606ddf1c2b7425a0683fee6",
+        "camera_frames.txt": "1b05d00752fa7953050e1725a6b87452e3b9301541918cf985a4131ba50e81b5"
+      }
+    },
+    "5F_Region1": {
+      "lidar_frames": 14058,
+      "camera_frames": 336,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999996195509491,
+          -0.0008497348458702826,
+          0.0001971006066313388,
+          0.02228163643546081
+        ],
+        [
+          0.0008498856874400888,
+          0.9999993450970568,
+          -0.0007664853398294814,
+          -0.14397800822661733
+        ],
+        [
+          -0.0001964491682474695,
+          0.000766652561205422,
+          0.9999996868257384,
+          -0.007413896136052866
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          -0.9500275709025976,
+          -0.3121582380733991,
+          -0.0021549447545974455,
+          220.88237154339484
+        ],
+        [
+          0.31212958177184086,
+          -0.9499996869318469,
+          0.008689553125343433,
+          25.72352263621646
+        ],
+        [
+          -0.004759507731458698,
+          0.0075823681198159175,
+          0.999959398317545,
+          1.4754099705668986
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.0665353368849419,
+        "tilt_deg": 0.04534513222864172,
+        "yaw_deg": 0.04869486976061281,
+        "camera_shift_cm_median": 4.64378155413004,
+        "camera_shift_cm_max": 6.527101608661099
+      },
+      "map_points_downsampled": 1191090,
+      "map_points_used": 1191090,
+      "bim_triangles_used": 532104,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 106
+      },
+      "before": {
+        "points_within_30cm": 795926,
+        "share_within_30cm": 0.6682332989110814,
+        "median_cm": 3.854224356187641,
+        "p90_cm": 16.63694655792081
+      },
+      "after": {
+        "points_within_30cm": 795713,
+        "share_within_30cm": 0.6680544711146933,
+        "median_cm": 3.2503043191447034,
+        "p90_cm": 16.257341339252775
+      },
+      "floor_slope": {
+        "points": 164245,
+        "before_deg": 0.04513640610952092,
+        "after_deg": 0.0005574480290247483
+      },
+      "bootstrap": {
+        "tiles": 32,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.038895802947716655,
+          0.10171924449755033
+        ],
+        "tilt_deg_95": [
+          0.00920188018474348,
+          0.08281725732327438
+        ],
+        "camera_shift_cm_median_95": [
+          3.8934673585499,
+          5.381355406518555
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/5F_Region1/map/data/uncolorized.ply": "e99ef1a4de78b04142f149b3d2ab95569af92df8c7ce669aa1efe5d82283b6e4",
+        "sensor_data/5F_Region1/map/pose_map_to_bim.txt": "c90cb3188b22e47cffebc44fc81842d4afaacbd78faf74359462040d2b487660",
+        "BIM/5F/mesh/walls.ply": "f932bb4e83be890eeaf39e6f9011eeb9b91c76142a592526578e6b718ab9371c",
+        "BIM/5F/mesh/floors.ply": "eed1068ed0e20bb5ef7e4d036d9e2ebc42bd7ac2457122a3c8a419e1ebc9187e",
+        "BIM/5F/mesh/columns.ply": "5f255ac05bde17f0a702c89c025c1ac5ff3b099708d11772191738136c7315f9"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "21af00249f83c399edb80b2a76d172314fe21acd07053b6c5d7d5fd87b22a5b1",
+        "camera_pose_to_bim.txt": "2ae03c7ff634ae21a04dd6474065a439bb21a7484ad420b9888df4ac2b409253",
+        "camera_frames.txt": "0849988651c6143ebc448dd2ff2d0c7366b818f4b414fa99c9e7d8031119ff4d"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "3e634a892055903ed69d0b8b4102ea3f075dd83ee42f4b44f902b9ba68bd1315",
+        "camera_pose_to_bim.txt": "a0531301ad6f4ac7b0f94b8667dec295212b25306c3aab934657a90098ca31f5",
+        "camera_frames.txt": "0849988651c6143ebc448dd2ff2d0c7366b818f4b414fa99c9e7d8031119ff4d"
+      }
+    },
+    "5F_Region2": {
+      "lidar_frames": 6965,
+      "camera_frames": 164,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999998300922733,
+          0.00042065486863674154,
+          -0.0004035652431414651,
+          -0.013572877677040249
+        ],
+        [
+          -0.00041961327763882984,
+          0.9999965899579685,
+          0.0025775952224473078,
+          0.06598059911636307
+        ],
+        [
+          0.0004046481449467211,
+          -0.002577425443159549,
+          0.9999965965631903,
+          -0.002422721371205673
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          -0.8254640167365306,
+          0.5644226212331122,
+          0.006134484489395047,
+          168.16838353972554
+        ],
+        [
+          -0.5644501560727385,
+          -0.8254556977520414,
+          -0.004480243979535428,
+          19.183643453376128
+        ],
+        [
+          0.0025348040660293845,
+          -0.007160552355247409,
+          0.999971427259766,
+          1.503041198076212
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.15141043262828913,
+        "tilt_deg": 0.14948465010468606,
+        "yaw_deg": -0.02404207251021817,
+        "camera_shift_cm_median": 1.4012860446196589,
+        "camera_shift_cm_max": 2.6082655052571266
+      },
+      "map_points_downsampled": 600368,
+      "map_points_used": 600368,
+      "bim_triangles_used": 532104,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 106
+      },
+      "before": {
+        "points_within_30cm": 459559,
+        "share_within_30cm": 0.7654621831943075,
+        "median_cm": 2.1577746381936436,
+        "p90_cm": 14.606608895796784
+      },
+      "after": {
+        "points_within_30cm": 459669,
+        "share_within_30cm": 0.76564540415212,
+        "median_cm": 1.775129448535322,
+        "p90_cm": 14.486443360068932
+      },
+      "floor_slope": {
+        "points": 113906,
+        "before_deg": 0.1531059063216123,
+        "after_deg": 0.004188750560122979
+      },
+      "bootstrap": {
+        "tiles": 35,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.10773233568546058,
+          0.2057784660686006
+        ],
+        "tilt_deg_95": [
+          0.10445972969486378,
+          0.20401081399438387
+        ],
+        "camera_shift_cm_median_95": [
+          1.0777487329348865,
+          2.171628831590533
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/5F_Region2/map/data/uncolorized.ply": "6a7a711970f48ca010850bc151090170d8d3f5ba29cd3e86b194293956bba384",
+        "sensor_data/5F_Region2/map/pose_map_to_bim.txt": "5d43680a3d11f1085e066eb6eaca21e66aed83638c27cb20605a5a9640aaf461",
+        "BIM/5F/mesh/walls.ply": "f932bb4e83be890eeaf39e6f9011eeb9b91c76142a592526578e6b718ab9371c",
+        "BIM/5F/mesh/floors.ply": "eed1068ed0e20bb5ef7e4d036d9e2ebc42bd7ac2457122a3c8a419e1ebc9187e",
+        "BIM/5F/mesh/columns.ply": "5f255ac05bde17f0a702c89c025c1ac5ff3b099708d11772191738136c7315f9"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "9e2d4b288d0696e9b991fc4c7e30ddbb28501d969e9581264502edacf93b301f",
+        "camera_pose_to_bim.txt": "ca2748838af218e4158788e247c0a667a23482045ca52cf3c8540c0132b771c7",
+        "camera_frames.txt": "40b8c6ecb961c015318b95a1a597e032de4dbcbbeaa2087f2ba7bd2ff0cbfa9f"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "f5bc35ec318d699a4f20985b1ad5ec8734ed9345ba62e5467222cf73b5fa962c",
+        "camera_pose_to_bim.txt": "42291d941c2d451d2620de443386d461072803f20b5c60f47f083fa86bcbea6f",
+        "camera_frames.txt": "40b8c6ecb961c015318b95a1a597e032de4dbcbbeaa2087f2ba7bd2ff0cbfa9f"
+      }
+    },
+    "5F_Region3": {
+      "lidar_frames": 6820,
+      "camera_frames": 163,
+      "excluded_images": [],
+      "correction_to_bim": [
+        [
+          0.9999924340317897,
+          0.0015774510553031153,
+          0.003555773804052775,
+          -0.053668128658252594
+        ],
+        [
+          -0.0015989988479370547,
+          0.9999803276600883,
+          0.006065269615367556,
+          0.15675843594104397
+        ],
+        [
+          -0.003546136187706391,
+          -0.006070909403946663,
+          0.9999752841831377,
+          0.43167133204076547
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "map_to_bim": [
+        [
+          -0.24616251481669882,
+          0.9691950932217556,
+          -0.008065923416792593,
+          99.30214236690885
+        ],
+        [
+          -0.9692046653036984,
+          -0.24620656507870534,
+          -0.004902735836185478,
+          18.035002462884904
+        ],
+        [
+          -0.006738380715319732,
+          0.006611234076832159,
+          0.9999551317217962,
+          1.4799900835817235
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "correction": {
+        "rotation_deg": 0.4129843457508609,
+        "tilt_deg": 0.402833898206686,
+        "yaw_deg": -0.09161650051845954,
+        "camera_shift_cm_median": 5.4805313089920995,
+        "camera_shift_cm_max": 16.786687318691847
+      },
+      "map_points_downsampled": 727527,
+      "map_points_used": 727527,
+      "bim_triangles_used": 532104,
+      "degenerate_bim_triangles_removed": {
+        "columns": 0,
+        "floors": 0,
+        "walls": 106
+      },
+      "before": {
+        "points_within_30cm": 474963,
+        "share_within_30cm": 0.6528458737613861,
+        "median_cm": 4.338263450754454,
+        "p90_cm": 15.016064684638028
+      },
+      "after": {
+        "points_within_30cm": 475345,
+        "share_within_30cm": 0.6533709401850378,
+        "median_cm": 2.7273166418140704,
+        "p90_cm": 18.144565923259965
+      },
+      "floor_slope": {
+        "points": 134626,
+        "before_deg": 0.40724648607706593,
+        "after_deg": 0.004736859720067533
+      },
+      "bootstrap": {
+        "tiles": 33,
+        "resamples_requested": 200,
+        "resamples_valid": 200,
+        "rotation_deg_95": [
+          0.28829896951226264,
+          0.49489040677890805
+        ],
+        "tilt_deg_95": [
+          0.27785533718459504,
+          0.486045614494008
+        ],
+        "camera_shift_cm_median_95": [
+          4.360161159430441,
+          6.390940661111158
+        ]
+      },
+      "source_sha256": {
+        "sensor_data/5F_Region3/map/data/uncolorized.ply": "7155cb41289fb0a4ddc408b964a1ea5132fadad67d374f465b369294bd358e88",
+        "sensor_data/5F_Region3/map/pose_map_to_bim.txt": "f54cec14927d2b4e9436ab6444794ac927d019b92147f8192ff1560fb9a2a188",
+        "BIM/5F/mesh/walls.ply": "f932bb4e83be890eeaf39e6f9011eeb9b91c76142a592526578e6b718ab9371c",
+        "BIM/5F/mesh/floors.ply": "eed1068ed0e20bb5ef7e4d036d9e2ebc42bd7ac2457122a3c8a419e1ebc9187e",
+        "BIM/5F/mesh/columns.ply": "5f255ac05bde17f0a702c89c025c1ac5ff3b099708d11772191738136c7315f9"
+      },
+      "v1_sha256": {
+        "lidar_pose_to_bim.txt": "4e9777bd8d08e0b511891202ab7cd5a8c29348c255bb6a91c12259cab67e44c6",
+        "camera_pose_to_bim.txt": "c1e8f8e9afad390ff279ed8463ec54e92ffcae9d6db9ac97b36bbec7181af521",
+        "camera_frames.txt": "e60d74388127fe62d7f0879775b069f4db6579891573c4a4fc7bba7f7278dd92"
+      },
+      "sha256": {
+        "lidar_pose_to_bim.txt": "ad640d027990fcc70cfb16a10f87323b3f211ce94ded8d9a13f7a4939c303802",
+        "camera_pose_to_bim.txt": "7b5357b29917ef6f26a0d5c4007be34f403f0451497a0e341855feee96292f60",
+        "camera_frames.txt": "e60d74388127fe62d7f0879775b069f4db6579891573c4a4fc7bba7f7278dd92"
+      }
+    }
+  }
+}

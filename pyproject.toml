@@ -22,10 +22,15 @@ dependencies = [
 [project.optional-dependencies]
 exr = ["opencv-python>=4.8"]
 ifc = ["ifcopenshell>=0.8"]
+slabim = ["rosbags==0.10.11", "plyfile>=1.1,<2"]
 dev = ["pytest>=8.0", "ruff>=0.6", "trimesh>=4.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/s3dis_sam3d"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"dataset/slabim" = "s3dis_sam3d/slabim/data"
+"dataset/ifc_to_s3dis/Area_1_room_upright_huber_v2" = "s3dis_sam3d/_data/ifc_to_s3dis/Area_1_room_upright_huber_v2"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

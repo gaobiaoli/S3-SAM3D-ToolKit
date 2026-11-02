@@ -1,0 +1,2699 @@
+{
+  "version": "area1_room_upright_huber_v2",
+  "area": "Area_1",
+  "method": "room_huber_4d",
+  "units": "metres",
+  "matrix_convention": "column vectors; raw IFC to original scanner coordinates",
+  "camera_pose": "original_dataset_scanner_pose",
+  "composition": "ifc_to_s3dis = inverse(pointcloud_to_original_bim) @ original_ifc_to_s3dis",
+  "base_calibration": "Area_1_upright_v2",
+  "coverage": {
+    "rooms": 44,
+    "scanners": 186,
+    "photos": 10327
+  },
+  "parameters": {
+    "rotation": "yaw_only_z_up",
+    "scale": 1.0,
+    "huber_delta_m": 0.03,
+    "correspondence_gates_m": [
+      0.3,
+      0.15,
+      0.08
+    ],
+    "structural_classes": [
+      "wall",
+      "floor",
+      "ceiling"
+    ],
+    "room_membership": "official_instance_room_and_area_1"
+  },
+  "metrics_scope": "per-scanner statistics averaged equally; full-fit geometry, not independent camera-pose accuracy",
+  "geometry_before": {
+    "median_cm": 4.086234657379679,
+    "p90_cm": 7.257236087515341,
+    "within2cm": 0.3389435710571587,
+    "within5cm": 0.9218519920266458,
+    "within10cm": 0.9616016347875457,
+    "clipped20cm_rmse_cm": 4.1512891919204975
+  },
+  "geometry_after": {
+    "median_cm": 2.668383446034808,
+    "p90_cm": 5.938498545846327,
+    "within2cm": 0.6844298682883642,
+    "within5cm": 0.9232391984961443,
+    "within10cm": 0.9683985435940797,
+    "clipped20cm_rmse_cm": 3.3192339941543785
+  },
+  "source": {
+    "project": "rgb-bim-refine",
+    "decision": "D33",
+    "experiment": "E40",
+    "date": "2026-10-23",
+    "manifest_sha256": "880f3e210dd7710f537aacc9c2c696f3e9abafe9493af77093cd087c49398c96"
+  },
+  "rooms": {
+    "WC_1": {
+      "scanners": 6,
+      "photos": 298,
+      "original_ifc_sha256": "c8065f979d4cd736a033c49862c995d13f9731debd90a17ce799b139c8d379a3",
+      "original_ifc_to_s3dis_sha256": "fe8ac7b21e006de795e157490a22988944e1dd4a988ad6451df9050699c4654c",
+      "source_fit_sha256": "758b49896b45ff913b93bf78d3ffab831388ea655ba74c044ba0d80d6f1a10ea",
+      "pointcloud_to_original_bim": [
+        [
+          0.999848840466918,
+          0.017386667793487912,
+          0.0,
+          -0.7362813944767864
+        ],
+        [
+          -0.017386667793487888,
+          0.9998488404669175,
+          0.0,
+          -0.3167254890967302
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999988,
+          -0.00491567755173751
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.6514555418532666,
+        "p90_cm": 8.235432725076782,
+        "within2cm": 0.37381014874027674,
+        "within5cm": 0.8869521837060498,
+        "within10cm": 0.9262412850519629,
+        "clipped20cm_rmse_cm": 5.738297103135604
+      },
+      "geometry_after": {
+        "median_cm": 1.8555724479879923,
+        "p90_cm": 8.313766547751861,
+        "within2cm": 0.526550508220645,
+        "within5cm": 0.8856640828811219,
+        "within10cm": 0.9201340779718722,
+        "clipped20cm_rmse_cm": 5.507892754015892
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "WC_1/WC_1_ifc_to_s3dis_transform.npy",
+          "sha256": "06c6063518212c40ab255e610ae339d3749dba17ae66149c098cf72b2bfdb77d"
+        },
+        "s3dis_to_ifc": {
+          "path": "WC_1/WC_1_s3dis_to_ifc_transform.npy",
+          "sha256": "db2a83b5d5e0918cdd216a6f98622f7f557ac309201838f26117406120bcec81"
+        }
+      }
+    },
+    "conferenceRoom_1": {
+      "scanners": 5,
+      "photos": 280,
+      "original_ifc_sha256": "fd34edf05f117ddb7207eb35ba97246ad36a8f9f362b5af85a2a573dbaa81c89",
+      "original_ifc_to_s3dis_sha256": "ddfd5d3ee0a3b2f30476ec64de3578b12bff2dee04e8514840806da4673fc156",
+      "source_fit_sha256": "ea29615cd8faf9d2c3cf9ca76c623247ea18d7452223a3742ae56347ca4c2a6a",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999998131464456,
+          0.0006113158546444101,
+          0.0,
+          -0.004762412676076961
+        ],
+        [
+          -0.0006113158546444103,
+          0.9999998131464457,
+          0.0,
+          0.03878204213671385
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999996,
+          0.03093083093624563
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.963615889476172,
+        "p90_cm": 4.707600332314782,
+        "within2cm": 0.24405333333333332,
+        "within5cm": 0.9960733333333334,
+        "within10cm": 0.9996533333333334,
+        "clipped20cm_rmse_cm": 3.260172265774829
+      },
+      "geometry_after": {
+        "median_cm": 1.0469074222211598,
+        "p90_cm": 2.6620234642083935,
+        "within2cm": 0.8011333333333333,
+        "within5cm": 0.9906,
+        "within10cm": 0.9980666666666667,
+        "clipped20cm_rmse_cm": 1.742924158833461
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "conferenceRoom_1/conferenceRoom_1_ifc_to_s3dis_transform.npy",
+          "sha256": "71632f81b1df48102e140b1d39569a48a3f24a9b29d17705faf78feb7fa682e3"
+        },
+        "s3dis_to_ifc": {
+          "path": "conferenceRoom_1/conferenceRoom_1_s3dis_to_ifc_transform.npy",
+          "sha256": "fa5df40fe8399451d9c8a56cd4f43c96ba9dc917a81917041d9356331a598b6a"
+        }
+      }
+    },
+    "conferenceRoom_2": {
+      "scanners": 6,
+      "photos": 361,
+      "original_ifc_sha256": "8797975ff9db59edf210ea52cd0a61836959d0b9fcaa3d28100307cb6e7fe9cc",
+      "original_ifc_to_s3dis_sha256": "be6551e3994eb293017c376f2d2b976d012cf45f679e9326334c96b3836d73b4",
+      "source_fit_sha256": "f6d3bf55630897b1b58193966c39aec3bced205cb3c376b57b8f02899bee18ca",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999988676252711,
+          0.0015049080285989389,
+          0.0,
+          -0.0052699370103662735
+        ],
+        [
+          -0.0015049080285989395,
+          0.9999988676252717,
+          0.0,
+          -0.03222899833093381
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999981,
+          0.020655319562997678
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 1.972856569945085,
+        "p90_cm": 4.548081490536775,
+        "within2cm": 0.5085944444444445,
+        "within5cm": 0.9577166666666667,
+        "within10cm": 0.9964055555555555,
+        "clipped20cm_rmse_cm": 2.8377124270252914
+      },
+      "geometry_after": {
+        "median_cm": 1.579942204472072,
+        "p90_cm": 3.8883640199827156,
+        "within2cm": 0.6294,
+        "within5cm": 0.9796944444444443,
+        "within10cm": 0.996438888888889,
+        "clipped20cm_rmse_cm": 2.41897219546578
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "conferenceRoom_2/conferenceRoom_2_ifc_to_s3dis_transform.npy",
+          "sha256": "bcb33c4e33cbbd58a3ec97fba0c84e4ca433d7a75b940d44c17ff324eb6dae54"
+        },
+        "s3dis_to_ifc": {
+          "path": "conferenceRoom_2/conferenceRoom_2_s3dis_to_ifc_transform.npy",
+          "sha256": "718c27609652ea55caff7a32ef8465f32c36214b27a9008607470446fab3c3ff"
+        }
+      }
+    },
+    "copyRoom_1": {
+      "scanners": 2,
+      "photos": 127,
+      "original_ifc_sha256": "a3c35d155adcc78e3e9a95ab4246e405d2b6461f2fee4f39b96b841105e2b8a2",
+      "original_ifc_to_s3dis_sha256": "d106497e24ce16b40547c1ab4efa8003e6886a2ab665c4f0a49501166fc105e8",
+      "source_fit_sha256": "e665f0c1fa0e92e4ee5d9419dac0b387518e01fd36abda79f44ffe3452c58509",
+      "pointcloud_to_original_bim": [
+        [
+          0.9998733172585863,
+          -0.01591695430380294,
+          0.0,
+          0.1367962577277522
+        ],
+        [
+          0.01591695430380298,
+          0.9998733172585869,
+          0.0,
+          0.1803688494284705
+        ],
+        [
+          0.0,
+          0.0,
+          0.999999999999998,
+          -0.0014616692893205587
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.4686016343733916,
+        "p90_cm": 4.498815025309678,
+        "within2cm": 0.4299389730055626,
+        "within5cm": 0.9894424517201753,
+        "within10cm": 0.9945071113290829,
+        "clipped20cm_rmse_cm": 3.118034011026472
+      },
+      "geometry_after": {
+        "median_cm": 1.37998373351163,
+        "p90_cm": 3.95406469415834,
+        "within2cm": 0.6409867127103948,
+        "within5cm": 0.988181535690476,
+        "within10cm": 0.9938187228901764,
+        "clipped20cm_rmse_cm": 2.5735668019895286
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "copyRoom_1/copyRoom_1_ifc_to_s3dis_transform.npy",
+          "sha256": "415cdeb63d165a709e07fb663b09f4682b7e5cf279d1a14e32589f9fca807e6a"
+        },
+        "s3dis_to_ifc": {
+          "path": "copyRoom_1/copyRoom_1_s3dis_to_ifc_transform.npy",
+          "sha256": "a43d582f21a628305fc4c2e0b847fbec6ef9d47404843d4f062172eba32fa817"
+        }
+      }
+    },
+    "hallway_1": {
+      "scanners": 1,
+      "photos": 64,
+      "original_ifc_sha256": "c1093324485edb80132bef8297327f46a6167ecdc9112c9ba4c91dabcb219729",
+      "original_ifc_to_s3dis_sha256": "a17e13196e86fa4c1beef6ad920dc3596246652fe786d391e769f1874b5003aa",
+      "source_fit_sha256": "68a430d49a48798aca4d9afeecf8c1f4959f2998bcabdd6537c9e6f4af3905d4",
+      "pointcloud_to_original_bim": [
+        [
+          0.9998533195375662,
+          0.017127154162672232,
+          0.0,
+          -0.05624744921291775
+        ],
+        [
+          -0.017127154162672242,
+          0.999853319537566,
+          0.0,
+          -0.30277890912778727
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999977,
+          0.02836641004553859
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.523789224554264,
+        "p90_cm": 4.278625244655627,
+        "within2cm": 0.32659251769464104,
+        "within5cm": 0.9348387821593079,
+        "within10cm": 0.9606785754409617,
+        "clipped20cm_rmse_cm": 4.506194246722313
+      },
+      "geometry_after": {
+        "median_cm": 0.8476536217963123,
+        "p90_cm": 3.723681884873876,
+        "within2cm": 0.7133468149646107,
+        "within5cm": 0.9352881698685541,
+        "within10cm": 0.9580384226491405,
+        "clipped20cm_rmse_cm": 4.186100713456884
+      },
+      "quality_flags": [
+        "only_one_scanner_position"
+      ],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_1/hallway_1_ifc_to_s3dis_transform.npy",
+          "sha256": "6ed98291a70be8b99b5f80f96f345569cf538305f80ab6af8cc38e2c28ea07c3"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_1/hallway_1_s3dis_to_ifc_transform.npy",
+          "sha256": "f3f648c74da60bd608bb256f819d6eaff55c20c80b1c15b35b6bc17880238d3b"
+        }
+      }
+    },
+    "hallway_2": {
+      "scanners": 3,
+      "photos": 97,
+      "original_ifc_sha256": "966987d97eb830a53563733ec998759db36c15cc12620b36d118e15f00acb042",
+      "original_ifc_to_s3dis_sha256": "cfe867aabeb829013d732cdb37aafc36a3cbc8c6513bf2db114f92191251d891",
+      "source_fit_sha256": "12868c21b7e10d54d4b74abe5dace217851253a8823072dea9ca175c8c66a800",
+      "pointcloud_to_original_bim": [
+        [
+          0.999999528021406,
+          0.0009715744763840136,
+          0.0,
+          -0.05137741478442268
+        ],
+        [
+          -0.0009715744763840144,
+          0.9999995280214066,
+          0.0,
+          0.011045862163297171
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999972,
+          0.01122778957456124
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.2394890694381258,
+        "p90_cm": 4.355639795911229,
+        "within2cm": 0.45851891246540655,
+        "within5cm": 0.9494029319629798,
+        "within10cm": 0.9762521142184205,
+        "clipped20cm_rmse_cm": 3.7077054506357072
+      },
+      "geometry_after": {
+        "median_cm": 1.3101990442767522,
+        "p90_cm": 2.7352055606352152,
+        "within2cm": 0.783138482109799,
+        "within5cm": 0.9547249010171007,
+        "within10cm": 0.9796047774630963,
+        "clipped20cm_rmse_cm": 3.0082052348140262
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_2/hallway_2_ifc_to_s3dis_transform.npy",
+          "sha256": "398d75f60f65bdbe43ea923940e8721caee7e34f07f248628ae9ea17f913b7df"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_2/hallway_2_s3dis_to_ifc_transform.npy",
+          "sha256": "d3fc5623073a5003fc5ae39255153003d9d2f210fc323deb6f6fcaae1c5f21be"
+        }
+      }
+    },
+    "hallway_3": {
+      "scanners": 3,
+      "photos": 118,
+      "original_ifc_sha256": "91f338817a598b253b79c7540beaea5354815b089c01a651173ae9b711720f8b",
+      "original_ifc_to_s3dis_sha256": "4c5fda602bdf64de068ede9eb2de05e9cbb2393c33247a262e420d1c4d4395a5",
+      "source_fit_sha256": "0f25bd4f4c59959d535a950a423505668800eec1ad4f962f23bc78b48e4d4392",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999042042006695,
+          0.013841330204371272,
+          0.0,
+          -0.0649220098486996
+        ],
+        [
+          -0.013841330204371272,
+          0.999904204200669,
+          0.0,
+          -0.00901587861686892
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999973,
+          0.007918962396903526
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.6884411413493665,
+        "p90_cm": 4.806555722286995,
+        "within2cm": 0.3558786492205195,
+        "within5cm": 0.9263096994809636,
+        "within10cm": 0.9530886074887396,
+        "clipped20cm_rmse_cm": 4.725464897241455
+      },
+      "geometry_after": {
+        "median_cm": 0.6573549752733848,
+        "p90_cm": 3.8607109165728133,
+        "within2cm": 0.8044777365798095,
+        "within5cm": 0.9233918021163752,
+        "within10cm": 0.9559402594390106,
+        "clipped20cm_rmse_cm": 4.0805992859225295
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_3/hallway_3_ifc_to_s3dis_transform.npy",
+          "sha256": "9f4265388af9a05b65e71929d24135471d0adf140043adb5ac4247852ad57e25"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_3/hallway_3_s3dis_to_ifc_transform.npy",
+          "sha256": "40adcd3cfbf81675833accd87f5a02c568065c0119a9a5929ab59e8d3eb968cf"
+        }
+      }
+    },
+    "hallway_4": {
+      "scanners": 2,
+      "photos": 17,
+      "original_ifc_sha256": "47be90e4584361ba949a98b6e0f66effbbfbbe55e2e4383702f14818b3c62b8c",
+      "original_ifc_to_s3dis_sha256": "8e6490867276a446e3519496b626096c9319870e9f3c0c8e666653bfea157b73",
+      "source_fit_sha256": "ce5202b5ec39af5d612a7de00ae0f666103c67e5be15568283885b2a910ff6cd",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999845001773983,
+          -0.005567710926302494,
+          0.0,
+          0.23285890631476638
+        ],
+        [
+          0.0055677109263024905,
+          0.999984500177398,
+          0.0,
+          0.05468953861380985
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999981,
+          0.017442955367525277
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.406445057186753,
+        "p90_cm": 3.8841468752776995,
+        "within2cm": 0.3767408685723559,
+        "within5cm": 0.9602178675754625,
+        "within10cm": 0.9828698793295312,
+        "clipped20cm_rmse_cm": 3.1866210496502303
+      },
+      "geometry_after": {
+        "median_cm": 1.0008442498828152,
+        "p90_cm": 3.2908576861847108,
+        "within2cm": 0.6690314629990264,
+        "within5cm": 0.9672345191728102,
+        "within10cm": 0.9826695588167107,
+        "clipped20cm_rmse_cm": 2.674237370676683
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_4/hallway_4_ifc_to_s3dis_transform.npy",
+          "sha256": "c63f2b92e67e9395c78a453d6d2134c724038ad704670f3c4d2c7a06d5ad8dbd"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_4/hallway_4_s3dis_to_ifc_transform.npy",
+          "sha256": "bb79f6d8967417a43121bcf573d34f2afefb45d39acea156e6186b0a65bbeaf8"
+        }
+      }
+    },
+    "hallway_5": {
+      "scanners": 3,
+      "photos": 77,
+      "original_ifc_sha256": "979e23e8d0c3f56950ca3e2cd612dff506744ae61e036d72d5bfcb7e5cfe28a6",
+      "original_ifc_to_s3dis_sha256": "5a607275dfb3b9c8671dccd482ad655aa13768cd70a7f4e1d07ece01c1c49a51",
+      "source_fit_sha256": "61e1ab563dadd0c93980312914c35190d7f459b6ba88da3393a70595580224be",
+      "pointcloud_to_original_bim": [
+        [
+          0.9998463568207224,
+          0.017528911898070234,
+          0.0,
+          -0.7329227186637294
+        ],
+        [
+          -0.017528911898070206,
+          0.9998463568207229,
+          0.0,
+          -0.25384817895020906
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999986,
+          0.027220367267834757
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.36924870851843,
+        "p90_cm": 4.532336646389894,
+        "within2cm": 0.41430992695869157,
+        "within5cm": 0.9760632189464634,
+        "within10cm": 0.9934319031509435,
+        "clipped20cm_rmse_cm": 3.1264169105754323
+      },
+      "geometry_after": {
+        "median_cm": 1.0026971633059072,
+        "p90_cm": 2.6795859903961454,
+        "within2cm": 0.8354956813695784,
+        "within5cm": 0.9665385056766618,
+        "within10cm": 0.9850066455847314,
+        "clipped20cm_rmse_cm": 2.416846308417941
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_5/hallway_5_ifc_to_s3dis_transform.npy",
+          "sha256": "4a8ee07ec33b84d629688de4cadae89d9424b160ea5c0ea266084b10c99a3419"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_5/hallway_5_s3dis_to_ifc_transform.npy",
+          "sha256": "9156d82e4d74424615e5f81b4d282d5b7ff3244236f5080f36cb9ecc1bbb4dda"
+        }
+      }
+    },
+    "hallway_6": {
+      "scanners": 23,
+      "photos": 1411,
+      "original_ifc_sha256": "c04b981f2639aec23706e38c6ca509aeb729d4815d3eb506504dac230e208c2c",
+      "original_ifc_to_s3dis_sha256": "de305aec48844fbe6590622a5111c295a614254336815cbcc3c00bce4be7af25",
+      "source_fit_sha256": "48bfebe1f2588c9bf7afe7fe859ab28b41016d698370e52746b7af31aa1db67e",
+      "pointcloud_to_original_bim": [
+        [
+          0.999999970542597,
+          -0.00024272372602856856,
+          0.0,
+          0.04747599537631447
+        ],
+        [
+          0.0002427237260285683,
+          0.9999999705425971,
+          0.0,
+          0.01977608279747131
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999981,
+          -0.021639138604210566
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.847580340634097,
+        "p90_cm": 8.945049902696558,
+        "within2cm": 0.17460149900984434,
+        "within5cm": 0.7363507143838679,
+        "within10cm": 0.8797329372710767,
+        "clipped20cm_rmse_cm": 6.158233615264642
+      },
+      "geometry_after": {
+        "median_cm": 2.6614243309060814,
+        "p90_cm": 8.193202520716813,
+        "within2cm": 0.37201172889754763,
+        "within5cm": 0.6856969356444171,
+        "within10cm": 0.9283774070826646,
+        "clipped20cm_rmse_cm": 5.674309503762626
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_6/hallway_6_ifc_to_s3dis_transform.npy",
+          "sha256": "f547c0bba84e174ad75d47196d936584fbe118b3f2426eca499fab7a39cce17a"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_6/hallway_6_s3dis_to_ifc_transform.npy",
+          "sha256": "50a5629eb3cf7cb597c0a4594e9ee1a6bc7728e2a79c85ada14bae7066d21fb9"
+        }
+      }
+    },
+    "hallway_7": {
+      "scanners": 27,
+      "photos": 1553,
+      "original_ifc_sha256": "dcf344bdab3906c94c95395a3ecd8b9498ef22da8edd25b011763ad95f7d6031",
+      "original_ifc_to_s3dis_sha256": "787e0d60f6e349e26038bfd1f2f44748c1a3f2c3b8f97bf5cdc8558afb8b5de4",
+      "source_fit_sha256": "619c4e0fdd93507b5bc117ec924f8d35a468f2be356e8129038bce8b4b777b4e",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999976432833317,
+          -0.0021710430172214674,
+          0.0,
+          0.032079883969359346
+        ],
+        [
+          0.002171043017221466,
+          0.9999976432833318,
+          0.0,
+          -0.00775352798352045
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999974,
+          -0.024438729192692254
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.5544344173017133,
+        "p90_cm": 4.652681909185584,
+        "within2cm": 0.40145431538643483,
+        "within5cm": 0.9420316530216951,
+        "within10cm": 0.9660002119330813,
+        "clipped20cm_rmse_cm": 4.173160368440228
+      },
+      "geometry_after": {
+        "median_cm": 1.7264240945990128,
+        "p90_cm": 3.8964527699864684,
+        "within2cm": 0.585800095028429,
+        "within5cm": 0.9406859818389302,
+        "within10cm": 0.9663407540476118,
+        "clipped20cm_rmse_cm": 3.7619982962237795
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_7/hallway_7_ifc_to_s3dis_transform.npy",
+          "sha256": "4d532dc81f69e2e5641ee710245545a466185a2a79bce6d5ace391eb5d0ced4a"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_7/hallway_7_s3dis_to_ifc_transform.npy",
+          "sha256": "8d6d5f26a8a3bf27af0852c91292c9f10a66879c692b25c7482509e5377ce089"
+        }
+      }
+    },
+    "hallway_8": {
+      "scanners": 5,
+      "photos": 72,
+      "original_ifc_sha256": "4389c045d1a6f84d8fa9ed8d71c315ff03f417c2749b3a912a04daae4b42cada",
+      "original_ifc_to_s3dis_sha256": "41ded4a6e62d41aac5ac1bd7455b3354e72b519a661cf76d09bd65515ac401e3",
+      "source_fit_sha256": "eb9aee9d9abf119c1eb81cddc85a2557fa7f6a486c76038460c679235fc40898",
+      "pointcloud_to_original_bim": [
+        [
+          0.999998789119756,
+          -0.0015562001862715568,
+          0.0,
+          -0.04110900055909393
+        ],
+        [
+          0.001556200186271557,
+          0.9999987891197563,
+          0.0,
+          0.04011953114311553
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999978,
+          -0.03851213982989731
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 50.981592698585665,
+        "p90_cm": 79.23921699394366,
+        "within2cm": 0.13507515674730228,
+        "within5cm": 0.6752074234246193,
+        "within10cm": 0.6971977699886097,
+        "clipped20cm_rmse_cm": 10.0399968701799
+      },
+      "geometry_after": {
+        "median_cm": 48.013862514947775,
+        "p90_cm": 79.39261697443139,
+        "within2cm": 0.6024060558758133,
+        "within5cm": 0.6731960247304979,
+        "within10cm": 0.6974704018842657,
+        "clipped20cm_rmse_cm": 9.440373542790766
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "hallway_8/hallway_8_ifc_to_s3dis_transform.npy",
+          "sha256": "f8214b903b8430b264a7f36d479f32fac90616125a40c8ffa77476ce3fbe57b8"
+        },
+        "s3dis_to_ifc": {
+          "path": "hallway_8/hallway_8_s3dis_to_ifc_transform.npy",
+          "sha256": "ef82aa0a2048b3497cdae5c38c8dcb714a30d3c0958d86e71f2e1838853eb817"
+        }
+      }
+    },
+    "office_1": {
+      "scanners": 3,
+      "photos": 167,
+      "original_ifc_sha256": "30a733f9e540d5bef89f81405dca569ca5e419d17e508705583df527fac88ce0",
+      "original_ifc_to_s3dis_sha256": "a19b4829ec6a50509ae929e58402aa8c5d9e26996aa2f7cca7d16852a5ec43d7",
+      "source_fit_sha256": "15609c9db4e5e55929304713b811db86274e0d7ee84f58bd01d0edc0ffe19a70",
+      "pointcloud_to_original_bim": [
+        [
+          0.999999539175966,
+          0.0009600249234089764,
+          0.0,
+          -0.029486647060448484
+        ],
+        [
+          -0.000960024923408977,
+          0.9999995391759658,
+          0.0,
+          -0.004860455857101138
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999968,
+          0.03379334675859601
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.4372306256417353,
+        "p90_cm": 3.9847058077908097,
+        "within2cm": 0.3557777777777778,
+        "within5cm": 0.9783777777777778,
+        "within10cm": 0.9912555555555556,
+        "clipped20cm_rmse_cm": 3.0526333231239136
+      },
+      "geometry_after": {
+        "median_cm": 1.5965945819633947,
+        "p90_cm": 3.7451915516812186,
+        "within2cm": 0.6096222222222223,
+        "within5cm": 0.9753333333333334,
+        "within10cm": 0.9894444444444445,
+        "clipped20cm_rmse_cm": 2.7852587236356707
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_1/office_1_ifc_to_s3dis_transform.npy",
+          "sha256": "f832202aa4b89f0c91940832fa36648c59a5647e18246cf82a55c80d85eb476a"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_1/office_1_s3dis_to_ifc_transform.npy",
+          "sha256": "da9a38097a6706b0cefcdffb97f85bc957195d09b4be6952517341381437a154"
+        }
+      }
+    },
+    "office_10": {
+      "scanners": 2,
+      "photos": 112,
+      "original_ifc_sha256": "690ada1f159823dc6a22e3520dc2d6e72e67dd845ed2e1f93a03ea85d58dbba6",
+      "original_ifc_to_s3dis_sha256": "1cf919b7163127b740750bed3872b0b372c39b936b5b86ee3a3e957e3a6f3032",
+      "source_fit_sha256": "4c9925978d265487a57f94e87408b3160872b97d6da1eb9492166f42b406552d",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999984313317817,
+          -0.0017712520925103768,
+          0.0,
+          0.04139537589120206
+        ],
+        [
+          0.0017712520925103764,
+          0.9999984313317817,
+          0.0,
+          -0.006335808142215125
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999996,
+          -0.0005353068754681947
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.898532929137981,
+        "p90_cm": 4.853819304652644,
+        "within2cm": 0.2524109241552962,
+        "within5cm": 0.9947566873093108,
+        "within10cm": 0.9985402979572856,
+        "clipped20cm_rmse_cm": 3.362254155405515
+      },
+      "geometry_after": {
+        "median_cm": 1.0116768508698852,
+        "p90_cm": 1.87829731617692,
+        "within2cm": 0.9177022502750463,
+        "within5cm": 0.9927897433280025,
+        "within10cm": 0.9971760913947396,
+        "clipped20cm_rmse_cm": 1.5437451187867892
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_10/office_10_ifc_to_s3dis_transform.npy",
+          "sha256": "4d0daa9013be3560c4a879717c67da1d66ffe7a8f9a89313adefb3340d7bad75"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_10/office_10_s3dis_to_ifc_transform.npy",
+          "sha256": "8f5d3699a87dc7937621e01fbb22aef5645dd5e2d573d1a320a1b26a10bd9d45"
+        }
+      }
+    },
+    "office_11": {
+      "scanners": 2,
+      "photos": 112,
+      "original_ifc_sha256": "34b699c49658bd4e81fbfbd74343afc9b753aeba118f55688c2bd025df9c2d8a",
+      "original_ifc_to_s3dis_sha256": "891e94dc77022b95afe90f50e161f4b9d1004208b335b7f050d70e3077ed2a47",
+      "source_fit_sha256": "194ed0668225b003044b375cf30f505c0d81d7c4ca5f9961c1caecd76e40bc38",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999952284545116,
+          -0.0030891856870667454,
+          0.0,
+          -0.05782757816541382
+        ],
+        [
+          0.0030891856870667463,
+          0.9999952284545123,
+          0.0,
+          0.09472680861793623
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999971,
+          -0.03617307758306511
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.3319335191312343,
+        "p90_cm": 5.947324412433926,
+        "within2cm": 0.25910939841419944,
+        "within5cm": 0.8940346099755099,
+        "within10cm": 0.9981861969884338,
+        "clipped20cm_rmse_cm": 3.9009673755608714
+      },
+      "geometry_after": {
+        "median_cm": 0.8341131723192234,
+        "p90_cm": 2.193646585014821,
+        "within2cm": 0.858084522683737,
+        "within5cm": 0.9818466477534493,
+        "within10cm": 0.9975332023956742,
+        "clipped20cm_rmse_cm": 1.6888531997709584
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_11/office_11_ifc_to_s3dis_transform.npy",
+          "sha256": "a7b5d7dbb605264339127c77858e93599ef69cc300baf82c717e32cf396bc247"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_11/office_11_s3dis_to_ifc_transform.npy",
+          "sha256": "b307d8772eafc82972fc9a89b2693060e31e666276e105ed91eb8a71089d3389"
+        }
+      }
+    },
+    "office_12": {
+      "scanners": 2,
+      "photos": 115,
+      "original_ifc_sha256": "e1de667634c9874485ed354c5a4f30dd6b41e4af4bc3c9107f5e218803f200fb",
+      "original_ifc_to_s3dis_sha256": "7657e54008d7e70ed9144fc46824f060eeab3461af5a4a477e5153e29ec15d1a",
+      "source_fit_sha256": "fb194c0befbe11e0bee4a8606ff01d2b5aa3754255f5f870326cd9c6e111e1fe",
+      "pointcloud_to_original_bim": [
+        [
+          0.9978873644322084,
+          -0.0649677451243313,
+          0.0,
+          -0.07867367431550881
+        ],
+        [
+          0.06496774512433122,
+          0.9978873644322077,
+          0.0,
+          1.1961924951524672
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999972,
+          -0.031339984322882576
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.5563389354333776,
+        "p90_cm": 8.396265871241686,
+        "within2cm": 0.3425910447761194,
+        "within5cm": 0.8162149253731343,
+        "within10cm": 0.9110249466950959,
+        "clipped20cm_rmse_cm": 5.707966852425651
+      },
+      "geometry_after": {
+        "median_cm": 1.6580807345516364,
+        "p90_cm": 3.95667332189701,
+        "within2cm": 0.5641557569296376,
+        "within5cm": 0.9566714285714286,
+        "within10cm": 0.9854622601279318,
+        "clipped20cm_rmse_cm": 2.908342367955915
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_12/office_12_ifc_to_s3dis_transform.npy",
+          "sha256": "c3575ee3044868c2f22c159336b1de4d7cf5ee4b8d8e5a72a65bc31315f6b32a"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_12/office_12_s3dis_to_ifc_transform.npy",
+          "sha256": "4d67fe51699c25405d64e638b07f755ff53d25f4572e8c812cd4ae5c9c41e761"
+        }
+      }
+    },
+    "office_13": {
+      "scanners": 2,
+      "photos": 120,
+      "original_ifc_sha256": "069349ad13adcf08a31368c1d423bf7895beaaa906f14c380eeebf0b7c4fafcc",
+      "original_ifc_to_s3dis_sha256": "60070f103890f917ec2f57a997c3d7f48bced8f4802486d058898f279e65bb2d",
+      "source_fit_sha256": "f742739d7c2c6e29b8bff7edeaec03dca956a6c5f127cfce6524910b08028a1e",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999999420363942,
+          -0.000340480844297074,
+          0.0,
+          -0.034577497430355875
+        ],
+        [
+          0.0003404808442970737,
+          0.9999999420363945,
+          0.0,
+          -0.02102704415870376
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999968,
+          -0.026387883265216315
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.559228096518658,
+        "p90_cm": 4.402064534897583,
+        "within2cm": 0.3559036771318794,
+        "within5cm": 0.9440555672260851,
+        "within10cm": 0.982589703793888,
+        "clipped20cm_rmse_cm": 3.7407037699362133
+      },
+      "geometry_after": {
+        "median_cm": 0.9538976162087888,
+        "p90_cm": 2.726719662167105,
+        "within2cm": 0.8079142450691863,
+        "within5cm": 0.9654134850642717,
+        "within10cm": 0.9877005400307608,
+        "clipped20cm_rmse_cm": 2.4715787177272324
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_13/office_13_ifc_to_s3dis_transform.npy",
+          "sha256": "ad44f017e1c96a5024b2bdc553531beab0cd1cd533e45a800f7279f9452e4812"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_13/office_13_s3dis_to_ifc_transform.npy",
+          "sha256": "4ff2ba581c1c1f691102e1442c3b996b39c929bea3a721a28e0018703be49324"
+        }
+      }
+    },
+    "office_14": {
+      "scanners": 2,
+      "photos": 93,
+      "original_ifc_sha256": "479247ad4d6954c9e255201b8142ad08a53bfc675f9c9864e4a79d764359e0a4",
+      "original_ifc_to_s3dis_sha256": "aaee8fd44bc16ccac3b007bf6c2f4a7198b10b373e47837573b2936308205477",
+      "source_fit_sha256": "a1767dd4953b67341237edde594a29e6bc75d5718f5817a41c7c5434cb721326",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999995454677822,
+          -0.0009534485990100362,
+          0.0,
+          0.019581670527527652
+        ],
+        [
+          0.0009534485990100353,
+          0.9999995454677825,
+          0.0,
+          0.04054963674284022
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999977,
+          -0.030788723080095497
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.1519939946980706,
+        "p90_cm": 3.5366229990478413,
+        "within2cm": 0.45058927847630414,
+        "within5cm": 0.9637892342631476,
+        "within10cm": 0.9923078596707129,
+        "clipped20cm_rmse_cm": 2.8929334488373133
+      },
+      "geometry_after": {
+        "median_cm": 0.6902162420657196,
+        "p90_cm": 2.4816295717942465,
+        "within2cm": 0.8392463129796781,
+        "within5cm": 0.9684825326865094,
+        "within10cm": 0.990358784444703,
+        "clipped20cm_rmse_cm": 2.247398058129601
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_14/office_14_ifc_to_s3dis_transform.npy",
+          "sha256": "e819cdcf5bb13d00b3d24ff88a249120a0eb255032adb81ff0757d4cbeb764d4"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_14/office_14_s3dis_to_ifc_transform.npy",
+          "sha256": "9c3c7fe834f948eadb4c09d00caeae8c623ce907f8b94b972ae9c660e5b4ed37"
+        }
+      }
+    },
+    "office_15": {
+      "scanners": 2,
+      "photos": 85,
+      "original_ifc_sha256": "3d34784d0e54b19f974708d3d279b5714245368f728cac91eae2f32cff07cffb",
+      "original_ifc_to_s3dis_sha256": "081b4434fd4f25d0af441c0e1e2c139e7d379c330d4d2f919005a3565fd9c996",
+      "source_fit_sha256": "3246c8d71a486fdaaaf576be884eb136757f5e2582074d7a7b56857b8f7ab041",
+      "pointcloud_to_original_bim": [
+        [
+          0.9991699593831502,
+          -0.04073563877337235,
+          0.0,
+          0.4262257915069804
+        ],
+        [
+          0.04073563877337228,
+          0.99916995938315,
+          0.0,
+          0.3235707619604162
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999987,
+          0.004179426157886657
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.713098508973257,
+        "p90_cm": 4.744682402361548,
+        "within2cm": 0.16017737179099567,
+        "within5cm": 0.9955126342901437,
+        "within10cm": 0.9995856692903673,
+        "clipped20cm_rmse_cm": 3.6292722239547746
+      },
+      "geometry_after": {
+        "median_cm": 1.909262106487191,
+        "p90_cm": 4.075057074864579,
+        "within2cm": 0.5320105254068064,
+        "within5cm": 0.9881763182088162,
+        "within10cm": 0.9979399520849895,
+        "clipped20cm_rmse_cm": 2.531890761672696
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_15/office_15_ifc_to_s3dis_transform.npy",
+          "sha256": "5bb6b78446dc08e4a84dc3a84207a2fe3871dbc72ddced130e52ee733bc5bae5"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_15/office_15_s3dis_to_ifc_transform.npy",
+          "sha256": "be4c196ee4c73cb43a74b726435a74ed8a4ae4737214161fc3b25d88c94588c1"
+        }
+      }
+    },
+    "office_16": {
+      "scanners": 5,
+      "photos": 289,
+      "original_ifc_sha256": "7c0144752824e109b429c865ef90a1cd1aac5a5410d1bc354000bd9ea724be1c",
+      "original_ifc_to_s3dis_sha256": "97fbd5b9d5d206daebe1810f294e2c07ed9265edf83913a853d38fd96ab2b477",
+      "source_fit_sha256": "7ea11ede6d12d6cff7693d2fab0027aabe2a3bbcc57a930f263367211a5595c8",
+      "pointcloud_to_original_bim": [
+        [
+          0.999999032763033,
+          0.0013908533341015193,
+          0.0,
+          -0.09749084660664915
+        ],
+        [
+          -0.0013908533341015202,
+          0.999999032763033,
+          0.0,
+          -0.005113460944522923
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999977,
+          0.0015277033917469225
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 1.6868443355370157,
+        "p90_cm": 4.20707685706755,
+        "within2cm": 0.6112933333333332,
+        "within5cm": 0.9883866666666666,
+        "within10cm": 0.9983666666666666,
+        "clipped20cm_rmse_cm": 2.484600157084832
+      },
+      "geometry_after": {
+        "median_cm": 1.3434989773192738,
+        "p90_cm": 2.632786633001264,
+        "within2cm": 0.7663866666666668,
+        "within5cm": 0.9889933333333334,
+        "within10cm": 0.9986600000000001,
+        "clipped20cm_rmse_cm": 1.869176558156249
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_16/office_16_ifc_to_s3dis_transform.npy",
+          "sha256": "9ef8db4a1752c620d2144797d17be330f088463660d34327457b685e648ca444"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_16/office_16_s3dis_to_ifc_transform.npy",
+          "sha256": "74746307bcc29d6fd7785ef887079ae796566a02594f5eb454c81b73ff14053f"
+        }
+      }
+    },
+    "office_17": {
+      "scanners": 3,
+      "photos": 175,
+      "original_ifc_sha256": "e7c29aae99365ee911ba402f64778c444ab3a42ab118c61982883198b2957a39",
+      "original_ifc_to_s3dis_sha256": "f1ab8064a7806c70114c74300a28042c74d7c9b43ee5814fac21705afa823e5c",
+      "source_fit_sha256": "7e04fb316ddc9ff892978f325703b46961d4b12d98091ba55b67f6148fe06d03",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999983992672078,
+          -0.0017892632625264853,
+          0.0,
+          0.0973721984386081
+        ],
+        [
+          0.001789263262526485,
+          0.9999983992672078,
+          0.0,
+          -0.04438252892635951
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999997,
+          0.00408122932895832
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.8489635591781473,
+        "p90_cm": 4.685443834165856,
+        "within2cm": 0.3349853245531515,
+        "within5cm": 0.9920337514372322,
+        "within10cm": 0.9977180829936239,
+        "clipped20cm_rmse_cm": 3.318855185507216
+      },
+      "geometry_after": {
+        "median_cm": 1.2633324865119304,
+        "p90_cm": 2.551618257112167,
+        "within2cm": 0.7656370858158253,
+        "within5cm": 0.9900910839343577,
+        "within10cm": 0.9980295390404516,
+        "clipped20cm_rmse_cm": 1.8621456630578697
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_17/office_17_ifc_to_s3dis_transform.npy",
+          "sha256": "989121b40839c21020b65bac853d24a17932b7c6aae969f5bfcec497668042e9"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_17/office_17_s3dis_to_ifc_transform.npy",
+          "sha256": "185b4fb98987cca39fcb974575f24e944dbb758c0670ba417df7862f7cddf9ce"
+        }
+      }
+    },
+    "office_18": {
+      "scanners": 3,
+      "photos": 182,
+      "original_ifc_sha256": "a26243e8322b6fa1a39d34c909a27baa1cdfd5c4cc4f96d183017a22aac7aa94",
+      "original_ifc_to_s3dis_sha256": "4994d1e33128aeebba85c396a8d0f3284855fa29fcb6aa78ce99f62e6d226954",
+      "source_fit_sha256": "a063d2d26939b2291b258ee03f1b01504a29a1f9bdb2288e5980a2f6e0595d1b",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999920914842096,
+          0.0039770553221233,
+          0.0,
+          -0.10159310087978889
+        ],
+        [
+          -0.003977055322123304,
+          0.9999920914842105,
+          0.0,
+          -0.047656082196200676
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999979,
+          -0.03225011018831863
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.8639601125555196,
+        "p90_cm": 4.5139356097464045,
+        "within2cm": 0.2741897533684769,
+        "within5cm": 0.9910363911480343,
+        "within10cm": 0.9976034784404697,
+        "clipped20cm_rmse_cm": 3.246887527453172
+      },
+      "geometry_after": {
+        "median_cm": 1.0880156369689702,
+        "p90_cm": 2.154207720497339,
+        "within2cm": 0.8810852945060055,
+        "within5cm": 0.9826282842137389,
+        "within10cm": 0.9966264152267944,
+        "clipped20cm_rmse_cm": 1.8041791214892358
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_18/office_18_ifc_to_s3dis_transform.npy",
+          "sha256": "0decb433d91cdeea359489088bdd2bf45bb50f0fa351719e8d820627b7fd9ed4"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_18/office_18_s3dis_to_ifc_transform.npy",
+          "sha256": "2d29709523fb0b44c0d421cfd4f88024823126147eb8640517a32df50b7e7bca"
+        }
+      }
+    },
+    "office_19": {
+      "scanners": 3,
+      "photos": 141,
+      "original_ifc_sha256": "1af7e1b393317b0e7366fa7f4b569507a5ec90229b8a8f7355cc1798b888cb1a",
+      "original_ifc_to_s3dis_sha256": "5b62b4628cc6f9c13230ff285ea6fd348a0fc96dc34233e2a14ce976bcacb160",
+      "source_fit_sha256": "bccdd809cd47e9abc6fd508c66c24b922448501dc2abc5810a143de67da9e170",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999992753240932,
+          -0.0012038900654517018,
+          0.0,
+          0.018063675155744828
+        ],
+        [
+          0.0012038900654517018,
+          0.9999992753240933,
+          0.0,
+          -0.043230311638568164
+        ],
+        [
+          0.0,
+          0.0,
+          0.999999999999998,
+          -0.03147884776153273
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.652631371308466,
+        "p90_cm": 4.848232512919821,
+        "within2cm": 0.2086632031291714,
+        "within5cm": 0.9592815305841015,
+        "within10cm": 0.9692721541562502,
+        "clipped20cm_rmse_cm": 4.806088645257848
+      },
+      "geometry_after": {
+        "median_cm": 0.7987297467819348,
+        "p90_cm": 2.4808390765338992,
+        "within2cm": 0.8455992708993479,
+        "within5cm": 0.9532497687857148,
+        "within10cm": 0.9688091525157364,
+        "clipped20cm_rmse_cm": 3.6323290296760606
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_19/office_19_ifc_to_s3dis_transform.npy",
+          "sha256": "68408e3ef5dbf068081387b6177c3ad7c2545ad6c85c4449cbbc8b6ac57220fb"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_19/office_19_s3dis_to_ifc_transform.npy",
+          "sha256": "b16227f7488c065c11939ad34ed7597f549acf55b46dcac698de21dccec58e46"
+        }
+      }
+    },
+    "office_2": {
+      "scanners": 3,
+      "photos": 139,
+      "original_ifc_sha256": "7529acc738aaad8e2a0c5898259131c117d6fe5426375b8e7f2f57cbb6a28b94",
+      "original_ifc_to_s3dis_sha256": "b9e915e5aa085746d5547502f55399f59e70aa9933817e2441e3a91256b04dab",
+      "source_fit_sha256": "079b001753653c9aa4c52d905810cfb3fe00887d7a2e0676b9f445ad5e79e3f6",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999968238303456,
+          -0.0025203827524886767,
+          0.0,
+          0.05776034079739736
+        ],
+        [
+          0.0025203827524886754,
+          0.9999968238303454,
+          0.0,
+          0.09676956465274704
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999969,
+          -0.0127671336895936
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.732368020311327,
+        "p90_cm": 4.940892026307147,
+        "within2cm": 0.24400707758240373,
+        "within5cm": 0.9248866578433225,
+        "within10cm": 0.9942318396672339,
+        "clipped20cm_rmse_cm": 3.839659949557881
+      },
+      "geometry_after": {
+        "median_cm": 1.291695603962031,
+        "p90_cm": 4.043415425449645,
+        "within2cm": 0.6995543076826117,
+        "within5cm": 0.9586922480620155,
+        "within10cm": 0.9929641520136131,
+        "clipped20cm_rmse_cm": 2.6840705086923315
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_2/office_2_ifc_to_s3dis_transform.npy",
+          "sha256": "90b3928dd984b51696efc971e0212d14e5774cb12d9d5f248b847db526561318"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_2/office_2_s3dis_to_ifc_transform.npy",
+          "sha256": "b9e625e50487aa4c773f92415c14d7f40d4c3f0a5bc9ff648e1f9062f2615084"
+        }
+      }
+    },
+    "office_20": {
+      "scanners": 3,
+      "photos": 190,
+      "original_ifc_sha256": "2fa1d46104ba76ff98d0791da0a0eaf70c7bf78195e982a0f610b52f778c1ff2",
+      "original_ifc_to_s3dis_sha256": "9a0912dad7ab5e4a7fc1faf6f70b0a41c1d3174674b1e0d695e5442ec1ee5c5c",
+      "source_fit_sha256": "ad9b74882785876f1b8ccf96f0425907cca250df025543e5439dd1e852104e60",
+      "pointcloud_to_original_bim": [
+        [
+          0.9997660427790632,
+          -0.021630064861041784,
+          0.0,
+          0.6461327773684976
+        ],
+        [
+          0.02163006486104179,
+          0.9997660427790627,
+          0.0,
+          0.01406976319083976
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999977,
+          -0.030472175432606514
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.792816920032887,
+        "p90_cm": 4.547067399763405,
+        "within2cm": 0.24841249189956835,
+        "within5cm": 0.9941058010913743,
+        "within10cm": 0.999090528688575,
+        "clipped20cm_rmse_cm": 3.209386475708513
+      },
+      "geometry_after": {
+        "median_cm": 1.3320187671168806,
+        "p90_cm": 4.076251160919092,
+        "within2cm": 0.6255271092153424,
+        "within5cm": 0.9884370865551851,
+        "within10cm": 0.9978004948463558,
+        "clipped20cm_rmse_cm": 2.414076333989128
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_20/office_20_ifc_to_s3dis_transform.npy",
+          "sha256": "282b1f49ba8c4f0b2be9b84765d910fed1e59db8b0d10a79499a840bac913239"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_20/office_20_s3dis_to_ifc_transform.npy",
+          "sha256": "6f87f4cceeb8a1e313d15390898a11a9fb93b72322eebd98e97372818fdb8e83"
+        }
+      }
+    },
+    "office_21": {
+      "scanners": 3,
+      "photos": 186,
+      "original_ifc_sha256": "28c714b09f84e8947ccb77f668901284b9d3be55fdcdb40854e003357d547249",
+      "original_ifc_to_s3dis_sha256": "fd819214f03c477c9c7b92691f2eede4fc5b4b9b5bf50463e83c58abedec8b47",
+      "source_fit_sha256": "b0756495a0ee565bc131498dc2e97031479da62cb71b29ca07734ab7d72fd0d7",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999968400281045,
+          -0.0025139478524640276,
+          0.0,
+          0.055379055823564276
+        ],
+        [
+          0.002513947852464026,
+          0.9999968400281048,
+          0.0,
+          -0.031130345398884735
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999978,
+          -0.029896438127666177
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.394410755820519,
+        "p90_cm": 4.223241973519328,
+        "within2cm": 0.307776365900273,
+        "within5cm": 0.9798241093953379,
+        "within10cm": 0.9925438701940795,
+        "clipped20cm_rmse_cm": 3.0193166556059694
+      },
+      "geometry_after": {
+        "median_cm": 0.8451432457331829,
+        "p90_cm": 2.0153200743774455,
+        "within2cm": 0.8994674965940405,
+        "within5cm": 0.9807211084083569,
+        "within10cm": 0.9955491599231258,
+        "clipped20cm_rmse_cm": 1.7462308828412383
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_21/office_21_ifc_to_s3dis_transform.npy",
+          "sha256": "2da53eaa7048ddf086ca5f27b666989e14295f8f5da7991d22fbe17dea39c303"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_21/office_21_s3dis_to_ifc_transform.npy",
+          "sha256": "30fc6024790687b4f73620b365ee6053acf0d6287e2450dd4ff911b8b2310299"
+        }
+      }
+    },
+    "office_22": {
+      "scanners": 3,
+      "photos": 200,
+      "original_ifc_sha256": "d74dac6f5c89d6f0f229b069a0ed61d206668f1e4b6d10fa5b6309d1420dab34",
+      "original_ifc_to_s3dis_sha256": "e0de49b830c82169efcc93b1047e12d11c3a72c216b6bbe028486a53684f398b",
+      "source_fit_sha256": "0b9f5c136ba3e2bc3ec931f8c44755d5d7bcd80191bd8878e08d2923b402ecd7",
+      "pointcloud_to_original_bim": [
+        [
+          0.9998646964162896,
+          0.016449585416082175,
+          0.0,
+          -0.25027780033667624
+        ],
+        [
+          -0.01644958541608218,
+          0.9998646964162897,
+          0.0,
+          -0.0011262524557166533
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999974,
+          -0.00834690707633853
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.582930696002704,
+        "p90_cm": 4.520394140640266,
+        "within2cm": 0.36991161361506736,
+        "within5cm": 0.974570677771022,
+        "within10cm": 0.9931897620806748,
+        "clipped20cm_rmse_cm": 3.157060544667423
+      },
+      "geometry_after": {
+        "median_cm": 1.4939617878560219,
+        "p90_cm": 4.103030969235761,
+        "within2cm": 0.6340386734500355,
+        "within5cm": 0.9743393919881314,
+        "within10cm": 0.9901266437334737,
+        "clipped20cm_rmse_cm": 2.722446515008968
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_22/office_22_ifc_to_s3dis_transform.npy",
+          "sha256": "ec25e5324fe527e32bd9570059e61c12d1e90e7b9f10e782a24bd84ffb395693"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_22/office_22_s3dis_to_ifc_transform.npy",
+          "sha256": "51c7f41c411b8a8106148d88295f65eac3823ef19a7abea8c0ebccc7bfd9dfb4"
+        }
+      }
+    },
+    "office_23": {
+      "scanners": 3,
+      "photos": 152,
+      "original_ifc_sha256": "4e402424cf5cc09cd8849bf9fef9967f4abc67023f22404f0cea75026a1428ea",
+      "original_ifc_to_s3dis_sha256": "daf396f7ff1080fa09012085cc64d924912473f082ecf8d1cfc6aae65e48ac82",
+      "source_fit_sha256": "d5c0b2baf129b95b47e424312761a04880ff0fb7c9c8e2573312ffe3e6b3e4b9",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999937754349728,
+          -0.0035283269842436805,
+          0.0,
+          0.061472267253890885
+        ],
+        [
+          0.003528326984243699,
+          0.9999937754349726,
+          0.0,
+          -0.04591513720213866
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999974,
+          0.0197555380172897
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.37974240062324,
+        "p90_cm": 4.735674307715125,
+        "within2cm": 0.25346492798666714,
+        "within5cm": 0.980966086731304,
+        "within10cm": 0.9965052982444287,
+        "clipped20cm_rmse_cm": 3.5136625978383194
+      },
+      "geometry_after": {
+        "median_cm": 1.1942629586337292,
+        "p90_cm": 3.3585137180236697,
+        "within2cm": 0.7373428690472169,
+        "within5cm": 0.9842500332195985,
+        "within10cm": 0.9957779838518969,
+        "clipped20cm_rmse_cm": 2.1950498350280254
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_23/office_23_ifc_to_s3dis_transform.npy",
+          "sha256": "ba2afe57e4205aa6b3e713382043c2e2ff7c40836331789b63eacf1eb064c5f3"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_23/office_23_s3dis_to_ifc_transform.npy",
+          "sha256": "21942619fd5ba97d75763bdbe844d3b2c2e16de229d90d67ee596976d914c114"
+        }
+      }
+    },
+    "office_24": {
+      "scanners": 3,
+      "photos": 161,
+      "original_ifc_sha256": "f04d5cb9b32d30d2679676a3c9bab2da4f0c98b1a07614d0c870248204fd815e",
+      "original_ifc_to_s3dis_sha256": "ee02832337b17578c8d48c8431af678014fab805100a87a14ce0f17c6549c8c3",
+      "source_fit_sha256": "dfec89c9156055e4d7d7913deb8e0646ac6013cae92a4671c603192f6d3668ec",
+      "pointcloud_to_original_bim": [
+        [
+          0.9997697982058863,
+          0.021455782329360462,
+          0.0,
+          -0.25453038538997486
+        ],
+        [
+          -0.021455782329360455,
+          0.9997697982058864,
+          0.0,
+          -0.03383203065606951
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999987,
+          -0.03150191842163466
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.7932844083661688,
+        "p90_cm": 4.422077045556005,
+        "within2cm": 0.2714517420499177,
+        "within5cm": 0.9885399467882935,
+        "within10cm": 0.9991321804130241,
+        "clipped20cm_rmse_cm": 3.077090868387996
+      },
+      "geometry_after": {
+        "median_cm": 1.5874139737639628,
+        "p90_cm": 4.023173242867597,
+        "within2cm": 0.5953718484733308,
+        "within5cm": 0.9851692132269099,
+        "within10cm": 0.998567274800456,
+        "clipped20cm_rmse_cm": 2.443266005468453
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_24/office_24_ifc_to_s3dis_transform.npy",
+          "sha256": "46f6dc35dccf2cf5ee74f97deac036a8464a3a43b93375e8f9f65436789b3c64"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_24/office_24_s3dis_to_ifc_transform.npy",
+          "sha256": "3e911184f2dec26e72186af436dce1a1d1dec5f3b8d5627aa5fdf4e90984fdea"
+        }
+      }
+    },
+    "office_25": {
+      "scanners": 2,
+      "photos": 114,
+      "original_ifc_sha256": "179a565f99aa84ec638219725d474c09736bb1cd8d4225ad7f5492a8f3b4efbf",
+      "original_ifc_to_s3dis_sha256": "ef98af38372c5fc54ea32f4bb1ae8448d2d78e9f8a382760896f68423f4609f5",
+      "source_fit_sha256": "8ff2bb188ac7dff8580e022b395be9656cef97c18cc1791041cb4b5451b38354",
+      "pointcloud_to_original_bim": [
+        [
+          0.999998436254796,
+          0.001768470514421905,
+          0.0,
+          0.027786456079010195
+        ],
+        [
+          -0.0017684705144219068,
+          0.9999984362547968,
+          0.0,
+          -0.04654535493077482
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999976,
+          -0.03043157921223903
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.0352725603895436,
+        "p90_cm": 4.526633616106421,
+        "within2cm": 0.23820298568928241,
+        "within5cm": 0.9891669566560279,
+        "within10cm": 0.9992460602628779,
+        "clipped20cm_rmse_cm": 3.218908283014342
+      },
+      "geometry_after": {
+        "median_cm": 1.0353847798469311,
+        "p90_cm": 2.5540032463789086,
+        "within2cm": 0.8430327876728783,
+        "within5cm": 0.9849746044819657,
+        "within10cm": 0.9965056779573767,
+        "clipped20cm_rmse_cm": 1.8552956998880497
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_25/office_25_ifc_to_s3dis_transform.npy",
+          "sha256": "461419c4f3864dee2d4a8b3f907df9034df4828bc7088df191e9033fe56d8681"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_25/office_25_s3dis_to_ifc_transform.npy",
+          "sha256": "d8ace19f7e8c30aab26a498988091463816e72961645dfb34ea7271057c0f90a"
+        }
+      }
+    },
+    "office_26": {
+      "scanners": 4,
+      "photos": 221,
+      "original_ifc_sha256": "7957fa365a3a419a49a28839c90433a56793309371acfe5cbdcfc6e60c26b492",
+      "original_ifc_to_s3dis_sha256": "2f4530d0a88ba6f9957512b0c15c959cea13a37c4e4c7b77d4feb9ac89ca7d72",
+      "source_fit_sha256": "f3a0da79ed3462766c9f1cfd67b00633d40c334bb7cc2e0c4eb88881d41b2065",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999885741051132,
+          -0.004780340910582961,
+          0.0,
+          0.06996753619940413
+        ],
+        [
+          0.004780340910582963,
+          0.9999885741051138,
+          0.0,
+          -0.02315002355198016
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999976,
+          -0.01753927531862908
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.500113127521412,
+        "p90_cm": 4.931493930608165,
+        "within2cm": 0.3833289610189241,
+        "within5cm": 0.9136461623417613,
+        "within10cm": 0.9891516931326585,
+        "clipped20cm_rmse_cm": 3.361776088816802
+      },
+      "geometry_after": {
+        "median_cm": 0.8733501493700004,
+        "p90_cm": 2.641146721466748,
+        "within2cm": 0.8063141523329858,
+        "within5cm": 0.9765583755651076,
+        "within10cm": 0.9942252928149945,
+        "clipped20cm_rmse_cm": 2.0229849246984184
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_26/office_26_ifc_to_s3dis_transform.npy",
+          "sha256": "f101164ce3ebe0ca632fca857e7e064d2e7791f66b30f54e0dbc732ba934807e"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_26/office_26_s3dis_to_ifc_transform.npy",
+          "sha256": "3c8190ddc16ce2743192c0f46f7ee865e729627f064417a897fae827f43f55da"
+        }
+      }
+    },
+    "office_27": {
+      "scanners": 4,
+      "photos": 229,
+      "original_ifc_sha256": "3ed42c1a63c2115198ecbbb03ab778a95ab5275880878ff93c8634b01982017e",
+      "original_ifc_to_s3dis_sha256": "75764e5d4a3d4e9d60171200c133c2ae962ff54b58c6aa88c60882f96046d235",
+      "source_fit_sha256": "7d8dc68d42faec0b550895e04d672dc5e35fd303f1ce2952a5ea1ae273923466",
+      "pointcloud_to_original_bim": [
+        [
+          0.9997779804289525,
+          0.021071066641414095,
+          0.0,
+          0.021382452597524693
+        ],
+        [
+          -0.021071066641414088,
+          0.9997779804289523,
+          0.0,
+          -0.008682995953168916
+        ],
+        [
+          0.0,
+          0.0,
+          0.999999999999998,
+          -0.030573700213557688
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.03634052081868,
+        "p90_cm": 4.73178310496366,
+        "within2cm": 0.4899270925111558,
+        "within5cm": 0.9177096037945438,
+        "within10cm": 0.9803611237272362,
+        "clipped20cm_rmse_cm": 3.630752794350559
+      },
+      "geometry_after": {
+        "median_cm": 1.0210782793148296,
+        "p90_cm": 3.1949793608513923,
+        "within2cm": 0.7620766690821156,
+        "within5cm": 0.9578476765029276,
+        "within10cm": 0.9793765593786175,
+        "clipped20cm_rmse_cm": 3.0412714787580764
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_27/office_27_ifc_to_s3dis_transform.npy",
+          "sha256": "92c532ebf58c56ba30bcbb50a5f320a83b17990db93426b71e8d7107781a0beb"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_27/office_27_s3dis_to_ifc_transform.npy",
+          "sha256": "150371356667ec769d8b188085f31002aa681599a08b2054ac16396dc7a2ad0d"
+        }
+      }
+    },
+    "office_28": {
+      "scanners": 4,
+      "photos": 233,
+      "original_ifc_sha256": "8a627ef64f3b84c38d1e436b9f9ff2e3b48288840b7725c57a97f817734b4910",
+      "original_ifc_to_s3dis_sha256": "d81a305896438c143a9952e1a4353f38608d1e47f692a970a681c2465f294124",
+      "source_fit_sha256": "0805ea7f55496efa309ad56da9fddfeab839ee109538d1f2acab9ea0f9fecf7a",
+      "pointcloud_to_original_bim": [
+        [
+          0.9995964183500483,
+          -0.028407752845951834,
+          0.0,
+          0.05031082411323799
+        ],
+        [
+          0.02840775284595182,
+          0.9995964183500485,
+          0.0,
+          0.024384346059411012
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999981,
+          -0.028501276149964623
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.9245388724837835,
+        "p90_cm": 6.230203765394462,
+        "within2cm": 0.30776443566034994,
+        "within5cm": 0.8623392965316403,
+        "within10cm": 0.9621031899195015,
+        "clipped20cm_rmse_cm": 4.479408911775627
+      },
+      "geometry_after": {
+        "median_cm": 0.6704100990619121,
+        "p90_cm": 2.4746222518970136,
+        "within2cm": 0.8445892066800794,
+        "within5cm": 0.9556888363314799,
+        "within10cm": 0.9781859727080955,
+        "clipped20cm_rmse_cm": 2.9743140416535843
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_28/office_28_ifc_to_s3dis_transform.npy",
+          "sha256": "544e83a1812453a50e7e42af58d80b19e99f98ad21f21933b6f54c8cf3556eda"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_28/office_28_s3dis_to_ifc_transform.npy",
+          "sha256": "90f7377903f9e2d79250f42edb7cc86fd639ac3341eadb7da9b9ae3de41aab70"
+        }
+      }
+    },
+    "office_29": {
+      "scanners": 2,
+      "photos": 101,
+      "original_ifc_sha256": "a90ce83d733b6f166c93cd8f8e13d01676628ee991dab162c70eb9f8dc2b79c9",
+      "original_ifc_to_s3dis_sha256": "dba2f53e93054b60a9a342fe1357fb7a3b723792d28c61c8eb1624ba110e1c12",
+      "source_fit_sha256": "36b8b267b631e2b440c1ddf664a34e53386b3ac9b6b8749f87c32c819a2b3871",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999976564520999,
+          0.002164968892862061,
+          0.0,
+          -0.04526613963869061
+        ],
+        [
+          -0.002164968892862062,
+          0.9999976564521001,
+          0.0,
+          0.02137519294102532
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999993,
+          0.0014681567210544772
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.0450038400831505,
+        "p90_cm": 4.686659963105015,
+        "within2cm": 0.2752876371196173,
+        "within5cm": 0.9567151451044199,
+        "within10cm": 0.9665675074621523,
+        "clipped20cm_rmse_cm": 4.6025533128039715
+      },
+      "geometry_after": {
+        "median_cm": 0.9736506334995125,
+        "p90_cm": 2.5015539663834416,
+        "within2cm": 0.8229428461309132,
+        "within5cm": 0.9499271093122006,
+        "within10cm": 0.9641650774266362,
+        "clipped20cm_rmse_cm": 3.803461539334636
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_29/office_29_ifc_to_s3dis_transform.npy",
+          "sha256": "693a8cdd8f5e53035d78b1e19e0112f611b527c0aa1b7b875c2c2eced152b222"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_29/office_29_s3dis_to_ifc_transform.npy",
+          "sha256": "20c60d65a838222e9f80732a1d2a89452618daeab9876087cd99dde38b54d4dd"
+        }
+      }
+    },
+    "office_3": {
+      "scanners": 3,
+      "photos": 172,
+      "original_ifc_sha256": "d6e67267586d4ce56a08b3c42dd613cd43acd371a26609b3c9443f53f7dbdd6b",
+      "original_ifc_to_s3dis_sha256": "2dd849fa066b232708e0216b71dbedd1cf6ee9f4ece6e431b1228ccb30796422",
+      "source_fit_sha256": "8f219702f3e370962ba965ade30ae0a75cb3b6acf8cfcbd0e83c28690bdcbe05",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999986902863439,
+          0.0016184639619958676,
+          0.0,
+          -0.0721827656096106
+        ],
+        [
+          -0.0016184639619958659,
+          0.9999986902863435,
+          0.0,
+          0.016272112353971104
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999986,
+          0.01111021934865394
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.8688960059799675,
+        "p90_cm": 4.527125919565108,
+        "within2cm": 0.20473093386131147,
+        "within5cm": 0.9727867204072974,
+        "within10cm": 0.9976285673879225,
+        "clipped20cm_rmse_cm": 3.2763403277624197
+      },
+      "geometry_after": {
+        "median_cm": 1.6628476050703818,
+        "p90_cm": 3.3752048516224202,
+        "within2cm": 0.6097550652901522,
+        "within5cm": 0.9873048083722246,
+        "within10cm": 0.9963938622542781,
+        "clipped20cm_rmse_cm": 2.338584752714692
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_3/office_3_ifc_to_s3dis_transform.npy",
+          "sha256": "d82ff785614ef6bbe13b4ab066343caf93d92c7d630e2982f6b469481ca0e58c"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_3/office_3_s3dis_to_ifc_transform.npy",
+          "sha256": "d0d62c3f05f079d1d0feecd26a2b1a4da630f2ee739ff0cb47286a9dac5eb2b7"
+        }
+      }
+    },
+    "office_30": {
+      "scanners": 7,
+      "photos": 458,
+      "original_ifc_sha256": "a7a1f2465938c7aad69b7490dff0d2be4c0565ae6ace74b133aa22ffc0bcaf8a",
+      "original_ifc_to_s3dis_sha256": "bd9a68b2b0fc038a741d7f26a3f5cddd012e3c669109bb6c4a0e758e160eb367",
+      "source_fit_sha256": "ce49a95d6956c156e94a2be0cd5c0514ec386be35e4f189d0def882e7c5248af",
+      "pointcloud_to_original_bim": [
+        [
+          0.999986724286816,
+          0.005152790517982085,
+          0.0,
+          -0.15183776315758152
+        ],
+        [
+          -0.005152790517982086,
+          0.9999867242868161,
+          0.0,
+          -0.04437325169333359
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999987,
+          0.009353495931774104
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 1.7184121009343905,
+        "p90_cm": 2.793274808144003,
+        "within2cm": 0.6246380952380953,
+        "within5cm": 0.9919285714285715,
+        "within10cm": 0.9994952380952381,
+        "clipped20cm_rmse_cm": 2.0362315748030455
+      },
+      "geometry_after": {
+        "median_cm": 1.0522141613422722,
+        "p90_cm": 3.2076780080072815,
+        "within2cm": 0.7909285714285714,
+        "within5cm": 0.9915380952380952,
+        "within10cm": 0.999752380952381,
+        "clipped20cm_rmse_cm": 1.8199058706843692
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_30/office_30_ifc_to_s3dis_transform.npy",
+          "sha256": "b24e2b1ec04aa8bc61e7427b371a145f1f8b5f4bc98f25333a56cf778e74b36a"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_30/office_30_s3dis_to_ifc_transform.npy",
+          "sha256": "1e7b6460beb6922f961dd89ef6ea53ae9dc9ff2e93e55292d433ef48344d012a"
+        }
+      }
+    },
+    "office_31": {
+      "scanners": 13,
+      "photos": 901,
+      "original_ifc_sha256": "80c9dd6a20a485bb26929d19801fa29b9cdeb2bfd5feaff125e5c712b2e4f6df",
+      "original_ifc_to_s3dis_sha256": "d30835ec27071128e992c8db2f6b6ea8dd9b595552a83b02c57603632762abc8",
+      "source_fit_sha256": "931c62ae59f902a592be53211ede721c3464ae5393fb8cc0cc575fbe9fed306b",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999988421932964,
+          0.001521713529024118,
+          0.0,
+          0.049377211640514285
+        ],
+        [
+          -0.0015217135290241139,
+          0.9999988421932967,
+          0.0,
+          0.03293098040236919
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999979,
+          -0.039093008759030934
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.382054507200605,
+        "p90_cm": 4.37662738962412,
+        "within2cm": 0.4030641025641025,
+        "within5cm": 0.9746461538461536,
+        "within10cm": 0.9772589743589746,
+        "clipped20cm_rmse_cm": 3.934052147777041
+      },
+      "geometry_after": {
+        "median_cm": 0.7130255535912463,
+        "p90_cm": 1.7779514844573003,
+        "within2cm": 0.931425641025641,
+        "within5cm": 0.973430769230769,
+        "within10cm": 0.9769076923076923,
+        "clipped20cm_rmse_cm": 2.948784316132709
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_31/office_31_ifc_to_s3dis_transform.npy",
+          "sha256": "8ae549d10794f84bd09ffc3e27ec03b39c0512e8663159b1f1acf38bd1cdb4ca"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_31/office_31_s3dis_to_ifc_transform.npy",
+          "sha256": "e7846036e1fb98efc05417338ed770b8cc4c4cbe29f61bfce80a37c47573aab9"
+        }
+      }
+    },
+    "office_4": {
+      "scanners": 2,
+      "photos": 116,
+      "original_ifc_sha256": "c90ae4ed971cff87f0f02bd22f90bda9972524cdcae5011cd4c81f3883044f70",
+      "original_ifc_to_s3dis_sha256": "d5914d95018bc4d5586422b9b6e4bfefec82de8a6f2798cfc8560cf43708c39a",
+      "source_fit_sha256": "08a85a4561483e61dc0e0b5210b97964d3d05eadc1a8ffebcb777a200e987300",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999987999062663,
+          0.001549253377177195,
+          0.0,
+          -0.02354421383576537
+        ],
+        [
+          -0.0015492533771771949,
+          0.9999987999062664,
+          0.0,
+          -0.07444805072094572
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999978,
+          -0.009277411308518268
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.44273927001242,
+        "p90_cm": 4.88472399375852,
+        "within2cm": 0.31139546117089,
+        "within5cm": 0.9836549481592758,
+        "within10cm": 0.9948416562829949,
+        "clipped20cm_rmse_cm": 3.611107102531755
+      },
+      "geometry_after": {
+        "median_cm": 0.661591003800717,
+        "p90_cm": 1.7216946673506504,
+        "within2cm": 0.9298152822417862,
+        "within5cm": 0.982044229589777,
+        "within10cm": 0.9972794415913608,
+        "clipped20cm_rmse_cm": 1.5238839775653883
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_4/office_4_ifc_to_s3dis_transform.npy",
+          "sha256": "42f26aa9da4a4b4f94c4e99fd75448bafd6c12ef18413c92ebad4a29f8afc886"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_4/office_4_s3dis_to_ifc_transform.npy",
+          "sha256": "54fa4bda29f643a3782be4689e3f054b5e0a86648c18934856fe1a761c7e50a4"
+        }
+      }
+    },
+    "office_5": {
+      "scanners": 2,
+      "photos": 123,
+      "original_ifc_sha256": "51c83842c25b6bf7b419444b73f97b905614a26017da27ab5fe462dcee0796b1",
+      "original_ifc_to_s3dis_sha256": "ec676c3ec05a91a6aa1a5582b9962e5ca4a3ee7d03fdea383cad56fa2c761eb1",
+      "source_fit_sha256": "9eaecc1d47a1efcfa6e925de17280b55bf7771a99b92c264d1a9b81e861920b5",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999980577460348,
+          0.0019709145488045,
+          0.0,
+          -0.04604457090979087
+        ],
+        [
+          -0.0019709145488044973,
+          0.9999980577460348,
+          0.0,
+          0.003503545903581885
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999979,
+          -0.028769250712648214
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.384923466706545,
+        "p90_cm": 4.765248734466932,
+        "within2cm": 0.17581401886861858,
+        "within5cm": 0.979928440528582,
+        "within10cm": 0.9990717181804373,
+        "clipped20cm_rmse_cm": 3.5427760712770544
+      },
+      "geometry_after": {
+        "median_cm": 0.9355641472873775,
+        "p90_cm": 2.371163825061789,
+        "within2cm": 0.8322491590027256,
+        "within5cm": 0.973843375047283,
+        "within10cm": 0.9952910047650227,
+        "clipped20cm_rmse_cm": 1.9146087199642923
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_5/office_5_ifc_to_s3dis_transform.npy",
+          "sha256": "45e5a7af3f7dae10ffbcb5b7001ca7aa8ece9df70b38c7427207fbe1a60ef3ce"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_5/office_5_s3dis_to_ifc_transform.npy",
+          "sha256": "65a490cc3ad6ba3892fa0764e86fcbe79cd8b4fa127a2fb595ea2cd2d4b03e06"
+        }
+      }
+    },
+    "office_6": {
+      "scanners": 2,
+      "photos": 111,
+      "original_ifc_sha256": "4cccd7a5b3717383cc25be1ef59614912e3cdc13144696341a41ff00ed243bd8",
+      "original_ifc_to_s3dis_sha256": "9973274b7ccf4ee92ae827d1642db55373e758cdcd83b9bbe201bc359ef04bd0",
+      "source_fit_sha256": "21b9ded629dc1c2aa25ed9392557b34cd19c04312f69383906a4e0ff0d49b4b9",
+      "pointcloud_to_original_bim": [
+        [
+          0.99996372372812,
+          0.008517700851082303,
+          0.0,
+          -0.16021462934255007
+        ],
+        [
+          -0.008517700851082301,
+          0.9999637237281206,
+          0.0,
+          -0.12311899675343493
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999972,
+          -0.0016025274719796486
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.6172587010061243,
+        "p90_cm": 4.667284765711746,
+        "within2cm": 0.39821266517544507,
+        "within5cm": 0.9862297995920628,
+        "within10cm": 0.9975160814767194,
+        "clipped20cm_rmse_cm": 3.1225561433739455
+      },
+      "geometry_after": {
+        "median_cm": 0.42024557686212805,
+        "p90_cm": 1.8854703280786032,
+        "within2cm": 0.9155391749557142,
+        "within5cm": 0.9766416154876567,
+        "within10cm": 0.9964771176327955,
+        "clipped20cm_rmse_cm": 1.6465919954368777
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_6/office_6_ifc_to_s3dis_transform.npy",
+          "sha256": "70a484ec40bd87e07f39201d82e24b94e509ff3520099ea7a441ed1f2659f436"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_6/office_6_s3dis_to_ifc_transform.npy",
+          "sha256": "e2da8a700432f5b88421e489aee9f68979d3585eb45b930391d472bfde9a0d84"
+        }
+      }
+    },
+    "office_7": {
+      "scanners": 2,
+      "photos": 110,
+      "original_ifc_sha256": "e1f94e952a16519bd033b9b9d3a7a9e918bb646ccdfee16faf0a391917c77fdf",
+      "original_ifc_to_s3dis_sha256": "159faf153093495d02c80b16a1cd70c2a4072af3be6f47fa9c851f2169b81238",
+      "source_fit_sha256": "5e843d243f90ae5403a90f879e9df06646aeb715cd4fccff43eb236c2ac23578",
+      "pointcloud_to_original_bim": [
+        [
+          0.9994665262089659,
+          0.03265980691589934,
+          0.0,
+          -0.6188513546037907
+        ],
+        [
+          -0.03265980691589938,
+          0.9994665262089648,
+          0.0,
+          -0.6102031553610611
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999976,
+          -0.0029307781134730315
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.3540320192632764,
+        "p90_cm": 4.775718273514347,
+        "within2cm": 0.2649905166476745,
+        "within5cm": 0.9783779845432212,
+        "within10cm": 0.9983225728585251,
+        "clipped20cm_rmse_cm": 3.4905877085153874
+      },
+      "geometry_after": {
+        "median_cm": 1.5530206451261814,
+        "p90_cm": 4.021953166542197,
+        "within2cm": 0.6014046421328334,
+        "within5cm": 0.9820055985998235,
+        "within10cm": 0.9983279609637347,
+        "clipped20cm_rmse_cm": 2.4423514435169764
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_7/office_7_ifc_to_s3dis_transform.npy",
+          "sha256": "5ebb7776a7473bc8df06ba4a784fe2c2cdd7a781c7deb6818f2d8e9026b58cf5"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_7/office_7_s3dis_to_ifc_transform.npy",
+          "sha256": "8f3b1f7e3acce2c140837614aaf7462525289df9fe1cc4801e002edf9f1a4243"
+        }
+      }
+    },
+    "office_8": {
+      "scanners": 2,
+      "photos": 99,
+      "original_ifc_sha256": "d405af985c00e5114b7d568e3355966b5f8f8fa545728741ea77bd2677e87a4c",
+      "original_ifc_to_s3dis_sha256": "98fcebe89e36963965d467cc876cdcd1c4bf6ce4d1b1dfef124250ec9c8a8e90",
+      "source_fit_sha256": "74dfc6ba9bf00637a534e04bfadfcf87cd6f2b749df4544135d012a9235e9d3f",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999999392829392,
+          -0.0003484739854501224,
+          0.0,
+          -0.07884316811894987
+        ],
+        [
+          0.0003484739854501208,
+          0.9999999392829393,
+          0.0,
+          -0.04676400559114181
+        ],
+        [
+          0.0,
+          0.0,
+          0.999999999999999,
+          -0.012420977506796112
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 4.145006276378393,
+        "p90_cm": 4.965646860563165,
+        "within2cm": 0.22335,
+        "within5cm": 0.9226333333333334,
+        "within10cm": 0.9965666666666667,
+        "clipped20cm_rmse_cm": 4.145852237107427
+      },
+      "geometry_after": {
+        "median_cm": 0.8693704901188026,
+        "p90_cm": 2.137003421057681,
+        "within2cm": 0.8716333333333333,
+        "within5cm": 0.9863833333333334,
+        "within10cm": 0.9976333333333334,
+        "clipped20cm_rmse_cm": 1.6580003508081864
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_8/office_8_ifc_to_s3dis_transform.npy",
+          "sha256": "ae5f9918d3f75350a8964caba526fca11bc1a6119eb3ca582f9fe47f14046f88"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_8/office_8_s3dis_to_ifc_transform.npy",
+          "sha256": "77c0ba4fb4048f427f85e33c51ebf029ae39199bf70f4b01a2a260fbd44b3923"
+        }
+      }
+    },
+    "office_9": {
+      "scanners": 2,
+      "photos": 121,
+      "original_ifc_sha256": "b5e42a2974a29085ee2430bca49b3a43ef987ac48c0087a2765d71378edad5b7",
+      "original_ifc_to_s3dis_sha256": "f2beb3afde7b2688e760f7aaafde8a267bb7ab39402fdd9cd78ea1fd084d8664",
+      "source_fit_sha256": "29b45ff85c64079c2a2e1ef7356a0b92cc289f2e38050efe8e58fa0f4d9dd1c3",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999954567182168,
+          0.0030143893119414823,
+          0.0,
+          -0.049128896282373394
+        ],
+        [
+          -0.003014389311941483,
+          0.999995456718217,
+          0.0,
+          -0.009179841655561932
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999993,
+          -0.0001317349924719699
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 3.652329654044231,
+        "p90_cm": 4.7866095148503,
+        "within2cm": 0.2742,
+        "within5cm": 0.9903,
+        "within10cm": 0.9933666666666667,
+        "clipped20cm_rmse_cm": 3.7773783857192074
+      },
+      "geometry_after": {
+        "median_cm": 0.8067606681970378,
+        "p90_cm": 2.189957877363569,
+        "within2cm": 0.8611833333333334,
+        "within5cm": 0.9810166666666666,
+        "within10cm": 0.9936499999999999,
+        "clipped20cm_rmse_cm": 2.0514911456298703
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "office_9/office_9_ifc_to_s3dis_transform.npy",
+          "sha256": "3a49bd48b5bfa6a38c76a2940131eb6df238f3dd008e807707bc521d5a5c185f"
+        },
+        "s3dis_to_ifc": {
+          "path": "office_9/office_9_s3dis_to_ifc_transform.npy",
+          "sha256": "f92084a66580448577cb5c4a3e3ce97e354c004bc1d301aaecc5890071995c9e"
+        }
+      }
+    },
+    "pantry_1": {
+      "scanners": 2,
+      "photos": 124,
+      "original_ifc_sha256": "8c6cdb03fb9ac22c4967ee43d2d1e33ad80654774795fbfbd7b3fff55327d805",
+      "original_ifc_to_s3dis_sha256": "faa94ac34b6936f4a86415d3fc8bd5d0b01b28d787390b1ff157412c66d1dbb3",
+      "source_fit_sha256": "3d237f4bf05e0834bc8729068a7a1f39a9d4fdc1cec697b3c21818a0e88fe9e1",
+      "pointcloud_to_original_bim": [
+        [
+          0.9999883796519363,
+          0.004820846511863512,
+          0.0,
+          -0.13550049694706545
+        ],
+        [
+          -0.004820846511863513,
+          0.9999883796519371,
+          0.0,
+          -0.06934835968874611
+        ],
+        [
+          0.0,
+          0.0,
+          0.9999999999999977,
+          -0.019382619885261746
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "geometry_before": {
+        "median_cm": 2.4236804810272607,
+        "p90_cm": 4.570333032718976,
+        "within2cm": 0.3974131651215688,
+        "within5cm": 0.9745315634773092,
+        "within10cm": 0.9895209718564062,
+        "clipped20cm_rmse_cm": 3.162143120304691
+      },
+      "geometry_after": {
+        "median_cm": 1.678355609233794,
+        "p90_cm": 4.12141952611511,
+        "within2cm": 0.5716227281814668,
+        "within5cm": 0.9699636768431271,
+        "within10cm": 0.9893344931729391,
+        "clipped20cm_rmse_cm": 2.7932552469753764
+      },
+      "quality_flags": [],
+      "files": {
+        "ifc_to_s3dis": {
+          "path": "pantry_1/pantry_1_ifc_to_s3dis_transform.npy",
+          "sha256": "2122ab91d4803f9f06eeaae533b65ef0a76c83b94e08b476cdb450024e3681b7"
+        },
+        "s3dis_to_ifc": {
+          "path": "pantry_1/pantry_1_s3dis_to_ifc_transform.npy",
+          "sha256": "bda0cd829693b7aaeb979b59e97d4e300ab966dd8ad71e8a987f7f3bf0e4dbc8"
+        }
+      }
+    }
+  }
+}

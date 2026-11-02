@@ -25,6 +25,21 @@ python -m pip install -e ".[exr]"
 python -m pip install -e ".[ifc]"
 ```
 
+## SLABIM 位姿
+
+`dataset/slabim/v1` 提供 12 个区域的原有恢复位姿，`dataset/slabim/v2` 提供整区域
+map→BIM 矫正后的参考位姿。工具位于 `src/s3dis_sam3d/slabim`，
+入口为 `script/register_slabim.py`（v1）和 `script/correct_slabim.py`（v2）。
+原始数据仍单独存放，结果目录只保留 LiDAR/相机位姿、图像索引和汇总。
+
+```python
+from s3dis_sam3d.slabim import load_camera_poses
+
+names, times, camera_to_bim = load_camera_poses("5F_Region2", version="v2")
+```
+
+方法、格式与重新运行步骤见 [SLABIM 说明](dataset/slabim/README.md)。
+
 ## 目录
 
 ```text
@@ -359,6 +374,21 @@ scene = bimsync.scene("office_11")
 mesh = scene.mesh()
 print(scene.is_calibrated, scene.calibration)
 ```
+
+Area1 的整房间 Huber 精修结果另存于
+`dataset/ifc_to_s3dis/Area_1_room_upright_huber_v2`，覆盖 44 个房间。
+显式选择这份结果：
+
+```python
+from s3dis_sam3d.config import bimsync_calibration_dir
+
+bimsync = BIMSyncDataset(
+    "path/to/BIMSyn/BIM_model/ifc",
+    calibration_dir=bimsync_calibration_dir("Area_1", refined=True),
+)
+```
+
+矩阵方向、方法和前后指标见[精修结果说明](dataset/ifc_to_s3dis/Area_1_room_upright_huber_v2/README.md)。
 
 `visualize_registration` 默认不打开窗口，适合批处理保存截图；需要交互查看时传入
 `show=True`。S3DIS 的房间数据与实例数据分别由 `S3DISRoom` 和 `S3DISInstance` 负责。

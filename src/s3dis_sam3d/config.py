@@ -35,6 +35,7 @@ class Config:
     bimsync_root: Optional[Path] = None
     bimnet_root: Optional[Path] = None
     matterport_root: Optional[Path] = None
+    slabim_root: Optional[Path] = None
 
     def require(self, name):
         """
@@ -62,6 +63,7 @@ class Config:
             "bimsync_root": self.bimsync_root,
             "bimnet_root": self.bimnet_root,
             "matterport_root": self.matterport_root,
+            "slabim_root": self.slabim_root,
         }
 
         data = {
@@ -99,6 +101,7 @@ class Config:
             "bimsync_root",
             "bimnet_root",
             "matterport_root",
+            "slabim_root",
         ):
             lines.append(f"    {name}={getattr(self, name)!r},")
 
@@ -117,6 +120,7 @@ def configure(
     bimsync_root=None,
     bimnet_root=None,
     matterport_root=None,
+    slabim_root=None,
 ):
     """
     Configure dataset paths and save them permanently for this user.
@@ -135,6 +139,7 @@ def configure(
         "bimsync_root": bimsync_root,
         "bimnet_root": bimnet_root,
         "matterport_root": matterport_root,
+        "slabim_root": slabim_root,
     }
 
     for name, value in values.items():
@@ -173,11 +178,25 @@ def s23dis_area(area="Area_1", root=None):
     )
 
 
-def bimsync_calibration_dir(area="Area_1"):
-    """Return the project-bundled BIMSync calibration directory for one Area."""
-    return BUNDLED_DATASET_ROOT / "ifc_to_s3dis" / f"{area}_upright_v2"
+def bimsync_calibration_dir(area="Area_1", *, refined=False):
+    """Return original toolkit calibrations or saved room-level Huber refinements."""
+    name = f"{area}_room_upright_huber_v2" if refined else f"{area}_upright_v2"
+    directory = BUNDLED_DATASET_ROOT / "ifc_to_s3dis"
+    if refined and not directory.is_dir():
+        return Path(__file__).resolve().parent / "_data" / "ifc_to_s3dis" / name
+    return directory / name
 
 
 def bimnet_registration_dir():
     """Return the project-bundled BIMNet → Matterport3D refined registrations."""
     return BUNDLED_DATASET_ROOT / "bimnet_to_mp3d"
+
+
+def slabim_registration_dir(version="v1"):
+    """Return one bundled SLABIM reference version (v1 or v2)."""
+    if version not in ("v1", "v2"):
+        raise ValueError(f"Unknown SLABIM version: {version}")
+    directory = BUNDLED_DATASET_ROOT / "slabim"
+    if directory.is_dir():
+        return directory / version
+    return Path(__file__).resolve().parent / "slabim" / "data" / version

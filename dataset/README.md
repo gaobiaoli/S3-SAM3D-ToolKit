@@ -1,4 +1,10 @@
-# Minimal real-data samples
+# Bundled dataset files
+
+`slabim/` 存放 12 个区域的 v1 和整体矫正后的 v2 派生位姿，不包含 SLABIM 原始数据。
+格式、恢复方法和读取方式见 [slabim/README.md](slabim/README.md)。
+
+`ifc_to_s3dis/Area_1_room_upright_huber_v2/` 存放 Area1 全部 44 房间的精修双向矩阵，
+与原工具包的初始配准并存；见[精修说明](ifc_to_s3dis/Area_1_room_upright_huber_v2/README.md)。
 
 这个目录从本机已有的 Stanford 数据集中原样复制了一个 S3DIS 房间和一个 2D-3D-S regular 帧，用于展示真实目录结构并运行仓库示例。文件未经过降采样、裁剪或重编码。
 
